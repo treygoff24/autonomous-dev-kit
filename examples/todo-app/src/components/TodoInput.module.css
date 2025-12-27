@@ -1,0 +1,52 @@
+.container {
+  display: flex;
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.input {
+  flex: 1;
+  padding: 1rem;
+  font-size: 1.25rem;
+  border: none;
+  outline: none;
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.button {
+  padding: 0 1.5rem;
+  background: #b83f45;
+  color: white;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.button:hover {
+  background: #a33;
+}
+
+.button:focus-visible {
+  outline: 2px solid #b83f45;
+  outline-offset: -2px;
+}
+
+@media (max-width: 480px) {
+  .input {
+    font-size: 1rem;
+    padding: 0.75rem;
+  }
+
+  .button {
+    padding: 0 1rem;
+  }
+}

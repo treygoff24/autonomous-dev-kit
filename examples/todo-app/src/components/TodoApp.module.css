@@ -1,0 +1,40 @@
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 4rem;
+  font-weight: 100;
+  color: #b83f45;
+  margin: 0;
+  letter-spacing: -0.05em;
+}
+
+.subtitle {
+  color: #777;
+  font-size: 0.875rem;
+  margin: 0.5rem 0 0;
+}
+
+.main {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 1rem 0.5rem;
+  }
+
+  .title {
+    font-size: 3rem;
+  }
+}
