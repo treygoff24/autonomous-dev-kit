@@ -4,6 +4,14 @@ Complete reference for the autonomous build workflow.
 
 ---
 
+## Maximum Autonomy Warning
+
+This workflow uses maximum autonomy commands. Examples below include `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex), which bypass safety prompts and allow tools to run without confirmation.
+
+Use only in trusted repos and isolated environments. Review diffs before committing, avoid running against production systems, and remove those flags if you want approval gates.
+
+---
+
 ## Workflow Diagram
 
 ```

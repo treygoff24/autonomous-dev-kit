@@ -2,6 +2,10 @@
 
 This directory contains shell aliases and functions for the autonomous development workflow.
 
+## Maximum Autonomy Warning
+
+The `claude-review` and `codex-review` helpers run with `--dangerously-skip-permissions` and `--yolo`, which bypass safety prompts. Use only in trusted repos, review diffs before committing, and remove those flags if you want approval gates.
+
 ## Files
 
 | File | Purpose |
@@ -74,6 +78,8 @@ quality-gates --skip-build   # Skip build
 
 Run Claude code review for the current branch diff.
 
+Note: This command uses `--dangerously-skip-permissions`.
+
 ```bash
 claude-review                          # Review current changes
 claude-review 'Phase 2 - Auth'         # Name the review
@@ -82,6 +88,8 @@ claude-review 'Phase 2 - Auth'         # Name the review
 ### `codex-review`
 
 Run Codex code review for the current branch diff.
+
+Note: This command uses `--yolo`.
 
 ```bash
 codex-review                           # Review current changes

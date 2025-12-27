@@ -4,6 +4,14 @@
 
 ---
 
+## Maximum Autonomy Warning
+
+This protocol uses `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex) in command examples. These bypass safety prompts and allow tools to run without confirmation.
+
+Use only in trusted repos and isolated environments. Review diffs before committing, avoid running against production systems, and remove those flags if you want approval gates.
+
+---
+
 ## Quick Start
 
 ```

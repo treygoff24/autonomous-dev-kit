@@ -4,6 +4,12 @@
 
 ---
 
+## Maximum Autonomy Warning
+
+Example commands in this guide use `--dangerously-skip-permissions`, which bypasses safety prompts. Use only in trusted repos and remove the flag if you want approval gates.
+
+---
+
 ## When to Use
 
 Use this guide when:

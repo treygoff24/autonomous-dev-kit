@@ -4,6 +4,14 @@ Common issues and how to fix them.
 
 ---
 
+## Maximum Autonomy Warning
+
+This kit uses maximum autonomy commands in examples and helpers, including `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex). These bypass safety prompts and allow tools to run without confirmation.
+
+Use only in trusted repos and isolated environments. Review diffs before committing, avoid running against production systems, and remove those flags if you want approval gates.
+
+---
+
 ## Installation Issues
 
 ### "Claude command not found"

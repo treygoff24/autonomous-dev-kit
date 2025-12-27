@@ -19,6 +19,7 @@ DRY_RUN=false
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHELL_CONFIG=""
 OS=""
+BACKUP_SUFFIX="$(date +%Y%m%d%H%M%S)"
 
 # -----------------------------------------------------------------------------
 # Helpers
@@ -39,6 +40,40 @@ run() {
 
 command_exists() {
     command -v "$1" &> /dev/null
+}
+
+backup_file() {
+    local src="$1"
+    local backup="${src}.backup.${BACKUP_SUFFIX}"
+    info "Backing up $src to $backup"
+    run cp "$src" "$backup"
+}
+
+backup_dir() {
+    local src="$1"
+    local backup="${src}.backup.${BACKUP_SUFFIX}"
+    info "Backing up $src to $backup"
+    run cp -R "$src" "$backup"
+}
+
+prompt_overwrite() {
+    local label="$1"
+    local dest="$2"
+
+    if $DRY_RUN; then
+        info "DRY-RUN: would prompt to overwrite $label at $dest"
+        return 1
+    fi
+
+    local response=""
+    while true; do
+        read -r -p "Overwrite existing $label at $dest? [y/N] " response
+        case "$response" in
+            [yY]|[yY][eE][sS]) return 0 ;;
+            [nN]|[nN][oO]|"") return 1 ;;
+            *) echo "Please answer yes or no." ;;
+        esac
+    done
 }
 
 # -----------------------------------------------------------------------------
@@ -212,8 +247,66 @@ SHELL_CONFIG_EOF
 # Directory Setup
 # -----------------------------------------------------------------------------
 
+install_file_with_prompt() {
+    local src="$1"
+    local dest="$2"
+    local label="$3"
+
+    if [ ! -f "$src" ]; then
+        warn "$label source not found at $src"
+        return
+    fi
+
+    if [ -f "$dest" ]; then
+        backup_file "$dest"
+        if prompt_overwrite "$label" "$dest"; then
+            run cp "$src" "$dest"
+            success "Updated $label"
+        else
+            success "Keeping existing $label"
+        fi
+    else
+        run cp "$src" "$dest"
+        success "Installed $label"
+    fi
+}
+
+install_dir_with_prompt() {
+    local src="$1"
+    local dest="$2"
+    local label="$3"
+    local dest_parent
+    dest_parent="$(dirname "$dest")"
+
+    if [ ! -d "$src" ]; then
+        warn "$label source not found at $src"
+        return
+    fi
+
+    if [ ! -d "$dest_parent" ]; then
+        run mkdir -p "$dest_parent"
+    fi
+
+    if [ -d "$dest" ]; then
+        backup_dir "$dest"
+        if prompt_overwrite "$label" "$dest"; then
+            run rm -rf "$dest"
+            run cp -R "$src" "$dest"
+            success "Updated $label"
+        else
+            success "Keeping existing $label"
+        fi
+    else
+        run cp -R "$src" "$dest"
+        success "Installed $label"
+    fi
+}
+
 setup_claude_directory() {
     local claude_dir="$HOME/.claude"
+    local kit_dir="$claude_dir/autonomous-dev-kit"
+    local templates_src="$SCRIPT_DIR/templates"
+    local templates_dest="$kit_dir/templates"
 
     if [ ! -d "$claude_dir" ]; then
         info "Creating $claude_dir directory..."
@@ -221,21 +314,19 @@ setup_claude_directory() {
         run mkdir -p "$claude_dir/shell"
         run mkdir -p "$claude_dir/learnings"
         run mkdir -p "$claude_dir/handoffs"
+        run mkdir -p "$kit_dir"
     else
         success "$claude_dir already exists"
+        run mkdir -p "$claude_dir/shell"
+        run mkdir -p "$claude_dir/learnings"
+        run mkdir -p "$claude_dir/handoffs"
+        run mkdir -p "$kit_dir"
     fi
 
-    # Copy global CLAUDE.md
-    if [ -f "$SCRIPT_DIR/templates/CLAUDE.md" ]; then
-        info "Installing global CLAUDE.md..."
-        run cp "$SCRIPT_DIR/templates/CLAUDE.md" "$claude_dir/CLAUDE.md"
-    fi
-
-    # Copy shell functions
-    if [ -f "$SCRIPT_DIR/shell/functions.zsh" ]; then
-        info "Installing shell functions..."
-        run cp "$SCRIPT_DIR/shell/functions.zsh" "$claude_dir/shell/functions.zsh"
-    fi
+    install_file_with_prompt "$SCRIPT_DIR/templates/CLAUDE.md" "$claude_dir/CLAUDE.md" "global CLAUDE.md"
+    install_file_with_prompt "$SCRIPT_DIR/shell/functions.zsh" "$claude_dir/shell/functions.zsh" "shell functions"
+    install_file_with_prompt "$SCRIPT_DIR/shell/aliases.zsh" "$claude_dir/shell/aliases.zsh" "shell aliases"
+    install_dir_with_prompt "$templates_src" "$templates_dest" "templates"
 }
 
 # -----------------------------------------------------------------------------

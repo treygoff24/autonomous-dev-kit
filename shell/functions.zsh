@@ -166,6 +166,31 @@ and IMPLEMENTATION_PLAN.md.
     fi
 }
 
+# Check if an npm script exists in package.json.
+has_npm_script() {
+    local script="$1"
+
+    if [[ ! -f "package.json" ]]; then
+        return 1
+    fi
+
+    if command -v jq &> /dev/null; then
+        jq -e --arg script "$script" '.scripts[$script]' package.json > /dev/null 2>&1
+        return $?
+    fi
+
+    if command -v node &> /dev/null; then
+        node -e "const script=process.argv[1];const pkg=require('./package.json');process.exit(pkg.scripts && Object.prototype.hasOwnProperty.call(pkg.scripts, script) ? 0 : 1)" "$script" > /dev/null 2>&1
+        return $?
+    fi
+
+    if command -v rg &> /dev/null; then
+        rg -q "\"$script\"[[:space:]]*:" package.json
+    else
+        grep -q "\"$script\"[[:space:]]*:" package.json
+    fi
+}
+
 # Run all quality gates
 quality-gates() {
     local help_text="
@@ -197,7 +222,7 @@ Options:
     local failed=false
 
     # Typecheck
-    if [[ -f "package.json" ]] && grep -q '"typecheck"' package.json 2>/dev/null; then
+    if has_npm_script "typecheck"; then
         echo "🔍 Running typecheck..."
         if npm run typecheck; then
             echo "✅ Typecheck passed"
@@ -209,7 +234,7 @@ Options:
     fi
 
     # Lint
-    if [[ -f "package.json" ]] && grep -q '"lint"' package.json 2>/dev/null; then
+    if has_npm_script "lint"; then
         echo "🧹 Running lint..."
         if npm run lint; then
             echo "✅ Lint passed"
@@ -222,7 +247,7 @@ Options:
 
     # Build
     if [[ "$skip_build" == false ]]; then
-        if [[ -f "package.json" ]] && grep -q '"build"' package.json 2>/dev/null; then
+        if has_npm_script "build"; then
             echo "🏗️  Running build..."
             if npm run build; then
                 echo "✅ Build passed"
@@ -239,7 +264,7 @@ Options:
 
     # Test
     if [[ "$skip_tests" == false ]]; then
-        if [[ -f "package.json" ]] && grep -q '"test"' package.json 2>/dev/null; then
+        if has_npm_script "test"; then
             echo "🧪 Running tests..."
             if npm run test; then
                 echo "✅ Tests passed"
@@ -381,7 +406,7 @@ Checks for:
 
     # Commented code blocks (multi-line)
     echo "📍 Large comment blocks (potential commented-out code):"
-    rg -n "^(\s*//.*){5,}" "$search_path" --type ts --type tsx --type js --type jsx 2>/dev/null || echo "   None found"
+    rg -n -U "(?m)(^\\s*//.*\\n){5,}" "$search_path" --type ts --type tsx --type js --type jsx 2>/dev/null || echo "   None found"
     echo ""
 
     echo "=== Done ==="

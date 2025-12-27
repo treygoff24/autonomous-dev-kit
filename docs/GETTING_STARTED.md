@@ -4,6 +4,14 @@ This guide walks you through your first autonomous AI-assisted build, from zero 
 
 ---
 
+## Maximum Autonomy Warning
+
+This kit is configured for maximum autonomy. Command examples intentionally include `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex), which bypass safety prompts and allow tools to run without confirmation.
+
+Use this only in trusted repos and isolated environments. Review diffs before committing, avoid running against production systems, and remove those flags if you want approval gates.
+
+---
+
 ## Prerequisites
 
 Before starting, verify you have:
@@ -51,7 +59,8 @@ The installer will:
 - Install Claude Code CLI
 - Configure shell aliases
 - Create `~/.claude/` directory
-- Copy templates to the right locations
+- Copy templates to `~/.claude/autonomous-dev-kit/templates`
+- Prompt before overwriting existing `~/.claude/` files
 
 ### Step 2: Restart Your Terminal
 
@@ -175,6 +184,8 @@ claude-review 'SPEC.md review'
 
 Or manually:
 
+Note: The command below uses maximum autonomy flags. Remove them if you want confirmation prompts.
+
 ```bash
 claude -p --model opus --dangerously-skip-permissions --output-format text \
   "Review the specification at SPEC.md. Evaluate for: completeness, clarity, technical feasibility, edge cases, and testable acceptance criteria. Output: Critical gaps / Ambiguities / Suggestions / Verdict (approve or revise)."
@@ -250,6 +261,8 @@ Break the work into phases:
 ```
 
 ### Step 6: Get the Plan Reviewed
+
+Note: The command below uses maximum autonomy flags. Remove them if you want confirmation prompts.
 
 ```bash
 claude -p --model opus --dangerously-skip-permissions --output-format text \

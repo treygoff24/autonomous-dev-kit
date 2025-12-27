@@ -14,6 +14,14 @@ This isn't about replacing developers. It's about removing the friction between 
 
 ---
 
+## Maximum Autonomy Warning
+
+This kit is configured for maximum autonomy. Command examples and helpers intentionally use `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex), which bypass safety prompts and allow tools to run without confirmation.
+
+Use this setup only in trusted repositories and isolated environments. Review diffs before committing, avoid running against production systems, and remove those flags if you want approval gates.
+
+---
+
 ## Philosophy
 
 ### Protocols Over Prompts

@@ -2,6 +2,10 @@
 
 **Last Updated**: Phase [N] - [Name] ([STATUS])
 
+## Maximum Autonomy Warning
+
+This template references `--dangerously-skip-permissions`, which bypasses safety prompts. Use only in trusted repos and remove the flag if you want approval gates.
+
 ## 🔄 Protocol Reminder (Re-read on every phase start)
 
 **The Loop**: IMPLEMENT → TYPECHECK → LINT → BUILD → TEST → REVIEW → FIX → REPEAT → COMMIT

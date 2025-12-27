@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { loadTodos, saveTodos, loadFilter, saveFilter, generateId } from './storage';
 
 describe('storage utilities', () => {
@@ -42,6 +42,19 @@ describe('storage utilities', () => {
     it('returns empty array when stored value is not an array', () => {
       localStorage.setItem('todos', JSON.stringify({ not: 'an array' }));
       expect(loadTodos()).toEqual([]);
+    });
+
+    it('filters out invalid todo entries', () => {
+      const todos = [
+        { id: '1', text: 'Valid', completed: false, createdAt: '2024-01-01' },
+        { id: 2, text: 'Bad id', completed: false, createdAt: '2024-01-01' },
+        { id: '3', text: 'Bad completed', completed: 'no', createdAt: '2024-01-01' },
+        { id: '4', text: 'Missing createdAt', completed: false },
+      ];
+      localStorage.setItem('todos', JSON.stringify(todos));
+      expect(loadTodos()).toEqual([
+        { id: '1', text: 'Valid', completed: false, createdAt: '2024-01-01' },
+      ]);
     });
   });
 
