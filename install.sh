@@ -116,10 +116,8 @@ install_cli_tools() {
 
 check_nodejs() {
     if ! command_exists node; then
-        error "Node.js not found."
-        error "Please install Node.js 18+ from https://nodejs.org/ or via:"
-        error "  brew install node"
-        exit 1
+        info "Node.js not found, installing via Homebrew..."
+        run brew install node
     fi
 
     local node_version
