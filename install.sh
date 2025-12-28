@@ -312,12 +312,14 @@ setup_claude_directory() {
         info "Creating $claude_dir directory..."
         run mkdir -p "$claude_dir"
         run mkdir -p "$claude_dir/shell"
+        run mkdir -p "$claude_dir/hooks"
         run mkdir -p "$claude_dir/learnings"
         run mkdir -p "$claude_dir/handoffs"
         run mkdir -p "$kit_dir"
     else
         success "$claude_dir already exists"
         run mkdir -p "$claude_dir/shell"
+        run mkdir -p "$claude_dir/hooks"
         run mkdir -p "$claude_dir/learnings"
         run mkdir -p "$claude_dir/handoffs"
         run mkdir -p "$kit_dir"
@@ -327,6 +329,91 @@ setup_claude_directory() {
     install_file_with_prompt "$SCRIPT_DIR/shell/functions.zsh" "$claude_dir/shell/functions.zsh" "shell functions"
     install_file_with_prompt "$SCRIPT_DIR/shell/aliases.zsh" "$claude_dir/shell/aliases.zsh" "shell aliases"
     install_dir_with_prompt "$templates_src" "$templates_dest" "templates"
+
+    # Install hooks
+    install_file_with_prompt "$SCRIPT_DIR/hooks/pre-compact.sh" "$claude_dir/hooks/pre-compact.sh" "pre-compact hook"
+    install_file_with_prompt "$SCRIPT_DIR/hooks/session-start.sh" "$claude_dir/hooks/session-start.sh" "session-start hook"
+
+    # Make hooks executable
+    if [ -f "$claude_dir/hooks/pre-compact.sh" ]; then
+        run chmod +x "$claude_dir/hooks/pre-compact.sh"
+    fi
+    if [ -f "$claude_dir/hooks/session-start.sh" ]; then
+        run chmod +x "$claude_dir/hooks/session-start.sh"
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# Hook Configuration
+# -----------------------------------------------------------------------------
+
+configure_hooks() {
+    local settings_file="$HOME/.claude/settings.json"
+
+    info "Configuring Claude Code hooks..."
+
+    # Use $HOME expanded path (not ~) for reliable execution
+    local hook_path_precompact="$HOME/.claude/hooks/pre-compact.sh"
+    local hook_path_sessionstart="$HOME/.claude/hooks/session-start.sh"
+
+    if $DRY_RUN; then
+        echo -e "${CYAN}[DRY-RUN]${NC} Would configure hooks in $settings_file"
+        return
+    fi
+
+    # Check if settings file exists and is valid JSON
+    if [ -f "$settings_file" ]; then
+        if ! jq empty "$settings_file" 2>/dev/null; then
+            warn "Existing settings.json is invalid JSON, backing up and creating fresh"
+            backup_file "$settings_file"
+            rm "$settings_file"
+        fi
+    fi
+
+    if [ -f "$settings_file" ]; then
+        # Check which hooks need to be added
+        local has_precompact=false
+        local has_sessionstart=false
+
+        if jq -e '.hooks.PreCompact' "$settings_file" > /dev/null 2>&1; then
+            has_precompact=true
+        fi
+        if jq -e '.hooks.SessionStart' "$settings_file" > /dev/null 2>&1; then
+            has_sessionstart=true
+        fi
+
+        if $has_precompact && $has_sessionstart; then
+            success "Hooks already configured in settings.json"
+            return
+        fi
+
+        # Add missing hooks
+        backup_file "$settings_file"
+        local updated="$settings_file"
+
+        if ! $has_precompact; then
+            jq --arg cmd "$hook_path_precompact" \
+                '.hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
+                "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+        fi
+
+        if ! $has_sessionstart; then
+            jq --arg cmd "$hook_path_sessionstart" \
+                '.hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
+                "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+        fi
+
+        success "Added hooks to existing settings.json"
+    else
+        # Create new settings file with hooks using expanded $HOME path
+        jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
+            "hooks": {
+                "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
+                "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
+            }
+        }' > "$settings_file"
+        success "Created settings.json with hooks"
+    fi
 }
 
 # -----------------------------------------------------------------------------
@@ -523,6 +610,9 @@ main() {
     echo ""
 
     setup_claude_directory
+    echo ""
+
+    configure_hooks
     echo ""
 
     verify_installation

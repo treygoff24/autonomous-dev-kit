@@ -8,7 +8,8 @@ Bootstrap repo for autonomous AI-assisted development. Contains install scripts,
 
 ## Repository Structure
 
-- `install.sh` — Main installer (Homebrew, CLI tools, Node.js, Claude Code CLI, shell config)
+- `install.sh` — Main installer (Homebrew, CLI tools, Node.js, Claude Code CLI, shell config, hooks)
+- `hooks/` — Claude Code hooks for session continuity (pre-compact.sh, session-start.sh)
 - `templates/` — Protocol documents (AUTONOMOUS_BUILD_CLAUDE_v2.md, SPEC_WRITING.md, etc.)
 - `shell/` — Shell aliases and functions (functions.zsh, aliases.zsh)
 - `docs/` — User documentation (GETTING_STARTED.md, WORKFLOW_REFERENCE.md, TROUBLESHOOTING.md)
@@ -39,10 +40,24 @@ The installer (`install.sh`) runs these steps in order:
 4. `check_nodejs` — Installs Node.js via brew if missing, validates version 18+
 5. `install_claude_code` — `npm install -g @anthropic-ai/claude-code`
 6. `backup_shell_config` / `install_shell_config` — Adds aliases and sources functions.zsh
-7. `setup_claude_directory` — Creates ~/.claude/ with subdirectories
-8. `verify_installation` — Checks all tools installed correctly
+7. `setup_claude_directory` — Creates ~/.claude/ with subdirectories and installs hooks
+8. `configure_hooks` — Adds hook configuration to ~/.claude/settings.json
+9. `verify_installation` — Checks all tools installed correctly
 
 Uses `set -euo pipefail` and supports `--dry-run` mode.
+
+## Hooks
+
+The installer sets up two Claude Code hooks for session continuity:
+
+- **pre-compact.sh** — Runs before context compaction, saves handoff with git state and CONTEXT.md
+- **session-start.sh** — Runs after compaction or `/clear`, injects latest handoff + learnings into context
+
+Handoffs are saved to:
+- `$PROJECT/thoughts/handoffs/` when in a project
+- `~/.claude/handoffs/` globally
+
+Only handoffs < 48 hours old are auto-injected to prevent stale context.
 
 ## Template Files
 
