@@ -93,7 +93,7 @@ mkdir my-project && cd my-project
 autonomous-init              # Creates CONTEXT.md and project structure
 ```
 
-Then follow [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for a step-by-step walkthrough of your first autonomous build.
+Launch Claude Code and prompt it: "Read the autonomous build prompt and then help me create a spec for this project."
 
 ---
 
