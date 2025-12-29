@@ -30,6 +30,11 @@ Example:
         return 0
     fi
 
+    local core_path="/usr/bin:/bin:/usr/sbin:/sbin"
+    if ! command -v cp >/dev/null 2>&1 || ! command -v mkdir >/dev/null 2>&1; then
+        PATH="${core_path}:${PATH:-}"
+    fi
+
     # Find the autonomous-dev-kit templates directory
     local kit_dir=""
     local possible_paths=(
@@ -38,9 +43,9 @@ Example:
         "$HOME/autonomous-dev-kit/templates"
     )
 
-    for path in "${possible_paths[@]}"; do
-        if [[ -d "$path" ]]; then
-            kit_dir="$path"
+    for _p in "${possible_paths[@]}"; do
+        if [[ -d "$_p" ]]; then
+            kit_dir="$_p"
             break
         fi
     done
@@ -48,8 +53,8 @@ Example:
     if [[ -z "$kit_dir" ]]; then
         echo "Error: Could not find autonomous-dev-kit templates directory."
         echo "Searched in:"
-        for path in "${possible_paths[@]}"; do
-            echo "  - $path"
+        for _p in "${possible_paths[@]}"; do
+            echo "  - $_p"
         done
         return 1
     fi
@@ -61,8 +66,11 @@ Example:
         echo "  CONTEXT.md already exists, skipping"
     else
         if [[ -f "$kit_dir/CONTEXT_TEMPLATE.md" ]]; then
-            cp "$kit_dir/CONTEXT_TEMPLATE.md" CONTEXT.md
-            echo "  Created CONTEXT.md"
+            if cp "$kit_dir/CONTEXT_TEMPLATE.md" CONTEXT.md; then
+                echo "  Created CONTEXT.md"
+            else
+                echo "  Warning: failed to create CONTEXT.md"
+            fi
         else
             echo "  Warning: CONTEXT_TEMPLATE.md not found in $kit_dir"
         fi
@@ -70,8 +78,11 @@ Example:
 
     # Create .claude directory
     if [[ ! -d ".claude" ]]; then
-        mkdir -p .claude
-        echo "  Created .claude/ directory"
+        if mkdir -p .claude; then
+            echo "  Created .claude/ directory"
+        else
+            echo "  Warning: failed to create .claude/ directory"
+        fi
     else
         echo "  .claude/ already exists, skipping"
     fi
@@ -81,8 +92,11 @@ Example:
         echo "  CLAUDE.md already exists, skipping"
     else
         if [[ -f "$kit_dir/CLAUDE.md" ]]; then
-            cp "$kit_dir/CLAUDE.md" CLAUDE.md
-            echo "  Created CLAUDE.md"
+            if cp "$kit_dir/CLAUDE.md" CLAUDE.md; then
+                echo "  Created CLAUDE.md"
+            else
+                echo "  Warning: failed to create CLAUDE.md"
+            fi
         fi
     fi
 
@@ -91,8 +105,11 @@ Example:
         echo "  LEARNINGS.md already exists, skipping"
     else
         if [[ -f "$kit_dir/LEARNINGS.md" ]]; then
-            cp "$kit_dir/LEARNINGS.md" LEARNINGS.md
-            echo "  Created LEARNINGS.md"
+            if cp "$kit_dir/LEARNINGS.md" LEARNINGS.md; then
+                echo "  Created LEARNINGS.md"
+            else
+                echo "  Warning: failed to create LEARNINGS.md"
+            fi
         fi
     fi
 
