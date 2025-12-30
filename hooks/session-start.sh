@@ -93,7 +93,7 @@ CONTEXT="${CONTEXT}## Session Resumed
 
 Context was restored automatically. If anything feels stale:
 - Re-read CONTEXT.md for current state
-- Re-read AUTONOMOUS_BUILD_CLAUDE_v2.md for the full protocol
+- Re-read AUTONOMOUS_BUILD_CLAUDE.md for the full protocol
 - Check IMPLEMENTATION_PLAN.md for current phase
 
 Continue from where you left off."

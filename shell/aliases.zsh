@@ -55,12 +55,21 @@ alias cco='claude --model opus'
 alias ccs='claude --model sonnet'
 
 # =============================================================================
-# Zoxide (Smart cd)
+# Zoxide (Smart cd) - replaces cd command
 # =============================================================================
 
-# Initialize zoxide if available
+# Initialize zoxide if available (--cmd cd replaces the cd command)
 if command -v zoxide &> /dev/null; then
-    eval "$(zoxide init zsh 2>/dev/null || zoxide init bash 2>/dev/null)"
+    eval "$(zoxide init zsh --cmd cd 2>/dev/null || zoxide init bash --cmd cd 2>/dev/null)"
+fi
+
+# =============================================================================
+# Direnv (Auto-load .envrc)
+# =============================================================================
+
+# Initialize direnv if available
+if command -v direnv &> /dev/null; then
+    eval "$(direnv hook zsh 2>/dev/null || direnv hook bash 2>/dev/null)"
 fi
 
 # =============================================================================

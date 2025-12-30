@@ -94,11 +94,11 @@ prompt_overwrite() {
 # -----------------------------------------------------------------------------
 
 detect_tools() {
-    local tools=("fd" "fzf" "bat" "delta" "zoxide" "jq" "yq" "sd" "rg")
-    
+    local tools=("fd" "fzf" "bat" "delta" "zoxide" "jq" "yq" "sd" "rg" "entr" "mise" "direnv" "uv")
+
     MISSING_TOOLS=()
     INSTALLED_TOOLS=()
-    
+
     for tool in "${tools[@]}"; do
         if command_exists "$tool"; then
             INSTALLED_TOOLS+=("$tool")
@@ -376,7 +376,7 @@ install_homebrew() {
 }
 
 install_cli_tools() {
-    local tools=("fd" "fzf" "bat" "git-delta" "zoxide" "jq" "yq" "sd" "ripgrep")
+    local tools=("fd" "fzf" "bat" "git-delta" "zoxide" "jq" "yq" "sd" "ripgrep" "entr" "mise" "direnv" "uv")
 
     info "Installing CLI tools..."
     for tool in "${tools[@]}"; do
@@ -520,9 +520,14 @@ alias gpl='git pull'
 alias cc='claude'
 alias ccr='claude --resume'
 
-# Zoxide (smart cd)
+# Zoxide (smart cd) - replaces cd command
 if command -v zoxide &> /dev/null; then
-    eval "$(zoxide init zsh 2>/dev/null || zoxide init bash 2>/dev/null)"
+    eval "$(zoxide init zsh --cmd cd 2>/dev/null || zoxide init bash --cmd cd 2>/dev/null)"
+fi
+
+# Direnv (auto-load .envrc)
+if command -v direnv &> /dev/null; then
+    eval "$(direnv hook zsh 2>/dev/null || direnv hook bash 2>/dev/null)"
 fi
 
 # Source autonomous-dev-kit functions if they exist
@@ -588,9 +593,17 @@ install_shell_config_additive() {
     
     # Add zoxide init if not already in config
     if $needs_zoxide; then
-        additions+="\n# Zoxide (smart cd)\n"
+        additions+="\n# Zoxide (smart cd) - replaces cd command\n"
         additions+='if command -v zoxide &> /dev/null; then\n'
-        additions+='    eval "$(zoxide init zsh 2>/dev/null || zoxide init bash 2>/dev/null)"\n'
+        additions+='    eval "$(zoxide init zsh --cmd cd 2>/dev/null || zoxide init bash --cmd cd 2>/dev/null)"\n'
+        additions+='fi\n'
+    fi
+
+    # Add direnv hook if not already in config
+    if ! grep -q "direnv hook" "$SHELL_CONFIG" 2>/dev/null; then
+        additions+="\n# Direnv (auto-load .envrc)\n"
+        additions+='if command -v direnv &> /dev/null; then\n'
+        additions+='    eval "$(direnv hook zsh 2>/dev/null || direnv hook bash 2>/dev/null)"\n'
         additions+='fi\n'
     fi
     
@@ -942,7 +955,7 @@ verify_installation() {
     local all_good=true
 
     # Check CLI tools
-    local tools=("fd" "fzf" "bat" "delta" "jq" "yq" "sd" "rg")
+    local tools=("fd" "fzf" "bat" "delta" "zoxide" "jq" "yq" "sd" "rg" "entr" "mise" "direnv" "uv")
     for tool in "${tools[@]}"; do
         if command_exists "$tool"; then
             success "$tool installed"
@@ -951,14 +964,6 @@ verify_installation() {
             all_good=false
         fi
     done
-
-    # Check zoxide
-    if command_exists zoxide; then
-        success "zoxide installed"
-    else
-        warn "zoxide not found"
-        all_good=false
-    fi
 
     # Check Node.js
     if command_exists node; then

@@ -13,9 +13,16 @@ Usage: autonomous-init [OPTIONS]
 Initialize the current directory for autonomous AI-assisted development.
 
 Creates:
-  - CONTEXT.md from template
+  - CONTEXT.md — session state preservation
+  - CLAUDE.md — project instructions for Claude
+  - LEARNINGS.md — capturing insights across sessions
+  - AUTONOMOUS_BUILD_CLAUDE.md — protocol for Claude Code
+  - AUTONOMOUS_BUILD_CODEX.md — protocol for Codex
+  - SPEC_WRITING.md — guide for writing specs
+  - IMPLEMENTATION_PLAN_WRITING.md — guide for writing plans
+  - SPEC_QUALITY_CHECKLIST.md — spec review checklist
+  - ACCESSIBILITY_CHECKLIST.md — a11y review checklist
   - .claude/ directory for project-specific config
-  - Copies project CLAUDE.md template
 
 Options:
   --help    Show this help message
@@ -113,14 +120,88 @@ Example:
         fi
     fi
 
+    # Copy autonomous build protocols
+    if [[ -f "AUTONOMOUS_BUILD_CLAUDE.md" ]]; then
+        echo "  AUTONOMOUS_BUILD_CLAUDE.md already exists, skipping"
+    else
+        if [[ -f "$kit_dir/AUTONOMOUS_BUILD_CLAUDE_v2.md" ]]; then
+            if cp "$kit_dir/AUTONOMOUS_BUILD_CLAUDE_v2.md" AUTONOMOUS_BUILD_CLAUDE.md; then
+                echo "  Created AUTONOMOUS_BUILD_CLAUDE.md"
+            else
+                echo "  Warning: failed to create AUTONOMOUS_BUILD_CLAUDE.md"
+            fi
+        fi
+    fi
+
+    if [[ -f "AUTONOMOUS_BUILD_CODEX.md" ]]; then
+        echo "  AUTONOMOUS_BUILD_CODEX.md already exists, skipping"
+    else
+        if [[ -f "$kit_dir/AUTONOMOUS_BUILD_CODEX_v2.md" ]]; then
+            if cp "$kit_dir/AUTONOMOUS_BUILD_CODEX_v2.md" AUTONOMOUS_BUILD_CODEX.md; then
+                echo "  Created AUTONOMOUS_BUILD_CODEX.md"
+            else
+                echo "  Warning: failed to create AUTONOMOUS_BUILD_CODEX.md"
+            fi
+        fi
+    fi
+
+    # Copy writing guides
+    if [[ -f "SPEC_WRITING.md" ]]; then
+        echo "  SPEC_WRITING.md already exists, skipping"
+    else
+        if [[ -f "$kit_dir/SPEC_WRITING.md" ]]; then
+            if cp "$kit_dir/SPEC_WRITING.md" SPEC_WRITING.md; then
+                echo "  Created SPEC_WRITING.md"
+            else
+                echo "  Warning: failed to create SPEC_WRITING.md"
+            fi
+        fi
+    fi
+
+    if [[ -f "IMPLEMENTATION_PLAN_WRITING.md" ]]; then
+        echo "  IMPLEMENTATION_PLAN_WRITING.md already exists, skipping"
+    else
+        if [[ -f "$kit_dir/IMPLEMENTATION_PLAN_WRITING.md" ]]; then
+            if cp "$kit_dir/IMPLEMENTATION_PLAN_WRITING.md" IMPLEMENTATION_PLAN_WRITING.md; then
+                echo "  Created IMPLEMENTATION_PLAN_WRITING.md"
+            else
+                echo "  Warning: failed to create IMPLEMENTATION_PLAN_WRITING.md"
+            fi
+        fi
+    fi
+
+    # Copy checklists
+    if [[ -f "SPEC_QUALITY_CHECKLIST.md" ]]; then
+        echo "  SPEC_QUALITY_CHECKLIST.md already exists, skipping"
+    else
+        if [[ -f "$kit_dir/SPEC_QUALITY_CHECKLIST.md" ]]; then
+            if cp "$kit_dir/SPEC_QUALITY_CHECKLIST.md" SPEC_QUALITY_CHECKLIST.md; then
+                echo "  Created SPEC_QUALITY_CHECKLIST.md"
+            else
+                echo "  Warning: failed to create SPEC_QUALITY_CHECKLIST.md"
+            fi
+        fi
+    fi
+
+    if [[ -f "ACCESSIBILITY_CHECKLIST.md" ]]; then
+        echo "  ACCESSIBILITY_CHECKLIST.md already exists, skipping"
+    else
+        if [[ -f "$kit_dir/ACCESSIBILITY_CHECKLIST.md" ]]; then
+            if cp "$kit_dir/ACCESSIBILITY_CHECKLIST.md" ACCESSIBILITY_CHECKLIST.md; then
+                echo "  Created ACCESSIBILITY_CHECKLIST.md"
+            else
+                echo "  Warning: failed to create ACCESSIBILITY_CHECKLIST.md"
+            fi
+        fi
+    fi
+
     echo ""
     echo "Autonomous build environment initialized!"
     echo ""
     echo "Next steps:"
     echo "  1. Edit CLAUDE.md with project-specific instructions"
-    echo "  2. Create SPEC.md for your feature (see SPEC_WRITING.md)"
-    echo "  3. Create IMPLEMENTATION_PLAN.md (see IMPLEMENTATION_PLAN_WRITING.md)"
-    echo "  4. Run: claude 'Read AUTONOMOUS_BUILD_CLAUDE_v2.md and build this'"
+    echo "  2. Create SPEC.md for your feature"
+    echo "  3. Run: claude 'Read AUTONOMOUS_BUILD_CLAUDE.md and build this'"
 }
 
 # Show current autonomous build status
