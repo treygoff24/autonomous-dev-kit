@@ -185,20 +185,36 @@ detect_hooks() {
         MISSING_HOOKS=2
         return
     fi
-    
+
+    # Fall back to string matching when jq isn't available yet
+    if ! command_exists jq; then
+        if grep -Fq "$hook_precompact" "$settings_file" 2>/dev/null; then
+            EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
+        else
+            MISSING_HOOKS=$((MISSING_HOOKS + 1))
+        fi
+
+        if grep -Fq "$hook_sessionstart" "$settings_file" 2>/dev/null; then
+            EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
+        else
+            MISSING_HOOKS=$((MISSING_HOOKS + 1))
+        fi
+        return
+    fi
+
     # Check if settings.json is valid JSON
     if ! jq empty "$settings_file" 2>/dev/null; then
         MISSING_HOOKS=2
         return
     fi
-    
+
     # Check for PreCompact hook
     if jq -e ".hooks.PreCompact[]?.hooks[]? | select(.command == \"$hook_precompact\")" "$settings_file" > /dev/null 2>&1; then
         EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
     else
         MISSING_HOOKS=$((MISSING_HOOKS + 1))
     fi
-    
+
     # Check for SessionStart hook
     if jq -e ".hooks.SessionStart[]?.hooks[]? | select(.command == \"$hook_sessionstart\")" "$settings_file" > /dev/null 2>&1; then
         EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
@@ -528,28 +544,50 @@ SHELL_CONFIG_EOF
 }
 
 install_shell_config_additive() {
-    if [ ${#MISSING_ALIASES[@]} -eq 0 ]; then
-        success "All aliases already defined"
+    local needs_aliases=false
+    local needs_zoxide=false
+    local needs_functions=false
+
+    if [ ${#MISSING_ALIASES[@]} -gt 0 ]; then
+        needs_aliases=true
+    fi
+
+    if ! grep -q "zoxide init" "$SHELL_CONFIG" 2>/dev/null; then
+        needs_zoxide=true
+    fi
+
+    if ! grep -q "functions.zsh" "$SHELL_CONFIG" 2>/dev/null; then
+        needs_functions=true
+    fi
+
+    if ! $needs_aliases && ! $needs_zoxide && ! $needs_functions; then
+        success "Shell configuration already up to date"
         return
     fi
 
-    info "Adding ${#MISSING_ALIASES[@]} missing aliases to $SHELL_CONFIG..."
+    if $needs_aliases; then
+        info "Adding ${#MISSING_ALIASES[@]} missing aliases to $SHELL_CONFIG..."
+    else
+        info "Adding missing shell configuration to $SHELL_CONFIG..."
+    fi
 
     # Build the additions
     local additions=""
     additions+="\n# >>> autonomous-dev-kit (additive) >>>\n"
     
-    for alias_def in "${MISSING_ALIASES[@]}"; do
-        local alias_name="${alias_def%%=*}"
-        local alias_line
-        alias_line=$(get_alias_value "$alias_name")
-        if [ -n "$alias_line" ]; then
-            additions+="$alias_line\n"
-        fi
-    done
+    if $needs_aliases; then
+        for alias_def in "${MISSING_ALIASES[@]}"; do
+            local alias_name="${alias_def%%=*}"
+            local alias_line
+            alias_line=$(get_alias_value "$alias_name")
+            if [ -n "$alias_line" ]; then
+                additions+="$alias_line\n"
+            fi
+        done
+    fi
     
     # Add zoxide init if not already in config
-    if [ -f "$SHELL_CONFIG" ] && ! grep -q "zoxide init" "$SHELL_CONFIG"; then
+    if $needs_zoxide; then
         additions+="\n# Zoxide (smart cd)\n"
         additions+='if command -v zoxide &> /dev/null; then\n'
         additions+='    eval "$(zoxide init zsh 2>/dev/null || zoxide init bash 2>/dev/null)"\n'
@@ -557,7 +595,7 @@ install_shell_config_additive() {
     fi
     
     # Add functions source if not already in config
-    if [ -f "$SHELL_CONFIG" ] && ! grep -q "functions.zsh" "$SHELL_CONFIG"; then
+    if $needs_functions; then
         additions+="\n# Source autonomous-dev-kit functions if they exist\n"
         additions+='if [ -f "$HOME/.claude/shell/functions.zsh" ]; then\n'
         additions+='    source "$HOME/.claude/shell/functions.zsh"\n'
@@ -573,7 +611,7 @@ install_shell_config_additive() {
         echo -e "$additions" >> "$SHELL_CONFIG"
     fi
     
-    success "Added missing aliases"
+    success "Added missing shell configuration"
 }
 
 # -----------------------------------------------------------------------------
@@ -848,6 +886,8 @@ configure_hooks_additive() {
             success "Our hooks already configured in settings.json"
             return
         fi
+
+        backup_file "$settings_file"
 
         # Add missing hooks while preserving existing ones
         if $needs_precompact; then
