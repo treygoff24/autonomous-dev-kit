@@ -929,49 +929,6 @@ configure_hooks_additive() {
     fi
 }
 
-# -----------------------------------------------------------------------------
-# API Keys
-# -----------------------------------------------------------------------------
-
-setup_api_keys() {
-    echo ""
-    info "API Key Setup"
-    echo "-------------"
-
-    # Check for existing keys
-    local anthropic_set=false
-    local openai_set=false
-
-    if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
-        success "ANTHROPIC_API_KEY already set"
-        anthropic_set=true
-    fi
-
-    if [ -n "${OPENAI_API_KEY:-}" ]; then
-        success "OPENAI_API_KEY already set"
-        openai_set=true
-    fi
-
-    if $anthropic_set && $openai_set; then
-        return
-    fi
-
-    echo ""
-    echo "To use this system, you'll need API keys:"
-    echo ""
-    echo "  ANTHROPIC_API_KEY - Get from https://console.anthropic.com/"
-    echo "  OPENAI_API_KEY    - Get from https://platform.openai.com/"
-    echo ""
-    echo "Add these to your shell config ($SHELL_CONFIG):"
-    echo ""
-    echo '  export ANTHROPIC_API_KEY="your-key-here"'
-    echo '  export OPENAI_API_KEY="your-key-here"'
-    echo ""
-
-    if ! $DRY_RUN; then
-        read -p "Press Enter to continue..."
-    fi
-}
 
 # -----------------------------------------------------------------------------
 # Verification
@@ -1035,24 +992,25 @@ verify_installation() {
 }
 
 # -----------------------------------------------------------------------------
-# Codex CLI Note
+# Authentication Note
 # -----------------------------------------------------------------------------
 
-codex_note() {
+auth_note() {
     echo ""
-    info "Codex CLI Setup"
-    echo "---------------"
+    info "Authentication"
+    echo "--------------"
     echo ""
-    echo "Codex CLI (OpenAI) installation varies by setup. Common methods:"
+    echo "When you first run 'claude' or 'codex', you'll be prompted to log in."
+    echo "Choose whichever method works best for you:"
     echo ""
-    echo "  # Via npm (if available)"
+    echo "  - Subscription login (Claude Pro, Teams, etc.)"
+    echo "  - API key (from console.anthropic.com or platform.openai.com)"
+    echo ""
+    echo "Both tools support interactive login - just follow the prompts."
+    echo ""
+    echo "Codex CLI (OpenAI) installation if needed:"
+    echo ""
     echo "  npm install -g @openai/codex"
-    echo ""
-    echo "  # Or check OpenAI's current docs:"
-    echo "  https://platform.openai.com/docs/guides/codex"
-    echo ""
-    echo "The autonomous build protocol will call Codex for cross-agent review."
-    echo "Ensure the 'codex' command is available before starting builds."
     echo ""
 }
 
@@ -1145,10 +1103,9 @@ main() {
     # Verification and wrap-up
     verify_installation
 
-    # Only show API key setup and codex note if not tools_only mode
+    # Only show auth note if not tools_only mode
     if [ "$INSTALL_MODE" != "tools_only" ]; then
-        setup_api_keys
-        codex_note
+        auth_note
     fi
 
     echo ""
@@ -1162,7 +1119,7 @@ main() {
         echo "  2. Re-run without 'tools only' to set up shell config"
     else
         echo "  1. Restart your terminal (or run: source $SHELL_CONFIG)"
-        echo "  2. Set your API keys in $SHELL_CONFIG"
+        echo "  2. Run 'claude' and log in (subscription or API key)"
         echo "  3. Run: autonomous-init in a new project directory"
         echo "  4. Follow docs/GETTING_STARTED.md"
     fi
