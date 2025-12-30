@@ -21,6 +21,19 @@ SHELL_CONFIG=""
 OS=""
 BACKUP_SUFFIX="$(date +%Y%m%d%H%M%S)"
 
+# Install mode: full, additive, tools_only
+INSTALL_MODE=""
+
+# Detection results (populated by detect_* functions)
+declare -a MISSING_TOOLS=()
+declare -a INSTALLED_TOOLS=()
+declare -a MISSING_ALIASES=()
+declare -a EXISTING_ALIASES=()
+declare -a MISSING_FILES=()
+declare -a EXISTING_FILES=()
+MISSING_HOOKS=0
+EXISTING_HOOKS=0
+
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------
@@ -74,6 +87,228 @@ prompt_overwrite() {
             *) echo "Please answer yes or no." ;;
         esac
     done
+}
+
+# -----------------------------------------------------------------------------
+# Detection Functions
+# -----------------------------------------------------------------------------
+
+detect_tools() {
+    local tools=("fd" "fzf" "bat" "delta" "zoxide" "jq" "yq" "sd" "rg")
+    
+    MISSING_TOOLS=()
+    INSTALLED_TOOLS=()
+    
+    for tool in "${tools[@]}"; do
+        if command_exists "$tool"; then
+            INSTALLED_TOOLS+=("$tool")
+        else
+            MISSING_TOOLS+=("$tool")
+        fi
+    done
+}
+
+detect_aliases() {
+    # Define our aliases: name=value pairs
+    local -a our_aliases=(
+        "find=fd"
+        "cat=bat"
+        "diff=delta"
+        "gs=git status"
+        "gd=git diff"
+        "gds=git diff --staged"
+        "gl=git log"
+        "gco=git checkout"
+        "ga=git add"
+        "gc=git commit"
+        "gp=git push"
+        "gpl=git pull"
+        "cc=claude"
+        "ccr=claude --resume"
+    )
+    
+    MISSING_ALIASES=()
+    EXISTING_ALIASES=()
+    
+    # Get currently loaded aliases via login shell
+    local loaded_aliases=""
+    if [ -n "${ZSH_VERSION:-}" ] || [ "$SHELL" = "/bin/zsh" ] || [ "$OS" = "macos" ]; then
+        loaded_aliases=$(zsh -ilc 'alias' 2>/dev/null || true)
+    else
+        loaded_aliases=$(bash -ilc 'alias' 2>/dev/null || true)
+    fi
+    
+    for alias_def in "${our_aliases[@]}"; do
+        local alias_name="${alias_def%%=*}"
+        
+        # Check if this alias name exists in loaded aliases
+        # Aliases appear as: alias_name=... or alias_name='...'
+        if echo "$loaded_aliases" | grep -qE "^${alias_name}=|^alias ${alias_name}="; then
+            EXISTING_ALIASES+=("$alias_name")
+        else
+            MISSING_ALIASES+=("$alias_def")
+        fi
+    done
+}
+
+detect_claude_files() {
+    local -a our_files=(
+        "$HOME/.claude/CLAUDE.md"
+        "$HOME/.claude/shell/functions.zsh"
+        "$HOME/.claude/shell/aliases.zsh"
+        "$HOME/.claude/hooks/pre-compact.sh"
+        "$HOME/.claude/hooks/session-start.sh"
+        "$HOME/.claude/autonomous-dev-kit/templates"
+    )
+    
+    MISSING_FILES=()
+    EXISTING_FILES=()
+    
+    for file_path in "${our_files[@]}"; do
+        if [ -e "$file_path" ]; then
+            EXISTING_FILES+=("$file_path")
+        else
+            MISSING_FILES+=("$file_path")
+        fi
+    done
+}
+
+detect_hooks() {
+    local settings_file="$HOME/.claude/settings.json"
+    local hook_precompact="$HOME/.claude/hooks/pre-compact.sh"
+    local hook_sessionstart="$HOME/.claude/hooks/session-start.sh"
+    
+    MISSING_HOOKS=0
+    EXISTING_HOOKS=0
+    
+    if [ ! -f "$settings_file" ]; then
+        MISSING_HOOKS=2
+        return
+    fi
+    
+    # Check if settings.json is valid JSON
+    if ! jq empty "$settings_file" 2>/dev/null; then
+        MISSING_HOOKS=2
+        return
+    fi
+    
+    # Check for PreCompact hook
+    if jq -e ".hooks.PreCompact[]?.hooks[]? | select(.command == \"$hook_precompact\")" "$settings_file" > /dev/null 2>&1; then
+        EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
+    else
+        MISSING_HOOKS=$((MISSING_HOOKS + 1))
+    fi
+    
+    # Check for SessionStart hook
+    if jq -e ".hooks.SessionStart[]?.hooks[]? | select(.command == \"$hook_sessionstart\")" "$settings_file" > /dev/null 2>&1; then
+        EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
+    else
+        MISSING_HOOKS=$((MISSING_HOOKS + 1))
+    fi
+}
+
+run_detection() {
+    echo ""
+    info "Scanning existing environment..."
+    echo ""
+    
+    detect_tools
+    detect_aliases
+    detect_claude_files
+    detect_hooks
+}
+
+display_detection_summary() {
+    local total_tools=$((${#INSTALLED_TOOLS[@]} + ${#MISSING_TOOLS[@]}))
+    local total_aliases=$((${#EXISTING_ALIASES[@]} + ${#MISSING_ALIASES[@]}))
+    local total_files=$((${#EXISTING_FILES[@]} + ${#MISSING_FILES[@]}))
+    local total_hooks=$((EXISTING_HOOKS + MISSING_HOOKS))
+    
+    # CLI Tools line
+    if [ ${#MISSING_TOOLS[@]} -eq 0 ]; then
+        echo -e "  CLI Tools:    ${GREEN}${#INSTALLED_TOOLS[@]}/${total_tools} installed${NC}"
+    else
+        echo -e "  CLI Tools:    ${#INSTALLED_TOOLS[@]}/${total_tools} installed ${YELLOW}(missing: ${MISSING_TOOLS[*]})${NC}"
+    fi
+    
+    # Aliases line
+    if [ ${#MISSING_ALIASES[@]} -eq 0 ]; then
+        echo -e "  Aliases:      ${GREEN}${#EXISTING_ALIASES[@]}/${total_aliases} defined${NC}"
+    else
+        # Extract just alias names from missing (they're stored as name=value)
+        local missing_names=()
+        for alias_def in "${MISSING_ALIASES[@]}"; do
+            missing_names+=("${alias_def%%=*}")
+        done
+        echo -e "  Aliases:      ${#EXISTING_ALIASES[@]}/${total_aliases} defined ${YELLOW}(missing: ${missing_names[*]})${NC}"
+    fi
+    
+    # ~/.claude files line
+    if [ ${#MISSING_FILES[@]} -eq 0 ]; then
+        echo -e "  ~/.claude:    ${GREEN}${#EXISTING_FILES[@]}/${total_files} files exist${NC}"
+    else
+        # Shorten paths for display
+        local missing_short=()
+        for f in "${MISSING_FILES[@]}"; do
+            missing_short+=("${f##*/}")
+        done
+        echo -e "  ~/.claude:    ${#EXISTING_FILES[@]}/${total_files} files exist ${YELLOW}(missing: ${missing_short[*]})${NC}"
+    fi
+    
+    # Hooks line
+    if [ $MISSING_HOOKS -eq 0 ]; then
+        echo -e "  Hooks:        ${GREEN}${EXISTING_HOOKS}/${total_hooks} configured${NC}"
+    else
+        echo -e "  Hooks:        ${EXISTING_HOOKS}/${total_hooks} configured ${YELLOW}(missing: ${MISSING_HOOKS})${NC}"
+    fi
+    
+    echo ""
+}
+
+prompt_install_mode() {
+    # If everything is already installed, just inform and use additive (no-op)
+    if [ ${#MISSING_TOOLS[@]} -eq 0 ] && [ ${#MISSING_ALIASES[@]} -eq 0 ] && \
+       [ ${#MISSING_FILES[@]} -eq 0 ] && [ $MISSING_HOOKS -eq 0 ]; then
+        success "Everything is already installed!"
+        INSTALL_MODE="additive"
+        return
+    fi
+    
+    if $DRY_RUN; then
+        info "DRY-RUN: would prompt for install mode, defaulting to 'additive'"
+        INSTALL_MODE="additive"
+        return
+    fi
+    
+    echo "How would you like to proceed?"
+    echo ""
+    echo -e "  ${CYAN}[1]${NC} Full install"
+    echo "      Backup existing configs, install everything fresh"
+    echo ""
+    echo -e "  ${CYAN}[2]${NC} Add missing only  ${GREEN}(recommended)${NC}"
+    echo "      Install missing tools/aliases, preserve your customizations"
+    echo ""
+    echo -e "  ${CYAN}[3]${NC} Tools only"
+    echo "      Install CLI tools via Homebrew, skip all shell/config changes"
+    echo ""
+    
+    local response=""
+    while true; do
+        read -r -p "Choice [1/2/3]: " response
+        case "$response" in
+            1) INSTALL_MODE="full"; break ;;
+            2) INSTALL_MODE="additive"; break ;;
+            3) INSTALL_MODE="tools_only"; break ;;
+            *) echo "Please enter 1, 2, or 3." ;;
+        esac
+    done
+    
+    echo ""
+    case "$INSTALL_MODE" in
+        full) info "Selected: Full install" ;;
+        additive) info "Selected: Add missing only" ;;
+        tools_only) info "Selected: Tools only" ;;
+    esac
 }
 
 # -----------------------------------------------------------------------------
@@ -186,17 +421,64 @@ backup_shell_config() {
     fi
 }
 
+# Get the full alias definition for a given alias name
+get_alias_value() {
+    local alias_name="$1"
+    case "$alias_name" in
+        find)  echo "alias find='fd'" ;;
+        cat)   echo "alias cat='bat -n --paging=never'" ;;
+        diff)  echo "alias diff='delta'" ;;
+        gs)    echo "alias gs='git status'" ;;
+        gd)    echo "alias gd='git diff'" ;;
+        gds)   echo "alias gds='git diff --staged'" ;;
+        gl)    echo "alias gl='git log --oneline -20'" ;;
+        gco)   echo "alias gco='git checkout'" ;;
+        ga)    echo "alias ga='git add'" ;;
+        gc)    echo "alias gc='git commit'" ;;
+        gp)    echo "alias gp='git push'" ;;
+        gpl)   echo "alias gpl='git pull'" ;;
+        cc)    echo "alias cc='claude'" ;;
+        ccr)   echo "alias ccr='claude --resume'" ;;
+    esac
+}
+
 install_shell_config() {
     local marker="# >>> autonomous-dev-kit >>>"
     local end_marker="# <<< autonomous-dev-kit <<<"
 
-    # Check if already installed
-    if [ -f "$SHELL_CONFIG" ] && grep -q "$marker" "$SHELL_CONFIG"; then
-        success "Shell configuration already installed in $SHELL_CONFIG"
+    # Skip if tools_only mode
+    if [ "$INSTALL_MODE" = "tools_only" ]; then
+        info "Skipping shell configuration (tools only mode)"
         return
     fi
 
-    info "Adding shell configuration to $SHELL_CONFIG..."
+    # Full mode: backup, remove old block, append fresh block
+    if [ "$INSTALL_MODE" = "full" ]; then
+        install_shell_config_full
+        return
+    fi
+
+    # Additive mode: only append missing aliases
+    install_shell_config_additive
+}
+
+install_shell_config_full() {
+    local marker="# >>> autonomous-dev-kit >>>"
+    local end_marker="# <<< autonomous-dev-kit <<<"
+
+    # Remove existing block if present
+    if [ -f "$SHELL_CONFIG" ] && grep -q "$marker" "$SHELL_CONFIG"; then
+        info "Removing existing autonomous-dev-kit block..."
+        if ! $DRY_RUN; then
+            # Use sed to remove the block (marker to end_marker inclusive)
+            sed -i.tmp "/$marker/,/$end_marker/d" "$SHELL_CONFIG"
+            rm -f "$SHELL_CONFIG.tmp"
+        else
+            echo -e "${CYAN}[DRY-RUN]${NC} Would remove existing block from $SHELL_CONFIG"
+        fi
+    fi
+
+    info "Adding full shell configuration to $SHELL_CONFIG..."
 
     local shell_additions
     shell_additions=$(cat << 'SHELL_CONFIG_EOF'
@@ -241,6 +523,57 @@ SHELL_CONFIG_EOF
     else
         echo "$shell_additions" >> "$SHELL_CONFIG"
     fi
+    
+    success "Shell configuration installed"
+}
+
+install_shell_config_additive() {
+    if [ ${#MISSING_ALIASES[@]} -eq 0 ]; then
+        success "All aliases already defined"
+        return
+    fi
+
+    info "Adding ${#MISSING_ALIASES[@]} missing aliases to $SHELL_CONFIG..."
+
+    # Build the additions
+    local additions=""
+    additions+="\n# >>> autonomous-dev-kit (additive) >>>\n"
+    
+    for alias_def in "${MISSING_ALIASES[@]}"; do
+        local alias_name="${alias_def%%=*}"
+        local alias_line
+        alias_line=$(get_alias_value "$alias_name")
+        if [ -n "$alias_line" ]; then
+            additions+="$alias_line\n"
+        fi
+    done
+    
+    # Add zoxide init if not already in config
+    if [ -f "$SHELL_CONFIG" ] && ! grep -q "zoxide init" "$SHELL_CONFIG"; then
+        additions+="\n# Zoxide (smart cd)\n"
+        additions+='if command -v zoxide &> /dev/null; then\n'
+        additions+='    eval "$(zoxide init zsh 2>/dev/null || zoxide init bash 2>/dev/null)"\n'
+        additions+='fi\n'
+    fi
+    
+    # Add functions source if not already in config
+    if [ -f "$SHELL_CONFIG" ] && ! grep -q "functions.zsh" "$SHELL_CONFIG"; then
+        additions+="\n# Source autonomous-dev-kit functions if they exist\n"
+        additions+='if [ -f "$HOME/.claude/shell/functions.zsh" ]; then\n'
+        additions+='    source "$HOME/.claude/shell/functions.zsh"\n'
+        additions+='fi\n'
+    fi
+    
+    additions+="# <<< autonomous-dev-kit (additive) <<<\n"
+
+    if $DRY_RUN; then
+        echo -e "${CYAN}[DRY-RUN]${NC} Would append to $SHELL_CONFIG:"
+        echo -e "$additions"
+    else
+        echo -e "$additions" >> "$SHELL_CONFIG"
+    fi
+    
+    success "Added missing aliases"
 }
 
 # -----------------------------------------------------------------------------
@@ -308,23 +641,36 @@ setup_claude_directory() {
     local templates_src="$SCRIPT_DIR/templates"
     local templates_dest="$kit_dir/templates"
 
-    if [ ! -d "$claude_dir" ]; then
-        info "Creating $claude_dir directory..."
-        run mkdir -p "$claude_dir"
-        run mkdir -p "$claude_dir/shell"
-        run mkdir -p "$claude_dir/hooks"
-        run mkdir -p "$claude_dir/learnings"
-        run mkdir -p "$claude_dir/handoffs"
-        run mkdir -p "$kit_dir"
-    else
-        success "$claude_dir already exists"
-        run mkdir -p "$claude_dir/shell"
-        run mkdir -p "$claude_dir/hooks"
-        run mkdir -p "$claude_dir/learnings"
-        run mkdir -p "$claude_dir/handoffs"
-        run mkdir -p "$kit_dir"
+    # Skip if tools_only mode
+    if [ "$INSTALL_MODE" = "tools_only" ]; then
+        info "Skipping ~/.claude setup (tools only mode)"
+        return
     fi
 
+    # Always ensure directories exist
+    info "Setting up $claude_dir directory..."
+    run mkdir -p "$claude_dir/shell"
+    run mkdir -p "$claude_dir/hooks"
+    run mkdir -p "$claude_dir/learnings"
+    run mkdir -p "$claude_dir/handoffs"
+    run mkdir -p "$kit_dir"
+
+    if [ "$INSTALL_MODE" = "full" ]; then
+        setup_claude_directory_full
+    else
+        setup_claude_directory_additive
+    fi
+}
+
+setup_claude_directory_full() {
+    local claude_dir="$HOME/.claude"
+    local kit_dir="$claude_dir/autonomous-dev-kit"
+    local templates_src="$SCRIPT_DIR/templates"
+    local templates_dest="$kit_dir/templates"
+
+    info "Installing all ~/.claude files (full mode)..."
+
+    # Backup and overwrite each file
     install_file_with_prompt "$SCRIPT_DIR/templates/CLAUDE.md" "$claude_dir/CLAUDE.md" "global CLAUDE.md"
     install_file_with_prompt "$SCRIPT_DIR/shell/functions.zsh" "$claude_dir/shell/functions.zsh" "shell functions"
     install_file_with_prompt "$SCRIPT_DIR/shell/aliases.zsh" "$claude_dir/shell/aliases.zsh" "shell aliases"
@@ -343,6 +689,64 @@ setup_claude_directory() {
     fi
 }
 
+setup_claude_directory_additive() {
+    local claude_dir="$HOME/.claude"
+    local kit_dir="$claude_dir/autonomous-dev-kit"
+    local templates_src="$SCRIPT_DIR/templates"
+    local templates_dest="$kit_dir/templates"
+
+    if [ ${#MISSING_FILES[@]} -eq 0 ]; then
+        success "All ~/.claude files already exist"
+        return
+    fi
+
+    info "Installing ${#MISSING_FILES[@]} missing files (additive mode)..."
+
+    # Only install files that don't exist
+    for file_path in "${MISSING_FILES[@]}"; do
+        case "$file_path" in
+            *"/CLAUDE.md")
+                if [ -f "$SCRIPT_DIR/templates/CLAUDE.md" ]; then
+                    run cp "$SCRIPT_DIR/templates/CLAUDE.md" "$claude_dir/CLAUDE.md"
+                    success "Installed global CLAUDE.md"
+                fi
+                ;;
+            *"/functions.zsh")
+                if [ -f "$SCRIPT_DIR/shell/functions.zsh" ]; then
+                    run cp "$SCRIPT_DIR/shell/functions.zsh" "$claude_dir/shell/functions.zsh"
+                    success "Installed shell functions"
+                fi
+                ;;
+            *"/aliases.zsh")
+                if [ -f "$SCRIPT_DIR/shell/aliases.zsh" ]; then
+                    run cp "$SCRIPT_DIR/shell/aliases.zsh" "$claude_dir/shell/aliases.zsh"
+                    success "Installed shell aliases"
+                fi
+                ;;
+            *"/pre-compact.sh")
+                if [ -f "$SCRIPT_DIR/hooks/pre-compact.sh" ]; then
+                    run cp "$SCRIPT_DIR/hooks/pre-compact.sh" "$claude_dir/hooks/pre-compact.sh"
+                    run chmod +x "$claude_dir/hooks/pre-compact.sh"
+                    success "Installed pre-compact hook"
+                fi
+                ;;
+            *"/session-start.sh")
+                if [ -f "$SCRIPT_DIR/hooks/session-start.sh" ]; then
+                    run cp "$SCRIPT_DIR/hooks/session-start.sh" "$claude_dir/hooks/session-start.sh"
+                    run chmod +x "$claude_dir/hooks/session-start.sh"
+                    success "Installed session-start hook"
+                fi
+                ;;
+            *"/templates")
+                if [ -d "$templates_src" ]; then
+                    run cp -R "$templates_src" "$templates_dest"
+                    success "Installed templates"
+                fi
+                ;;
+        esac
+    done
+}
+
 # -----------------------------------------------------------------------------
 # Hook Configuration
 # -----------------------------------------------------------------------------
@@ -350,7 +754,11 @@ setup_claude_directory() {
 configure_hooks() {
     local settings_file="$HOME/.claude/settings.json"
 
-    info "Configuring Claude Code hooks..."
+    # Skip if tools_only mode
+    if [ "$INSTALL_MODE" = "tools_only" ]; then
+        info "Skipping hook configuration (tools only mode)"
+        return
+    fi
 
     # Use $HOME expanded path (not ~) for reliable execution
     local hook_path_precompact="$HOME/.claude/hooks/pre-compact.sh"
@@ -360,6 +768,60 @@ configure_hooks() {
         echo -e "${CYAN}[DRY-RUN]${NC} Would configure hooks in $settings_file"
         return
     fi
+
+    if [ "$INSTALL_MODE" = "full" ]; then
+        configure_hooks_full "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart"
+    else
+        configure_hooks_additive "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart"
+    fi
+}
+
+configure_hooks_full() {
+    local settings_file="$1"
+    local hook_path_precompact="$2"
+    local hook_path_sessionstart="$3"
+
+    info "Configuring hooks (full mode)..."
+
+    # Check if settings file exists and is valid JSON
+    if [ -f "$settings_file" ]; then
+        if ! jq empty "$settings_file" 2>/dev/null; then
+            warn "Existing settings.json is invalid JSON, backing up and creating fresh"
+            backup_file "$settings_file"
+            rm "$settings_file"
+        else
+            backup_file "$settings_file"
+            # Replace the hooks section entirely while preserving other settings
+            jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '
+                .hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}] |
+                .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
+            ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            success "Replaced hooks in settings.json"
+            return
+        fi
+    fi
+
+    # Create new settings file
+    jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
+        "hooks": {
+            "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
+            "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
+        }
+    }' > "$settings_file"
+    success "Created settings.json with hooks"
+}
+
+configure_hooks_additive() {
+    local settings_file="$1"
+    local hook_path_precompact="$2"
+    local hook_path_sessionstart="$3"
+
+    if [ $MISSING_HOOKS -eq 0 ]; then
+        success "All hooks already configured"
+        return
+    fi
+
+    info "Adding ${MISSING_HOOKS} missing hooks (additive mode)..."
 
     # Check if settings file exists and is valid JSON
     if [ -f "$settings_file" ]; then
@@ -371,41 +833,52 @@ configure_hooks() {
     fi
 
     if [ -f "$settings_file" ]; then
-        # Check which hooks need to be added
-        local has_precompact=false
-        local has_sessionstart=false
+        # Check which specific hooks need to be added (by our exact command path)
+        local needs_precompact=true
+        local needs_sessionstart=true
 
-        if jq -e '.hooks.PreCompact' "$settings_file" > /dev/null 2>&1; then
-            has_precompact=true
+        if jq -e ".hooks.PreCompact[]?.hooks[]? | select(.command == \"$hook_path_precompact\")" "$settings_file" > /dev/null 2>&1; then
+            needs_precompact=false
         fi
-        if jq -e '.hooks.SessionStart' "$settings_file" > /dev/null 2>&1; then
-            has_sessionstart=true
+        if jq -e ".hooks.SessionStart[]?.hooks[]? | select(.command == \"$hook_path_sessionstart\")" "$settings_file" > /dev/null 2>&1; then
+            needs_sessionstart=false
         fi
 
-        if $has_precompact && $has_sessionstart; then
-            success "Hooks already configured in settings.json"
+        if ! $needs_precompact && ! $needs_sessionstart; then
+            success "Our hooks already configured in settings.json"
             return
         fi
 
-        # Add missing hooks
-        backup_file "$settings_file"
-        local updated="$settings_file"
-
-        if ! $has_precompact; then
-            jq --arg cmd "$hook_path_precompact" \
-                '.hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
-                "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+        # Add missing hooks while preserving existing ones
+        if $needs_precompact; then
+            # Append to existing PreCompact array or create it
+            if jq -e '.hooks.PreCompact' "$settings_file" > /dev/null 2>&1; then
+                jq --arg cmd "$hook_path_precompact" \
+                    '.hooks.PreCompact += [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
+                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            else
+                jq --arg cmd "$hook_path_precompact" \
+                    '.hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
+                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            fi
+            success "Added PreCompact hook"
         fi
 
-        if ! $has_sessionstart; then
-            jq --arg cmd "$hook_path_sessionstart" \
-                '.hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
-                "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+        if $needs_sessionstart; then
+            # Append to existing SessionStart array or create it
+            if jq -e '.hooks.SessionStart' "$settings_file" > /dev/null 2>&1; then
+                jq --arg cmd "$hook_path_sessionstart" \
+                    '.hooks.SessionStart += [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
+                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            else
+                jq --arg cmd "$hook_path_sessionstart" \
+                    '.hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
+                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            fi
+            success "Added SessionStart hook"
         fi
-
-        success "Added hooks to existing settings.json"
     else
-        # Create new settings file with hooks using expanded $HOME path
+        # Create new settings file with hooks
         jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
             "hooks": {
                 "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
@@ -591,35 +1064,52 @@ main() {
     echo "=================================="
     echo ""
 
-    # Run installation steps
+    # Detect OS first (needed for shell config path)
     detect_os
     echo ""
 
+    # Install Homebrew first (needed for jq in detection)
     install_homebrew
     echo ""
 
+    # Run detection and prompt for install mode
+    run_detection
+    display_detection_summary
+    prompt_install_mode
+    echo ""
+
+    # Install CLI tools (respects what's already installed)
     install_cli_tools
     echo ""
 
+    # Node.js and Claude Code
     check_nodejs
     install_claude_code
     echo ""
 
-    backup_shell_config
+    # Shell configuration (mode-aware)
+    if [ "$INSTALL_MODE" = "full" ]; then
+        backup_shell_config
+    fi
     install_shell_config
     echo ""
 
+    # ~/.claude directory setup (mode-aware)
     setup_claude_directory
     echo ""
 
+    # Hook configuration (mode-aware)
     configure_hooks
     echo ""
 
+    # Verification and wrap-up
     verify_installation
 
-    setup_api_keys
-
-    codex_note
+    # Only show API key setup and codex note if not tools_only mode
+    if [ "$INSTALL_MODE" != "tools_only" ]; then
+        setup_api_keys
+        codex_note
+    fi
 
     echo ""
     echo "=================================="
@@ -627,10 +1117,15 @@ main() {
     echo "=================================="
     echo ""
     echo "Next steps:"
-    echo "  1. Restart your terminal (or run: source $SHELL_CONFIG)"
-    echo "  2. Set your API keys in $SHELL_CONFIG"
-    echo "  3. Run: autonomous-init in a new project directory"
-    echo "  4. Follow docs/GETTING_STARTED.md"
+    if [ "$INSTALL_MODE" = "tools_only" ]; then
+        echo "  1. CLI tools are installed and ready to use"
+        echo "  2. Re-run without 'tools only' to set up shell config"
+    else
+        echo "  1. Restart your terminal (or run: source $SHELL_CONFIG)"
+        echo "  2. Set your API keys in $SHELL_CONFIG"
+        echo "  3. Run: autonomous-init in a new project directory"
+        echo "  4. Follow docs/GETTING_STARTED.md"
+    fi
     echo ""
     success "Happy building!"
 }
