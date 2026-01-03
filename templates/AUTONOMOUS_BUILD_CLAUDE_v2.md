@@ -18,7 +18,7 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 Read AUTONOMOUS_BUILD_CLAUDE.md and the spec at [SPEC_PATH]. Build autonomously. Do not stop until complete.
 ```
 
-If no spec exists, read `SPEC_WRITING.md` first. If no implementation plan exists, read `IMPLEMENTATION_PLAN_WRITING.md` after the spec is approved.
+If no spec exists, use `superpowers:brainstorming` to draft one. If no implementation plan exists, use `superpowers:writing-plans` after the spec is approved.
 
 ---
 
@@ -168,14 +168,14 @@ Before writing any code:
 
 **If no spec exists:**
 
-- Read `SPEC_WRITING.md` and draft a spec
-- Use `superpowers:brainstorm` skill if requirements are fuzzy
+- Use `superpowers:brainstorming` skill to refine requirements into a spec
+- Run `spec-quality-checklist` skill to validate completeness
 - Call Codex to review the spec for edge cases and feasibility
 
 **If no implementation plan exists:**
 
-- Spawn `spec-implementation-planner` subagent with the spec
-- Or use `superpowers:writing-plans` skill for manual plan creation
+- Use `superpowers:writing-plans` skill to create the phased plan
+- Or spawn `spec-implementation-planner` subagent with the spec
 - Call Codex to review sequencing and dependencies
 
 **For greenfield projects:**
@@ -213,7 +213,7 @@ IMPLEMENT → TYPECHECK → LINT → BUILD → TEST → REVIEW → FIX → SLOP 
 
 Re-read `CONTEXT.md` before starting. Write the code for this phase.
 
-Standards: verify imports exist, include error handling with user feedback, write tests for critical logic. For UI work, run `ACCESSIBILITY_CHECKLIST.md`.
+Standards: verify imports exist, include error handling with user feedback, write tests for critical logic. For UI work, run `accessibility-checklist` skill.
 
 ### Step 2: Quality Gates
 
@@ -419,11 +419,21 @@ These files should be at repo root alongside this protocol:
 | File                             | Purpose                                |
 | -------------------------------- | -------------------------------------- |
 | `CONTEXT_TEMPLATE.md`            | Template for context preservation      |
-| `SPEC_WRITING.md`                | Guide for creating specifications      |
-| `IMPLEMENTATION_PLAN_WRITING.md` | Guide for creating phased build plans  |
-| `SPEC_QUALITY_CHECKLIST.md`      | Validation checklist for specs         |
-| `ACCESSIBILITY_CHECKLIST.md`     | A11y checks for UI components          |
 | `LEARNINGS.md`                   | Project-specific learnings accumulator |
+
+**Skills (installed globally in ~/.claude/skills/):**
+
+| Skill                      | Purpose                                  |
+| -------------------------- | ---------------------------------------- |
+| `spec-quality-checklist`   | Validate specs before implementation     |
+| `accessibility-checklist`  | A11y checks for UI components            |
+
+**Superpowers skills (for spec/plan creation):**
+
+| Skill                        | Purpose                                  |
+| ---------------------------- | ---------------------------------------- |
+| `superpowers:brainstorming`  | Refine ideas into specs                  |
+| `superpowers:writing-plans`  | Create phased implementation plans       |
 
 ---
 

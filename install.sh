@@ -159,6 +159,7 @@ detect_claude_files() {
         "$HOME/.claude/hooks/pre-compact.sh"
         "$HOME/.claude/hooks/session-start.sh"
         "$HOME/.claude/autonomous-dev-kit/templates"
+        "$HOME/.claude/skills"
     )
     
     MISSING_FILES=()
@@ -691,6 +692,8 @@ setup_claude_directory() {
     local kit_dir="$claude_dir/autonomous-dev-kit"
     local templates_src="$SCRIPT_DIR/templates"
     local templates_dest="$kit_dir/templates"
+    local skills_src="$SCRIPT_DIR/skills"
+    local skills_dest="$claude_dir/skills"
 
     # Skip if tools_only mode
     if [ "$INSTALL_MODE" = "tools_only" ]; then
@@ -704,6 +707,7 @@ setup_claude_directory() {
     run mkdir -p "$claude_dir/hooks"
     run mkdir -p "$claude_dir/learnings"
     run mkdir -p "$claude_dir/handoffs"
+    run mkdir -p "$claude_dir/skills"
     run mkdir -p "$kit_dir"
 
     if [ "$INSTALL_MODE" = "full" ]; then
@@ -718,6 +722,8 @@ setup_claude_directory_full() {
     local kit_dir="$claude_dir/autonomous-dev-kit"
     local templates_src="$SCRIPT_DIR/templates"
     local templates_dest="$kit_dir/templates"
+    local skills_src="$SCRIPT_DIR/skills"
+    local skills_dest="$claude_dir/skills"
 
     info "Installing all ~/.claude files (full mode)..."
 
@@ -726,6 +732,17 @@ setup_claude_directory_full() {
     install_file_with_prompt "$SCRIPT_DIR/shell/functions.zsh" "$claude_dir/shell/functions.zsh" "shell functions"
     install_file_with_prompt "$SCRIPT_DIR/shell/aliases.zsh" "$claude_dir/shell/aliases.zsh" "shell aliases"
     install_dir_with_prompt "$templates_src" "$templates_dest" "templates"
+
+    # Install skills
+    if [ -d "$skills_src" ]; then
+        info "Installing skills..."
+        for skill_dir in "$skills_src"/*/; do
+            if [ -d "$skill_dir" ]; then
+                local skill_name=$(basename "$skill_dir")
+                install_dir_with_prompt "$skill_dir" "$skills_dest/$skill_name" "skill: $skill_name"
+            fi
+        done
+    fi
 
     # Install hooks
     install_file_with_prompt "$SCRIPT_DIR/hooks/pre-compact.sh" "$claude_dir/hooks/pre-compact.sh" "pre-compact hook"
@@ -745,6 +762,28 @@ setup_claude_directory_additive() {
     local kit_dir="$claude_dir/autonomous-dev-kit"
     local templates_src="$SCRIPT_DIR/templates"
     local templates_dest="$kit_dir/templates"
+    local skills_src="$SCRIPT_DIR/skills"
+    local skills_dest="$claude_dir/skills"
+
+    # Always install missing skills, even if other files exist
+    local skills_installed=0
+    if [ -d "$skills_src" ]; then
+        for skill_dir in "$skills_src"/*/; do
+            if [ -d "$skill_dir" ]; then
+                local skill_name=$(basename "$skill_dir")
+                if [ ! -d "$skills_dest/$skill_name" ]; then
+                    run cp -R "$skill_dir" "$skills_dest/$skill_name"
+                    success "Installed skill: $skill_name"
+                    skills_installed=$((skills_installed + 1))
+                fi
+            fi
+        done
+        if [ $skills_installed -eq 0 ]; then
+            success "All skills already installed"
+        else
+            success "Installed $skills_installed skills"
+        fi
+    fi
 
     if [ ${#MISSING_FILES[@]} -eq 0 ]; then
         success "All ~/.claude files already exist"
@@ -986,6 +1025,20 @@ verify_installation() {
         success "$HOME/.claude directory exists"
     else
         warn "$HOME/.claude directory not found"
+    fi
+
+    # Check skills
+    local skills_dir="$HOME/.claude/skills"
+    if [ -d "$skills_dir" ]; then
+        local skill_count=$(find "$skills_dir" -maxdepth 1 -type d | wc -l)
+        skill_count=$((skill_count - 1))  # Subtract 1 for the directory itself
+        if [ $skill_count -gt 0 ]; then
+            success "$skill_count skills installed in $skills_dir"
+        else
+            warn "No skills found in $skills_dir"
+        fi
+    else
+        warn "Skills directory not found"
     fi
 
     echo ""

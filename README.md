@@ -2,6 +2,14 @@
 
 > A bootstrap repo for autonomous AI-assisted development with Claude Code and Codex CLI.
 
+This kit turns Claude Code + Codex into a ready-to-run autonomous build stack, wiring in the protocols, context handling, and quality gates so agents can ship features with minimal hand-holding. Use it if you want fast, high-signal cycles from idea → spec → plan → implementation without rewriting prompts every time.
+
+- `install.sh` installs CLI essentials, Claude Code CLI, and writes shell aliases/functions that drive the autonomous workflow. skips anything you already have installed, gives you options to pick and choose what to install.
+- Seeds Claude Code skills, templates, and checklists so agents follow opinionated protocols instead of ad-hoc prompting.
+- Installs Claude Code hooks (pre-compact, session-start) to keep context synced and quality gates enforced (most important part of the kit).
+- Ships helper commands (`autonomous-init`, `quality-gates`, `claude-review`, `codex-review`, etc.) that keep sessions on-rails.
+- Includes a worked example app that demonstrates the full spec → plan → build → test loop.
+
 ---
 
 ## What This Is
@@ -80,6 +88,7 @@ cd autonomous-dev-kit
 ```
 
 The install script will:
+
 - Install CLI tools (fd, fzf, bat, ripgrep, etc.)
 - Install Claude Code CLI
 - Set up shell aliases and functions
@@ -130,16 +139,15 @@ autonomous-dev-kit/
 
 ## Templates Reference
 
-| Template | Purpose |
-|----------|---------|
-| `AUTONOMOUS_BUILD_CLAUDE_v2.md` | Main protocol when Claude is the primary agent |
-| `AUTONOMOUS_BUILD_CODEX_v2.md` | Main protocol when Codex is the primary agent |
-| `SPEC_WRITING.md` | Guide for turning ideas into structured specs |
-| `IMPLEMENTATION_PLAN_WRITING.md` | Guide for breaking specs into phases |
-| `CONTEXT_TEMPLATE.md` | Template for context preservation across sessions |
-| `SPEC_QUALITY_CHECKLIST.md` | Validation checklist before approving a spec |
-| `ACCESSIBILITY_CHECKLIST.md` | A11y verification for UI components |
-| `LEARNINGS.md` | Accumulator for insights across builds |
+| Template                        | Purpose                                           |
+| ------------------------------- | ------------------------------------------------- |
+| `AUTONOMOUS_BUILD_CLAUDE_v2.md` | Main protocol when Claude is the primary agent    |
+| `AUTONOMOUS_BUILD_CODEX_v2.md`  | Main protocol when Codex is the primary agent     |
+| `CONTEXT_TEMPLATE.md`           | Template for context preservation across sessions |
+| `LEARNINGS.md`                  | Accumulator for insights across builds            |
+| `CLAUDE.md`                     | Project-specific Claude instructions              |
+
+Spec and plan creation now live in skills (installed to `~/.claude/skills/`): `superpowers:brainstorming`, `superpowers:writing-plans`, `spec-quality-checklist`, and `accessibility-checklist`.
 
 ---
 
@@ -147,14 +155,14 @@ autonomous-dev-kit/
 
 After running `install.sh`, you'll have these commands:
 
-| Command | Description |
-|---------|-------------|
-| `autonomous-init` | Initialize a new project for autonomous builds |
-| `autonomous-status` | Show current phase and context summary |
-| `quality-gates` | Run all quality checks (typecheck, lint, build, test) |
-| `claude-review` | Run Claude code review with standard prompt |
-| `codex-review` | Run Codex code review with standard prompt |
-| `slop-check` | Grep for common AI-generated cruft patterns |
+| Command             | Description                                           |
+| ------------------- | ----------------------------------------------------- |
+| `autonomous-init`   | Initialize a new project for autonomous builds        |
+| `autonomous-status` | Show current phase and context summary                |
+| `quality-gates`     | Run all quality checks (typecheck, lint, build, test) |
+| `claude-review`     | Run Claude code review with standard prompt           |
+| `codex-review`      | Run Codex code review with standard prompt            |
+| `slop-check`        | Grep for common AI-generated cruft patterns           |
 
 ---
 
@@ -194,6 +202,7 @@ This system uses Claude and Codex as complementary agents:
 ```
 
 Each agent reviews the other's work at defined checkpoints:
+
 - After drafting specs and plans
 - After completing each phase
 - Before declaring build complete

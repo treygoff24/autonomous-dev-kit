@@ -18,7 +18,7 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 Read AUTONOMOUS_BUILD_CODEX.md and the spec at [SPEC_PATH]. Build autonomously. Do not stop until complete.
 ```
 
-If no spec exists, read `SPEC_WRITING.md` first. If no implementation plan exists, read `IMPLEMENTATION_PLAN_WRITING.md` after the spec is approved.
+If no spec exists, draft a spec first (use brainstorming techniques to refine requirements). If no implementation plan exists, create a phased plan after the spec is approved.
 
 ---
 
@@ -152,7 +152,7 @@ IMPLEMENT → TYPECHECK → LINT → BUILD → TEST → REVIEW → FIX → SLOP 
 
 Re-read `CONTEXT.md` before starting. Write the code for this phase.
 
-Standards: verify imports exist, add default exports to pages, include error handling with user feedback, write tests for critical logic. For UI work, run `ACCESSIBILITY_CHECKLIST.md`.
+Standards: verify imports exist, add default exports to pages, include error handling with user feedback, write tests for critical logic. For UI work, run accessibility checks (keyboard nav, focus styles, ARIA labels, color contrast).
 
 ### Step 2: Quality Gates
 
@@ -302,11 +302,9 @@ These files should be at repo root alongside this protocol:
 | File | Purpose |
 |------|---------|
 | `CONTEXT_TEMPLATE.md` | Template for context preservation |
-| `SPEC_WRITING.md` | Guide for creating specifications |
-| `IMPLEMENTATION_PLAN_WRITING.md` | Guide for creating phased build plans |
-| `SPEC_QUALITY_CHECKLIST.md` | Validation checklist for specs |
-| `ACCESSIBILITY_CHECKLIST.md` | A11y checks for UI components |
 | `LEARNINGS.md` | Project-specific learnings accumulator |
+
+**Note:** Spec writing and implementation planning are handled through collaborative refinement. Quality checklists for specs and accessibility are available as Claude Code skills when Claude is called for review.
 
 ---
 

@@ -18,11 +18,13 @@ Creates:
   - LEARNINGS.md — capturing insights across sessions
   - AUTONOMOUS_BUILD_CLAUDE.md — protocol for Claude Code
   - AUTONOMOUS_BUILD_CODEX.md — protocol for Codex
-  - SPEC_WRITING.md — guide for writing specs
-  - IMPLEMENTATION_PLAN_WRITING.md — guide for writing plans
-  - SPEC_QUALITY_CHECKLIST.md — spec review checklist
-  - ACCESSIBILITY_CHECKLIST.md — a11y review checklist
   - .claude/ directory for project-specific config
+
+Note: Spec writing and implementation planning are handled by skills:
+  - superpowers:brainstorming — refine ideas into specs
+  - superpowers:writing-plans — create implementation plans
+  - spec-quality-checklist — validate specs
+  - accessibility-checklist — a11y checks for UI
 
 Options:
   --help    Show this help message
@@ -145,62 +147,12 @@ Example:
         fi
     fi
 
-    # Copy writing guides
-    if [[ -f "SPEC_WRITING.md" ]]; then
-        echo "  SPEC_WRITING.md already exists, skipping"
-    else
-        if [[ -f "$kit_dir/SPEC_WRITING.md" ]]; then
-            if cp "$kit_dir/SPEC_WRITING.md" SPEC_WRITING.md; then
-                echo "  Created SPEC_WRITING.md"
-            else
-                echo "  Warning: failed to create SPEC_WRITING.md"
-            fi
-        fi
-    fi
-
-    if [[ -f "IMPLEMENTATION_PLAN_WRITING.md" ]]; then
-        echo "  IMPLEMENTATION_PLAN_WRITING.md already exists, skipping"
-    else
-        if [[ -f "$kit_dir/IMPLEMENTATION_PLAN_WRITING.md" ]]; then
-            if cp "$kit_dir/IMPLEMENTATION_PLAN_WRITING.md" IMPLEMENTATION_PLAN_WRITING.md; then
-                echo "  Created IMPLEMENTATION_PLAN_WRITING.md"
-            else
-                echo "  Warning: failed to create IMPLEMENTATION_PLAN_WRITING.md"
-            fi
-        fi
-    fi
-
-    # Copy checklists
-    if [[ -f "SPEC_QUALITY_CHECKLIST.md" ]]; then
-        echo "  SPEC_QUALITY_CHECKLIST.md already exists, skipping"
-    else
-        if [[ -f "$kit_dir/SPEC_QUALITY_CHECKLIST.md" ]]; then
-            if cp "$kit_dir/SPEC_QUALITY_CHECKLIST.md" SPEC_QUALITY_CHECKLIST.md; then
-                echo "  Created SPEC_QUALITY_CHECKLIST.md"
-            else
-                echo "  Warning: failed to create SPEC_QUALITY_CHECKLIST.md"
-            fi
-        fi
-    fi
-
-    if [[ -f "ACCESSIBILITY_CHECKLIST.md" ]]; then
-        echo "  ACCESSIBILITY_CHECKLIST.md already exists, skipping"
-    else
-        if [[ -f "$kit_dir/ACCESSIBILITY_CHECKLIST.md" ]]; then
-            if cp "$kit_dir/ACCESSIBILITY_CHECKLIST.md" ACCESSIBILITY_CHECKLIST.md; then
-                echo "  Created ACCESSIBILITY_CHECKLIST.md"
-            else
-                echo "  Warning: failed to create ACCESSIBILITY_CHECKLIST.md"
-            fi
-        fi
-    fi
-
     echo ""
     echo "Autonomous build environment initialized!"
     echo ""
     echo "Next steps:"
     echo "  1. Edit CLAUDE.md with project-specific instructions"
-    echo "  2. Create SPEC.md for your feature"
+    echo "  2. Create SPEC.md for your feature (use superpowers:brainstorming)"
     echo "  3. Run: claude 'Read AUTONOMOUS_BUILD_CLAUDE.md and build this'"
 }
 
