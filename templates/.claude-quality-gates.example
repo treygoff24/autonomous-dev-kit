@@ -1,0 +1,17 @@
+# .claude-quality-gates - opt-in to automatic quality gate checks
+# Each line is a command to run. All must pass (exit 0) for exit to be allowed.
+# Comment lines starting with # are ignored.
+#
+# Copy this file to your project root as .claude-quality-gates and customize.
+#
+# Example for JavaScript/TypeScript projects:
+# npm run typecheck
+# npm run lint
+# npm run build
+# npm run test
+
+# Example for Python projects:
+# python -m pytest
+# ruff check .
+# black --check .
+# mypy src/
