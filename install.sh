@@ -158,6 +158,9 @@ detect_claude_files() {
         "$HOME/.claude/shell/aliases.zsh"
         "$HOME/.claude/hooks/pre-compact.sh"
         "$HOME/.claude/hooks/session-start.sh"
+        "$HOME/.claude/hooks/stop.sh"
+        "$HOME/.claude/lib/loop-helpers.sh"
+        "$HOME/.claude/lib/cheatsheet.md"
         "$HOME/.claude/autonomous-dev-kit/templates"
         "$HOME/.claude/skills"
     )
@@ -178,12 +181,13 @@ detect_hooks() {
     local settings_file="$HOME/.claude/settings.json"
     local hook_precompact="$HOME/.claude/hooks/pre-compact.sh"
     local hook_sessionstart="$HOME/.claude/hooks/session-start.sh"
-    
+    local hook_stop="$HOME/.claude/hooks/stop.sh"
+
     MISSING_HOOKS=0
     EXISTING_HOOKS=0
-    
+
     if [ ! -f "$settings_file" ]; then
-        MISSING_HOOKS=2
+        MISSING_HOOKS=3
         return
     fi
 
@@ -200,12 +204,18 @@ detect_hooks() {
         else
             MISSING_HOOKS=$((MISSING_HOOKS + 1))
         fi
+
+        if grep -Fq "$hook_stop" "$settings_file" 2>/dev/null; then
+            EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
+        else
+            MISSING_HOOKS=$((MISSING_HOOKS + 1))
+        fi
         return
     fi
 
     # Check if settings.json is valid JSON
     if ! jq empty "$settings_file" 2>/dev/null; then
-        MISSING_HOOKS=2
+        MISSING_HOOKS=3
         return
     fi
 
@@ -218,6 +228,13 @@ detect_hooks() {
 
     # Check for SessionStart hook
     if jq -e ".hooks.SessionStart[]?.hooks[]? | select(.command == \"$hook_sessionstart\")" "$settings_file" > /dev/null 2>&1; then
+        EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
+    else
+        MISSING_HOOKS=$((MISSING_HOOKS + 1))
+    fi
+
+    # Check for Stop hook
+    if jq -e ".hooks.Stop[]?.hooks[]? | select(.command == \"$hook_stop\")" "$settings_file" > /dev/null 2>&1; then
         EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
     else
         MISSING_HOOKS=$((MISSING_HOOKS + 1))
@@ -705,9 +722,11 @@ setup_claude_directory() {
     info "Setting up $claude_dir directory..."
     run mkdir -p "$claude_dir/shell"
     run mkdir -p "$claude_dir/hooks"
+    run mkdir -p "$claude_dir/lib"
     run mkdir -p "$claude_dir/learnings"
     run mkdir -p "$claude_dir/handoffs"
     run mkdir -p "$claude_dir/skills"
+    run mkdir -p "$claude_dir/autonomous-loop"
     run mkdir -p "$kit_dir"
 
     if [ "$INSTALL_MODE" = "full" ]; then
@@ -747,6 +766,11 @@ setup_claude_directory_full() {
     # Install hooks
     install_file_with_prompt "$SCRIPT_DIR/hooks/pre-compact.sh" "$claude_dir/hooks/pre-compact.sh" "pre-compact hook"
     install_file_with_prompt "$SCRIPT_DIR/hooks/session-start.sh" "$claude_dir/hooks/session-start.sh" "session-start hook"
+    install_file_with_prompt "$SCRIPT_DIR/hooks/stop.sh" "$claude_dir/hooks/stop.sh" "stop hook"
+
+    # Install lib files for autonomous loop
+    install_file_with_prompt "$SCRIPT_DIR/lib/loop-helpers.sh" "$claude_dir/lib/loop-helpers.sh" "loop helpers library"
+    install_file_with_prompt "$SCRIPT_DIR/lib/cheatsheet.md" "$claude_dir/lib/cheatsheet.md" "autonomous loop cheatsheet"
 
     # Make hooks executable
     if [ -f "$claude_dir/hooks/pre-compact.sh" ]; then
@@ -754,6 +778,9 @@ setup_claude_directory_full() {
     fi
     if [ -f "$claude_dir/hooks/session-start.sh" ]; then
         run chmod +x "$claude_dir/hooks/session-start.sh"
+    fi
+    if [ -f "$claude_dir/hooks/stop.sh" ]; then
+        run chmod +x "$claude_dir/hooks/stop.sh"
     fi
 }
 
@@ -827,6 +854,25 @@ setup_claude_directory_additive() {
                     success "Installed session-start hook"
                 fi
                 ;;
+            *"/stop.sh")
+                if [ -f "$SCRIPT_DIR/hooks/stop.sh" ]; then
+                    run cp "$SCRIPT_DIR/hooks/stop.sh" "$claude_dir/hooks/stop.sh"
+                    run chmod +x "$claude_dir/hooks/stop.sh"
+                    success "Installed stop hook"
+                fi
+                ;;
+            *"/loop-helpers.sh")
+                if [ -f "$SCRIPT_DIR/lib/loop-helpers.sh" ]; then
+                    run cp "$SCRIPT_DIR/lib/loop-helpers.sh" "$claude_dir/lib/loop-helpers.sh"
+                    success "Installed loop helpers library"
+                fi
+                ;;
+            *"/cheatsheet.md")
+                if [ -f "$SCRIPT_DIR/lib/cheatsheet.md" ]; then
+                    run cp "$SCRIPT_DIR/lib/cheatsheet.md" "$claude_dir/lib/cheatsheet.md"
+                    success "Installed autonomous loop cheatsheet"
+                fi
+                ;;
             *"/templates")
                 if [ -d "$templates_src" ]; then
                     run cp -R "$templates_src" "$templates_dest"
@@ -853,6 +899,7 @@ configure_hooks() {
     # Use $HOME expanded path (not ~) for reliable execution
     local hook_path_precompact="$HOME/.claude/hooks/pre-compact.sh"
     local hook_path_sessionstart="$HOME/.claude/hooks/session-start.sh"
+    local hook_path_stop="$HOME/.claude/hooks/stop.sh"
 
     if $DRY_RUN; then
         echo -e "${CYAN}[DRY-RUN]${NC} Would configure hooks in $settings_file"
@@ -860,9 +907,9 @@ configure_hooks() {
     fi
 
     if [ "$INSTALL_MODE" = "full" ]; then
-        configure_hooks_full "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart"
+        configure_hooks_full "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart" "$hook_path_stop"
     else
-        configure_hooks_additive "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart"
+        configure_hooks_additive "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart" "$hook_path_stop"
     fi
 }
 
@@ -870,6 +917,7 @@ configure_hooks_full() {
     local settings_file="$1"
     local hook_path_precompact="$2"
     local hook_path_sessionstart="$3"
+    local hook_path_stop="$4"
 
     info "Configuring hooks (full mode)..."
 
@@ -882,9 +930,10 @@ configure_hooks_full() {
         else
             backup_file "$settings_file"
             # Replace the hooks section entirely while preserving other settings
-            jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '
+            jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '
                 .hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}] |
-                .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
+                .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}] |
+                .hooks.Stop = [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
             ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
             success "Replaced hooks in settings.json"
             return
@@ -892,10 +941,11 @@ configure_hooks_full() {
     fi
 
     # Create new settings file
-    jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
+    jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '{
         "hooks": {
             "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
-            "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
+            "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
+            "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
         }
     }' > "$settings_file"
     success "Created settings.json with hooks"
@@ -905,6 +955,7 @@ configure_hooks_additive() {
     local settings_file="$1"
     local hook_path_precompact="$2"
     local hook_path_sessionstart="$3"
+    local hook_path_stop="$4"
 
     if [ $MISSING_HOOKS -eq 0 ]; then
         success "All hooks already configured"
@@ -926,6 +977,7 @@ configure_hooks_additive() {
         # Check which specific hooks need to be added (by our exact command path)
         local needs_precompact=true
         local needs_sessionstart=true
+        local needs_stop=true
 
         if jq -e ".hooks.PreCompact[]?.hooks[]? | select(.command == \"$hook_path_precompact\")" "$settings_file" > /dev/null 2>&1; then
             needs_precompact=false
@@ -933,8 +985,11 @@ configure_hooks_additive() {
         if jq -e ".hooks.SessionStart[]?.hooks[]? | select(.command == \"$hook_path_sessionstart\")" "$settings_file" > /dev/null 2>&1; then
             needs_sessionstart=false
         fi
+        if jq -e ".hooks.Stop[]?.hooks[]? | select(.command == \"$hook_path_stop\")" "$settings_file" > /dev/null 2>&1; then
+            needs_stop=false
+        fi
 
-        if ! $needs_precompact && ! $needs_sessionstart; then
+        if ! $needs_precompact && ! $needs_sessionstart && ! $needs_stop; then
             success "Our hooks already configured in settings.json"
             return
         fi
@@ -969,12 +1024,27 @@ configure_hooks_additive() {
             fi
             success "Added SessionStart hook"
         fi
+
+        if $needs_stop; then
+            # Append to existing Stop array or create it
+            if jq -e '.hooks.Stop' "$settings_file" > /dev/null 2>&1; then
+                jq --arg cmd "$hook_path_stop" \
+                    '.hooks.Stop += [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
+                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            else
+                jq --arg cmd "$hook_path_stop" \
+                    '.hooks.Stop = [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
+                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            fi
+            success "Added Stop hook"
+        fi
     else
         # Create new settings file with hooks
-        jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
+        jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '{
             "hooks": {
                 "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
-                "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
+                "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
+                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
             }
         }' > "$settings_file"
         success "Created settings.json with hooks"
