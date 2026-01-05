@@ -6,7 +6,7 @@ This kit turns Claude Code + Codex into a ready-to-run autonomous build stack, w
 
 - `install.sh` installs CLI essentials, Claude Code CLI, and writes shell aliases/functions that drive the autonomous workflow. skips anything you already have installed, gives you options to pick and choose what to install.
 - Seeds Claude Code skills, templates, and checklists so agents follow opinionated protocols instead of ad-hoc prompting.
-- Installs Claude Code hooks (pre-compact, session-start) to keep context synced and quality gates enforced (most important part of the kit).
+- Installs Claude Code hooks (pre-compact, session-start, stop) to keep context synced, quality gates enforced, and enable autonomous loop mode.
 - Ships helper commands (`autonomous-init`, `quality-gates`, `claude-review`, `codex-review`, etc.) that keep sessions on-rails.
 - Includes a worked example app that demonstrates the full spec → plan → build → test loop.
 
@@ -125,11 +125,20 @@ autonomous-dev-kit/
 │   ├── SPEC_QUALITY_CHECKLIST.md      # Spec validation checklist
 │   ├── ACCESSIBILITY_CHECKLIST.md     # A11y checks for UI
 │   └── LEARNINGS.md                   # Learning accumulator template
+├── hooks/
+│   ├── pre-compact.sh        # Auto-handoff before context compaction
+│   ├── session-start.sh      # Context injection on session start
+│   └── stop.sh               # Autonomous loop + safety net
+├── lib/
+│   ├── loop-helpers.sh       # Shared functions for loop state
+│   └── cheatsheet.md         # Protocol cheatsheet (injected by stop hook)
 ├── shell/
 │   ├── aliases.zsh           # Shell aliases
 │   ├── functions.zsh         # Helper functions
 │   └── README.md             # Shell setup instructions
-├── skills/                   # Claude Code skills (optional)
+├── skills/
+│   └── autonomous-loop/      # /autonomous-loop skill
+├── tests/                    # Test suites for hooks and helpers
 ├── examples/
 │   └── todo-app/             # Worked example with full build cycle
 └── CHANGELOG.md
@@ -219,6 +228,58 @@ The system automatically preserves context across sessions:
 3. **SessionStart** — Fresh sessions load the latest context automatically
 
 Keep `CONTEXT.md` current (update at least twice per phase) for best results.
+
+---
+
+## Autonomous Loop Mode
+
+For truly hands-off operation, activate autonomous loop mode. This keeps Claude working until completion criteria are met, even across context compactions.
+
+### Activation
+
+```bash
+# Explicit goal
+/autonomous-loop "Build comprehensive Playwright tests for the auth flow"
+
+# Or interactive (Claude infers goal from context)
+"Go autonomous"
+```
+
+### How It Works
+
+When active, the Stop hook intercepts exit attempts and:
+1. Checks completion criteria (clean git, quality gates, plan tasks)
+2. If incomplete: blocks exit, injects continuation prompt with protocol cheatsheet
+3. If complete: allows exit, cleans up state
+
+### Completion Criteria
+
+The loop ends automatically when ALL are true:
+- Git working directory is clean
+- All quality gates pass (if `.claude-quality-gates` exists)
+- All tasks in `IMPLEMENTATION_PLAN.md` are checked off
+
+### Safety Features
+
+- **Max iterations** (default 100) — Pauses for human check-in
+- **Protocol re-read** — Every 3 iterations, verifies Claude re-read the full protocol
+- **Quality gates** — Optional per-project via `.claude-quality-gates` file
+- **Escape hatch** — Ctrl+C always works, or say "stop autonomous mode"
+
+### Example Session
+
+```bash
+# Initialize project
+autonomous-init
+# Write spec and plan...
+
+# Go autonomous
+claude "Read the spec and go autonomous"
+# Claude activates loop, works through phases, commits after each
+# Loop ends when all criteria met
+```
+
+See [docs/WORKFLOW_REFERENCE.md](docs/WORKFLOW_REFERENCE.md) for complete details.
 
 ---
 

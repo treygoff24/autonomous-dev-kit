@@ -271,7 +271,29 @@ claude -p --model opus --dangerously-skip-permissions --output-format text \
 
 ### Step 7: Start the Autonomous Build
 
-Now for the magic. Tell Claude to build it:
+Now for the magic. You have two options:
+
+**Option A: Autonomous Loop Mode (Recommended)**
+
+Activate full autonomous loop mode, which keeps Claude working until completion criteria are met:
+
+```bash
+claude "/autonomous-loop 'Build the task CLI as specified'"
+```
+
+Or interactively:
+
+```bash
+claude "Read the spec and implementation plan, then go autonomous"
+```
+
+The autonomous loop will:
+- Block exit attempts until all criteria are met
+- Inject protocol reminders every iteration
+- Re-verify protocol understanding every 3 iterations
+- Pause at 100 iterations for human check-in
+
+**Option B: Manual Prompting**
 
 ```bash
 claude "Read AUTONOMOUS_BUILD_CLAUDE_v2.md and the spec at SPEC.md. Build autonomously. Do not stop until complete."
@@ -340,10 +362,20 @@ After the build, add to `LEARNINGS.md`:
 
 ## What to Expect
 
+### With Autonomous Loop Mode
+
+When using `/autonomous-loop`:
+- **Duration:** Same as manual, but truly hands-off
+- **Check-ins:** Automatic pause every 100 iterations
+- **Protocol drift:** Prevented via periodic re-read verification
+- **Exit behavior:** Claude can't accidentally stop mid-build
+
+To stop early: Press Escape/Ctrl+C or say "stop autonomous mode"
+
 ### First-Time Builds
 
 - **Duration:** 30-90 minutes for a simple feature
-- **Interruptions:** Claude may ask clarifying questions
+- **Interruptions:** Claude may ask clarifying questions (less with autonomous loop)
 - **Iterations:** Expect 1-2 review cycles per phase
 
 ### Common First-Timer Mistakes

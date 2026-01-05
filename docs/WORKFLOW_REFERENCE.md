@@ -151,6 +151,81 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 
 ---
 
+## Autonomous Loop Mode
+
+For hands-off operation, activate autonomous loop mode. The Stop hook will keep Claude working until completion criteria are met.
+
+### Activation
+
+```bash
+# With explicit goal
+/autonomous-loop "Build comprehensive Playwright tests"
+
+# With max iterations override
+/autonomous-loop "Fix all failing tests" --max 200
+
+# Interactive (Claude infers goal from context)
+"Go autonomous" or "Start autonomous mode"
+```
+
+### How It Works
+
+1. **Initialize state** — Creates `~/.claude/autonomous-loop/<project-hash>.json`
+2. **Block exits** — Stop hook intercepts exit attempts
+3. **Check completion** — Clean git + quality gates + plan complete
+4. **Continue or exit** — If incomplete, injects continuation prompt; if complete, allows exit
+
+### Completion Criteria
+
+Loop ends when ALL are true:
+- Git working directory is clean (no uncommitted changes)
+- All quality gates pass (if `.claude-quality-gates` file exists)
+- All tasks in `IMPLEMENTATION_PLAN.md` are checked `[x]`
+
+### Quality Gates File (Optional)
+
+Create `.claude-quality-gates` in your project root:
+
+```bash
+# Each line is a command that must exit 0
+npm run typecheck
+npm run lint
+npm run build
+npm run test
+```
+
+If this file exists, all commands must pass for the loop to complete.
+
+### Safety Features
+
+| Feature | Behavior |
+|---------|----------|
+| Max iterations | Pauses at 100 (configurable) for human check-in |
+| Protocol re-read | Every 3 iterations, verifies Claude re-read full protocol |
+| Escape hatch | Ctrl+C always works, "stop autonomous mode" clears state |
+| State isolation | Per-project state files prevent cross-contamination |
+
+### Commands During Loop
+
+| Action | Command |
+|--------|---------|
+| Check status | `cat ~/.claude/autonomous-loop/*.json \| jq` |
+| Pause loop | Say "pause autonomous mode" |
+| Resume loop | Say "resume" or "continue" |
+| Stop permanently | Say "stop autonomous mode" |
+| Extend iterations | Say "continue for 50 more iterations" |
+
+### Deactivation
+
+Say any of:
+- "Stop autonomous mode"
+- "Exit autonomous mode"
+- "Pause the loop"
+
+This clears the state file and allows normal exit behavior.
+
+---
+
 ## Quality Gates
 
 Run before every code review:
@@ -382,6 +457,24 @@ Check for:
 2. Re-read `CONTEXT.md` and `IMPLEMENTATION_PLAN.md`
 3. Update `CONTEXT.md` with current state
 4. Continue
+
+**Note:** Autonomous loop mode handles this automatically — the Stop hook injects the protocol cheatsheet on every iteration and forces full protocol re-read every 3 iterations.
+
+### Autonomous Loop Issues
+
+**Loop won't end:**
+- Check completion criteria: `git status`, quality gates, plan checkboxes
+- Verify `.claude-quality-gates` commands pass manually
+- Check for unchecked `[ ]` boxes in `IMPLEMENTATION_PLAN.md`
+
+**Loop paused unexpectedly:**
+- Max iterations reached — say "continue for 50 more" to extend
+- Check state file: `cat ~/.claude/autonomous-loop/*.json | jq`
+
+**Need to escape:**
+- Ctrl+C always works
+- Say "stop autonomous mode" to clear state
+- Delete state file manually: `rm ~/.claude/autonomous-loop/*.json`
 
 ### Flaky Tests
 
