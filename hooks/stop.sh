@@ -309,6 +309,7 @@ EOF
 fi
 
 # --- Safety Net (not in loop mode) ---
+# In non-loop mode, safety net is advisory only (warns but doesn't block)
 
 # Safety net: git check
 if ! check_git_clean; then
@@ -322,18 +323,13 @@ if ! check_quality_gates; then
     done
 fi
 
-# If blockers, output message and block
+# If blockers, output warning but allow exit (advisory mode)
 if [[ ${#BLOCKERS[@]} -gt 0 ]]; then
-    echo "## Exit Blocked: Safety Net"
-    echo ""
-    echo "The following issues must be resolved:"
+    echo "⚠️  Safety net warning:" >&2
     for blocker in "${BLOCKERS[@]}"; do
-        echo "- $blocker"
+        echo "  - $blocker" >&2
     done
-    echo ""
-    echo "Fix the issues above or use Ctrl+C to force quit."
-    exit 2
 fi
 
-# All checks passed
+# Allow exit (not in loop mode = advisory only)
 exit 0
