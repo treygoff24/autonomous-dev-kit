@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-01-05
+
+### Added
+
+- **Autonomous Loop Mode** — Persistent development loops that keep Claude working until completion
+  - Stop hook (`hooks/stop.sh`) intercepts exit attempts and enforces completion criteria
+  - Continuation prompts inject protocol cheatsheet on every iteration
+  - Protocol re-read verification every 3 iterations to prevent drift
+  - Max iterations (default 100) with automatic pause for human check-in
+  - Per-project state files in `~/.claude/autonomous-loop/`
+
+- **Loop activation skill** (`skills/autonomous-loop/`)
+  - `/autonomous-loop "goal"` command for explicit activation
+  - Interactive activation via "go autonomous" or similar phrases
+  - Configurable max iterations with `--max N` flag
+
+- **Safety net layer** (always active, even without loop mode)
+  - Blocks exit on dirty git state
+  - Runs quality gates if `.claude-quality-gates` file exists
+  - Non-blocking for non-git directories
+
+- **Quality gates file** (`.claude-quality-gates`)
+  - Optional per-project file listing commands that must pass
+  - Each line is a shell command that must exit 0
+  - Example: `npm run typecheck`, `npm run lint`, `npm run test`
+
+- **Helper library** (`lib/loop-helpers.sh`)
+  - State file management functions
+  - Verification code generation
+  - Project hash calculation for state isolation
+
+- **Protocol cheatsheet** (`lib/cheatsheet.md`)
+  - Condensed protocol summary injected on each iteration
+  - Covers implementation loop, checkpoints, subagents, skills
+
+- **Test suites**
+  - 26 unit tests for loop helpers
+  - 11 tests for stop hook behavior
+  - 6 integration tests for full loop lifecycle
+
+### Changed
+
+- **Installer** (`install.sh`)
+  - Now installs Stop hook alongside PreCompact and SessionStart
+  - Creates `~/.claude/lib/` and `~/.claude/autonomous-loop/` directories
+  - Installs loop-helpers.sh and cheatsheet.md
+  - Added detection for new files and hooks
+  - Robust upgrade path for existing users (single-object hook normalization, legacy file cleanup with backup)
+
+- **Documentation**
+  - README.md: Added Autonomous Loop Mode section, updated directory structure
+  - GETTING_STARTED.md: Added autonomous loop as recommended build option
+  - WORKFLOW_REFERENCE.md: Added complete Autonomous Loop Mode reference and troubleshooting
+
+### Fixed
+
+- Installer now handles edge cases for upgrading from older versions
+  - Single-object hook formats normalized to arrays
+  - Legacy `autonomous-loop.md` skill file backed up and migrated to directory format
+  - Malformed `.hooks` key in settings.json handled gracefully
+
+---
+
 ## [1.0.0] - 2024-01-15
 
 ### Added
