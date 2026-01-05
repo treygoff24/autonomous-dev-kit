@@ -22,6 +22,82 @@ This isn't about replacing developers. It's about removing the friction between 
 
 ---
 
+## How It Works
+
+### The Problems
+
+AI coding assistants are powerful but frustrating out of the box:
+
+1. **Context amnesia** — Every time the context window fills up or you start a new session, the AI forgets everything. You re-explain the project, the decisions, where you left off. Multiply this across a multi-day build and you've wasted hours on context restoration.
+
+2. **Ad-hoc prompting** — Without structure, you get inconsistent results. The AI might write tests one time and skip them the next. It might follow your coding standards or hallucinate new ones. You end up micromanaging instead of building.
+
+3. **No quality enforcement** — AI will confidently ship broken code. Unless you explicitly run typecheck, lint, build, and test after every change, errors compound. By the time you notice, you're debugging a mess.
+
+4. **Session fragmentation** — Real features take multiple sessions. Without explicit handoffs, you lose momentum. What was the architectural decision from yesterday? Why did you choose that approach? Gone.
+
+5. **Single-agent limitations** — One AI has blind spots. It gets stuck in loops, misses edge cases, or over-engineers simple things. No external check means no course correction.
+
+### The Solutions
+
+This kit solves each problem with a specific mechanism:
+
+| Problem | Solution | Implementation |
+|---------|----------|----------------|
+| Context amnesia | Auto-handoffs + session injection | `pre-compact.sh` saves state before compaction; `session-start.sh` restores it |
+| Ad-hoc prompting | Battle-tested protocols | Templates define exactly how to write specs, plans, and execute phases |
+| No quality enforcement | Mandatory quality gates | `stop.sh` blocks completion until typecheck/lint/build/test pass |
+| Session fragmentation | Living context file | `CONTEXT.md` is updated each phase with decisions, hook signatures, next steps |
+| Single-agent limitations | Cross-agent review | Claude and Codex review each other at checkpoints |
+
+### The Mechanics
+
+**Hooks** intercept Claude Code events to enforce workflow:
+- `pre-compact.sh` — Fires before context compaction, dumps git state + CONTEXT.md to a handoff file
+- `session-start.sh` — Fires on new session, injects recent handoffs + learnings into context
+- `stop.sh` — Fires on exit attempt, blocks if work is incomplete, enables autonomous loop mode
+
+**Templates** encode methodology:
+- `AUTONOMOUS_BUILD_CLAUDE_v2.md` — The master protocol: how to move through spec → plan → build → verify
+- `CONTEXT_TEMPLATE.md` — What to track: current phase, hook signatures, import locations, decisions
+- `SPEC_WRITING.md` / `IMPLEMENTATION_PLAN_WRITING.md` — How to write docs that agents can execute
+
+**Skills** provide reusable workflows:
+- Brainstorming, plan writing, TDD, debugging, code review — each is a documented process the agent follows
+- Installed to `~/.claude/skills/` and invoked via slash commands
+
+**Shell functions** keep you in the loop:
+- `autonomous-init` seeds a project with templates
+- `quality-gates` runs the full check suite
+- `slop-check` greps for AI-generated cruft patterns
+
+### The Result
+
+Instead of:
+```
+You: "Build a todo app"
+AI: [writes random code]
+You: "Wait, run the tests"
+AI: [tests fail]
+You: "Fix the tests"
+AI: [fixes one, breaks another]
+You: [repeat for hours]
+```
+
+You get:
+```
+You: "Read the spec and go autonomous"
+AI: [activates loop mode]
+AI: [Phase 1: implement → typecheck → lint → build → test → commit]
+AI: [Phase 2: implement → typecheck → lint → build → test → commit]
+...
+AI: [All phases complete, quality gates pass, PR ready]
+```
+
+The difference is structure. Same AI, same capabilities—but now it follows a methodology that catches errors early, preserves context, and ships clean code.
+
+---
+
 ## Maximum Autonomy Warning
 
 This kit is configured for maximum autonomy. Command examples and helpers intentionally use `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex), which bypass safety prompts and allow tools to run without confirmation.
