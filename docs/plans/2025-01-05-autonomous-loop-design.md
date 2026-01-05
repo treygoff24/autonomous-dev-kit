@@ -381,7 +381,7 @@ The hooks complement each other:
 | File | Purpose |
 |------|---------|
 | `hooks/stop.sh` | Main stop hook with safety net + loop logic |
-| `skills/autonomous-loop.md` | Skill definition for `/autonomous-loop` |
+| `skills/autonomous-loop/index.md` | Skill definition for `/autonomous-loop` |
 | `lib/cheatsheet.md` | The protocol cheat sheet (sourced by stop.sh) |
 | `lib/loop-helpers.sh` | Shared functions for state management |
 | `tests/test-stop-hook.sh` | Test suite for stop hook |

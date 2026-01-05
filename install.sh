@@ -219,22 +219,34 @@ detect_hooks() {
         return
     fi
 
-    # Check for PreCompact hook
-    if jq -e ".hooks.PreCompact[]?.hooks[]? | select(.command == \"$hook_precompact\")" "$settings_file" > /dev/null 2>&1; then
+    # Check for PreCompact hook (handle both single-object and array formats)
+    if jq -e --arg cmd "$hook_precompact" '
+        (.hooks.PreCompact // []) |
+        if type == "array" then . else [.] end |
+        .[].hooks[]? | select(.command == $cmd)
+    ' "$settings_file" > /dev/null 2>&1; then
         EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
     else
         MISSING_HOOKS=$((MISSING_HOOKS + 1))
     fi
 
-    # Check for SessionStart hook
-    if jq -e ".hooks.SessionStart[]?.hooks[]? | select(.command == \"$hook_sessionstart\")" "$settings_file" > /dev/null 2>&1; then
+    # Check for SessionStart hook (handle both single-object and array formats)
+    if jq -e --arg cmd "$hook_sessionstart" '
+        (.hooks.SessionStart // []) |
+        if type == "array" then . else [.] end |
+        .[].hooks[]? | select(.command == $cmd)
+    ' "$settings_file" > /dev/null 2>&1; then
         EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
     else
         MISSING_HOOKS=$((MISSING_HOOKS + 1))
     fi
 
-    # Check for Stop hook
-    if jq -e ".hooks.Stop[]?.hooks[]? | select(.command == \"$hook_stop\")" "$settings_file" > /dev/null 2>&1; then
+    # Check for Stop hook (handle both single-object and array formats)
+    if jq -e --arg cmd "$hook_stop" '
+        (.hooks.Stop // []) |
+        if type == "array" then . else [.] end |
+        .[].hooks[]? | select(.command == $cmd)
+    ' "$settings_file" > /dev/null 2>&1; then
         EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
     else
         MISSING_HOOKS=$((MISSING_HOOKS + 1))
@@ -761,6 +773,12 @@ setup_claude_directory_full() {
                 install_dir_with_prompt "$skill_dir" "$skills_dest/$skill_name" "skill: $skill_name"
             fi
         done
+        # Clean up legacy single-file skill format (backup first)
+        if [ -f "$skills_dest/autonomous-loop.md" ]; then
+            backup_file "$skills_dest/autonomous-loop.md"
+            run rm "$skills_dest/autonomous-loop.md"
+            success "Removed legacy autonomous-loop.md (replaced by autonomous-loop/ directory)"
+        fi
     fi
 
     # Install hooks
@@ -805,6 +823,12 @@ setup_claude_directory_additive() {
                 fi
             fi
         done
+        # Clean up legacy single-file skill format (backup first)
+        if [ -f "$skills_dest/autonomous-loop.md" ]; then
+            backup_file "$skills_dest/autonomous-loop.md"
+            run rm "$skills_dest/autonomous-loop.md"
+            success "Removed legacy autonomous-loop.md (replaced by autonomous-loop/ directory)"
+        fi
         if [ $skills_installed -eq 0 ]; then
             success "All skills already installed"
         else
@@ -974,18 +998,40 @@ configure_hooks_additive() {
     fi
 
     if [ -f "$settings_file" ]; then
-        # Check which specific hooks need to be added (by our exact command path)
+        # Guard: ensure .hooks exists and is an object (not array or other type)
+        local hooks_type
+        hooks_type=$(jq -r '.hooks | type // "null"' "$settings_file" 2>/dev/null || echo "null")
+        if [ "$hooks_type" != "object" ] && [ "$hooks_type" != "null" ]; then
+            warn "settings.json has malformed .hooks (type: $hooks_type), backing up and recreating hooks section"
+            backup_file "$settings_file"
+            # Reset .hooks to empty object
+            jq '.hooks = {}' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+        fi
+
+        # Check which specific hooks need to be added (handle both single-object and array formats)
         local needs_precompact=true
         local needs_sessionstart=true
         local needs_stop=true
 
-        if jq -e ".hooks.PreCompact[]?.hooks[]? | select(.command == \"$hook_path_precompact\")" "$settings_file" > /dev/null 2>&1; then
+        if jq -e --arg cmd "$hook_path_precompact" '
+            (.hooks.PreCompact // []) |
+            if type == "array" then . else [.] end |
+            .[].hooks[]? | select(.command == $cmd)
+        ' "$settings_file" > /dev/null 2>&1; then
             needs_precompact=false
         fi
-        if jq -e ".hooks.SessionStart[]?.hooks[]? | select(.command == \"$hook_path_sessionstart\")" "$settings_file" > /dev/null 2>&1; then
+        if jq -e --arg cmd "$hook_path_sessionstart" '
+            (.hooks.SessionStart // []) |
+            if type == "array" then . else [.] end |
+            .[].hooks[]? | select(.command == $cmd)
+        ' "$settings_file" > /dev/null 2>&1; then
             needs_sessionstart=false
         fi
-        if jq -e ".hooks.Stop[]?.hooks[]? | select(.command == \"$hook_path_stop\")" "$settings_file" > /dev/null 2>&1; then
+        if jq -e --arg cmd "$hook_path_stop" '
+            (.hooks.Stop // []) |
+            if type == "array" then . else [.] end |
+            .[].hooks[]? | select(.command == $cmd)
+        ' "$settings_file" > /dev/null 2>&1; then
             needs_stop=false
         fi
 
@@ -997,45 +1043,43 @@ configure_hooks_additive() {
         backup_file "$settings_file"
 
         # Add missing hooks while preserving existing ones
+        # Note: We normalize single-object hooks to arrays before appending
         if $needs_precompact; then
-            # Append to existing PreCompact array or create it
-            if jq -e '.hooks.PreCompact' "$settings_file" > /dev/null 2>&1; then
-                jq --arg cmd "$hook_path_precompact" \
-                    '.hooks.PreCompact += [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
-                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
-            else
-                jq --arg cmd "$hook_path_precompact" \
-                    '.hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
-                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
-            fi
+            # Normalize to array if single object, then append
+            jq --arg cmd "$hook_path_precompact" '
+                .hooks.PreCompact = (
+                    if .hooks.PreCompact == null then []
+                    elif (.hooks.PreCompact | type) == "array" then .hooks.PreCompact
+                    else [.hooks.PreCompact]
+                    end
+                ) + [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]
+            ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
             success "Added PreCompact hook"
         fi
 
         if $needs_sessionstart; then
-            # Append to existing SessionStart array or create it
-            if jq -e '.hooks.SessionStart' "$settings_file" > /dev/null 2>&1; then
-                jq --arg cmd "$hook_path_sessionstart" \
-                    '.hooks.SessionStart += [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
-                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
-            else
-                jq --arg cmd "$hook_path_sessionstart" \
-                    '.hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
-                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
-            fi
+            # Normalize to array if single object, then append
+            jq --arg cmd "$hook_path_sessionstart" '
+                .hooks.SessionStart = (
+                    if .hooks.SessionStart == null then []
+                    elif (.hooks.SessionStart | type) == "array" then .hooks.SessionStart
+                    else [.hooks.SessionStart]
+                    end
+                ) + [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]
+            ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
             success "Added SessionStart hook"
         fi
 
         if $needs_stop; then
-            # Append to existing Stop array or create it
-            if jq -e '.hooks.Stop' "$settings_file" > /dev/null 2>&1; then
-                jq --arg cmd "$hook_path_stop" \
-                    '.hooks.Stop += [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
-                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
-            else
-                jq --arg cmd "$hook_path_stop" \
-                    '.hooks.Stop = [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]' \
-                    "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
-            fi
+            # Normalize to array if single object, then append
+            jq --arg cmd "$hook_path_stop" '
+                .hooks.Stop = (
+                    if .hooks.Stop == null then []
+                    elif (.hooks.Stop | type) == "array" then .hooks.Stop
+                    else [.hooks.Stop]
+                    end
+                ) + [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]
+            ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
             success "Added Stop hook"
         fi
     else
