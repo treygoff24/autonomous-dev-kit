@@ -3,8 +3,25 @@
 > Persistent development loops where Claude iterates toward completion without human intervention between cycles.
 
 **Date:** 2025-01-05
-**Status:** Approved
+**Status:** Approved (Revised after Codex review)
 **Inspiration:** [Ralph Wiggum plugin](https://paddo.dev/blog/ralph-wiggum-autonomous-loops/)
+
+---
+
+## Revision Notes (Codex Review 2025-01-05)
+
+**Security fixes:**
+- State file moved to `~/.claude/autonomous-loop/<project-hash>.json` with session token
+- Custom `completion_check` removed (use default criteria only)
+- Safety net quality gates require explicit opt-in per project via `.claude-quality-gates`
+
+**Portability fixes:**
+- Verification code stored in state file, not protocol file (no sed mutation)
+- OS-agnostic shell commands throughout
+
+**Design adjustments:**
+- Escape/Ctrl+C behavior acknowledged as non-hookable; documentation updated
+- Max-iteration pause uses exit code 2 with prompt, not exit 0
 
 ---
 
@@ -68,46 +85,64 @@ When activating, Claude:
 
 ### State File
 
-Location: `.autonomous-loop.json` in project root (add to `.gitignore`)
+Location: `~/.claude/autonomous-loop/<project-hash>.json`
+
+The state file is stored outside the project to prevent:
+- Pre-seeded attack vectors (malicious repo with `active: true`)
+- Git pollution
+- Cross-project state conflicts
+
+Project hash is derived from absolute path: `echo -n "$PROJECT_PATH" | sha256sum | cut -c1-12`
 
 ```json
 {
   "active": true,
+  "session_token": "abc123def456",
+  "project_path": "/Users/trey/Code/my-project",
   "goal": "Build complete e-commerce platform per SPEC.md",
   "started_at": "2025-01-05T14:30:00Z",
   "iteration": 47,
   "max_iterations": 100,
   "last_protocol_reread": 45,
-  "completion_check": null,
   "paused": false,
   "awaiting_verification": false,
-  "verification_response": null
+  "verification_response": null,
+  "expected_verification_code": "7429"
 }
 ```
 
 | Field | Purpose |
 |-------|---------|
 | `active` | Is loop mode on? |
+| `session_token` | Random token generated on activation, must match current session |
+| `project_path` | Absolute path to project (for validation) |
 | `goal` | Original task for re-injection |
 | `started_at` | When loop started (for elapsed time) |
 | `iteration` | Current iteration count |
 | `max_iterations` | The limit (default: 100) |
 | `last_protocol_reread` | Which iteration had full protocol re-read |
-| `completion_check` | Custom check command (null = use defaults) |
 | `paused` | True when at max iterations or user interrupted |
 | `awaiting_verification` | True when waiting for protocol verification code |
 | `verification_response` | Code Claude reports after reading protocol |
+| `expected_verification_code` | The code Claude must report (script-generated) |
 
 ### Completion Criteria
 
-Default (when `completion_check` is null):
-- All quality gates pass (typecheck, lint, build, test)
-- All phases in IMPLEMENTATION_PLAN.md marked complete
+Fixed criteria (no custom overrides for security):
+- All quality gates pass (typecheck, lint, build, test) — if `.claude-quality-gates` exists
+- All phases in IMPLEMENTATION_PLAN.md marked complete (if file exists)
+- No uncommitted changes in git
 
-Custom override:
+The quality gates file (`.claude-quality-gates`) explicitly opts in to automatic quality checks:
+```bash
+# .claude-quality-gates - opt-in to automatic quality gate checks
+npm run typecheck
+npm run lint
+npm run build
+npm run test
 ```
-/autonomous-loop "Migrate to Vitest" --check "npm test && ! grep -r 'jest' src/"
-```
+
+If this file doesn't exist, quality gates are skipped (safety net only checks git state).
 
 ### Continuation Prompt
 
@@ -191,16 +226,25 @@ After many compactions, Claude forgets the protocol. Every 3rd iteration, force 
 
 ### Mechanism
 
-The protocol file contains a verification code at the end:
+The verification code is stored in the state file (`expected_verification_code`), not the protocol file. This avoids:
+- Dirty git state from editing tracked files
+- macOS vs Linux `sed` incompatibilities
+- Symlink/permission issues
+
+The protocol file contains a static marker that tells Claude where to find the code:
 
 ```markdown
-<!-- VERIFICATION:7429 -->
+<!-- END OF PROTOCOL -->
+## Verification
+
+When prompted for protocol re-read verification, check your loop state file
+for the expected verification code and report it to prove you've read this file.
 ```
 
 ### Flow
 
 1. Iteration 3, 6, 9, etc. → hook detects time for re-read
-2. Hook sets `awaiting_verification: true` in JSON
+2. Hook generates new `expected_verification_code`, sets `awaiting_verification: true`
 3. Hook blocks exit and injects:
 
 ```markdown
@@ -208,26 +252,38 @@ The protocol file contains a verification code at the end:
 
 Full protocol re-read required before continuing.
 
-1. Read AUTONOMOUS_BUILD_CLAUDE.md completely
-2. Find the verification code at the end: <!-- VERIFICATION:XXXX -->
-3. Update .autonomous-loop.json field: "verification_response": "XXXX"
+1. Read AUTONOMOUS_BUILD_CLAUDE.md completely (from start to end)
+2. After reading, check ~/.claude/autonomous-loop/<hash>.json for expected_verification_code
+3. Update the same file's verification_response field with that code
 4. Resume work
 
 You cannot proceed until verification is complete.
 ```
 
-4. Claude reads protocol, finds code, updates JSON
-5. Next exit attempt, hook validates `verification_response` against actual code
-6. Match → hook clears `awaiting_verification`, generates new random code in protocol file, continues
+4. Claude reads protocol fully, then reads state file for code, updates `verification_response`
+5. Next exit attempt, hook validates `verification_response` === `expected_verification_code`
+6. Match → hook clears `awaiting_verification`, generates NEW code for next time, continues
 7. Mismatch → stays blocked, re-prompts
 
 ### Code Generation
 
-Script generates new 4-digit code after each successful verification:
+Script generates new 4-digit code (OS-agnostic):
 
 ```bash
-NEW_CODE=$((RANDOM % 9000 + 1000))
-sed -i '' "s/<!-- VERIFICATION:[0-9]* -->/<!-- VERIFICATION:$NEW_CODE -->/" AUTONOMOUS_BUILD_CLAUDE.md
+generate_verification_code() {
+    # Works on both macOS and Linux
+    if command -v shuf &> /dev/null; then
+        shuf -i 1000-9999 -n 1
+    else
+        echo $((RANDOM % 9000 + 1000))
+    fi
+}
+```
+
+Code is written to state file JSON via `jq`:
+```bash
+NEW_CODE=$(generate_verification_code)
+jq --arg code "$NEW_CODE" '.expected_verification_code = $code' "$STATE_FILE" > tmp.$$.json && mv tmp.$$.json "$STATE_FILE"
 ```
 
 ---
@@ -248,8 +304,15 @@ When max is reached:
 
 | Action | Behavior |
 |--------|----------|
-| **Escape key** | Interrupts Claude, pauses loop mode. User chats, must explicitly resume. |
-| **Ctrl+C** | Kills Claude Code entirely. Loop state cleared (nuclear option). |
+| **Escape key** | Interrupts Claude, user can chat. Loop state persists but Claude won't auto-continue. |
+| **Ctrl+C** | Kills Claude Code entirely. Loop state persists (not hookable). |
+| **"Stop loop"** | User says "stop autonomous mode" — Claude should clear state file manually. |
+| **Manual cleanup** | `rm ~/.claude/autonomous-loop/*.json` to clear all loop states |
+
+**Note:** SIGINT (Ctrl+C) and Escape are not hookable — the stop hook only runs on graceful exit attempts. This means:
+- Ctrl+C won't automatically clear state (user may need to manually clean up)
+- Escape pauses because Claude stops working, not because the hook runs
+- On next `claude` session, stale state will be detected and user prompted
 
 ### Resume After Pause
 
@@ -318,63 +381,112 @@ The hooks complement each other:
 | File | Purpose |
 |------|---------|
 | `hooks/stop.sh` | Main stop hook with safety net + loop logic |
-| `shell/autonomous-loop.zsh` | Shell function for `/autonomous-loop` skill |
-| `templates/PROTOCOL_CHEATSHEET.md` | The cheat sheet (embedded in stop.sh or separate) |
+| `skills/autonomous-loop.md` | Skill definition for `/autonomous-loop` |
+| `lib/cheatsheet.md` | The protocol cheat sheet (sourced by stop.sh) |
+| `lib/loop-helpers.sh` | Shared functions for state management |
 | `tests/test-stop-hook.sh` | Test suite for stop hook |
-| `tests/test-autonomous-loop.sh` | Integration tests for full loop |
+| `tests/test-loop-helpers.sh` | Unit tests for helper functions |
+| `tests/test-integration.sh` | Integration tests for full loop |
+| `templates/.claude-quality-gates.example` | Example quality gates file |
 
 ### Modified Files
 
 | File | Change |
 |------|--------|
-| `install.sh` | Add stop.sh to hook installation, configure Stop hook in settings.json |
-| `templates/AUTONOMOUS_BUILD_CLAUDE.md` | Add verification code marker at end |
-| `.gitignore` (template) | Add `.autonomous-loop.json` |
+| `install.sh` | Add stop.sh to hook installation, configure Stop hook in settings.json, create ~/.claude/autonomous-loop/ |
+| `templates/AUTONOMOUS_BUILD_CLAUDE.md` | Add verification section at end (static, no code) |
+
+### Directory Structure
+
+```
+~/.claude/
+├── autonomous-loop/           # NEW: Loop state files
+│   └── <project-hash>.json    # Per-project loop state
+├── hooks/
+│   ├── pre-compact.sh
+│   ├── session-start.sh
+│   └── stop.sh               # NEW
+├── lib/                       # NEW: Shared libraries
+│   ├── cheatsheet.md
+│   └── loop-helpers.sh
+└── skills/
+    └── autonomous-loop.md    # NEW
+```
 
 ---
 
 ## Test Plan
 
-### Unit Tests (test-stop-hook.sh)
+### Unit Tests: Helper Functions (test-loop-helpers.sh)
 
 | Test | Description |
 |------|-------------|
-| `test_safety_net_blocks_on_failing_tests` | Mock failing npm test, verify exit code 2 |
-| `test_safety_net_blocks_on_dirty_git` | Create uncommitted changes, verify exit code 2 |
-| `test_safety_net_allows_clean_exit` | All checks pass, verify exit code 0 |
+| `test_get_project_hash` | Verify consistent hash generation for same path |
+| `test_get_state_file_path` | Verify correct path construction |
+| `test_generate_verification_code` | Code is 4 digits, different on each call |
+| `test_read_state_file_missing` | Gracefully handle missing state file |
+| `test_read_state_file_malformed` | Gracefully handle invalid JSON |
+| `test_write_state_file` | Verify JSON written correctly |
+| `test_session_token_validation` | Token mismatch detected |
+
+### Unit Tests: Stop Hook (test-stop-hook.sh)
+
+| Test | Description |
+|------|-------------|
+| `test_safety_net_blocks_on_dirty_git` | Uncommitted changes, verify exit code 2 |
+| `test_safety_net_allows_clean_exit` | Clean git state, verify exit code 0 |
+| `test_safety_net_respects_quality_gates_file` | Only runs gates if `.claude-quality-gates` exists |
+| `test_safety_net_skips_quality_gates_if_missing` | No gates file = skip quality checks |
 | `test_loop_mode_blocks_when_incomplete` | Active loop, criteria not met, verify exit code 2 |
 | `test_loop_mode_allows_when_complete` | Active loop, criteria met, verify exit code 0 |
+| `test_loop_mode_ignores_stale_state` | State file from different project ignored |
+| `test_loop_mode_validates_session_token` | Mismatched token = inactive |
 | `test_loop_increments_iteration` | Verify iteration counter increases |
-| `test_max_iterations_pauses` | Hit max, verify paused=true |
+| `test_max_iterations_pauses` | Hit max, verify paused=true, exit code 2 |
 | `test_verification_required_every_3` | Iterations 3,6,9 trigger awaiting_verification |
 | `test_verification_validates_code` | Correct code clears flag, wrong code stays blocked |
-| `test_verification_generates_new_code` | After validation, protocol file has new code |
-| `test_ctrl_c_clears_state` | Simulate SIGINT, verify JSON deleted |
+| `test_verification_generates_new_code` | After validation, new code in state file |
 | `test_cheatsheet_injected` | Verify stdout contains cheat sheet on block |
+| `test_dynamic_status_injected` | Verify iteration count and blockers in output |
 
-### Integration Tests (test-autonomous-loop.sh)
+### Edge Case Tests (test-edge-cases.sh)
 
 | Test | Description |
 |------|-------------|
-| `test_fire_and_forget_activation` | `/autonomous-loop "goal"` creates state file |
-| `test_interactive_activation` | "Go autonomous" without explicit goal works |
+| `test_no_git_repo` | Works in non-git directory |
+| `test_no_npm` | Works without npm/package.json |
+| `test_no_implementation_plan` | Works without IMPLEMENTATION_PLAN.md |
+| `test_concurrent_sessions` | Second session detects existing state |
+| `test_cross_platform_code_generation` | Works on Linux (shuf) and macOS (RANDOM) |
+| `test_state_file_permissions` | State dir created with correct permissions |
+| `test_symlink_project_path` | Handles symlinked project directories |
+
+### Integration Tests (test-integration.sh)
+
+| Test | Description |
+|------|-------------|
+| `test_fire_and_forget_activation` | Skill creates state file with correct fields |
+| `test_interactive_activation` | Goal inferred from context |
 | `test_full_loop_cycle` | Complete mini-task through multiple iterations |
 | `test_pause_and_resume` | Hit max, pause, resume, verify continuation |
-| `test_escape_pauses_loop` | Simulate escape, verify paused=true |
 | `test_completion_clears_state` | Meet criteria, verify state file removed |
+| `test_stale_state_prompts_user` | Old state from previous session prompts |
+| `test_hook_chain_integration` | stop.sh works with pre-compact and session-start |
 
 ### Manual Testing Checklist
 
 - [ ] Fire and forget: simple task completes autonomously
 - [ ] Interactive → autonomous transition works
-- [ ] Cheat sheet appears in continuation
+- [ ] Cheat sheet appears in continuation prompt
 - [ ] Protocol re-read triggers at iteration 3
-- [ ] Verification code mechanism works
-- [ ] Max iterations pauses correctly
-- [ ] Escape key pauses, resume works
-- [ ] Ctrl+C clears state
+- [ ] Verification code mechanism works end-to-end
+- [ ] Max iterations pauses and prompts correctly
+- [ ] Escape key interrupts, state persists
+- [ ] Ctrl+C kills, state persists (manual cleanup needed)
 - [ ] Works across context compaction
 - [ ] Codex calls happen at checkpoints (human verification)
+- [ ] Quality gates only run if `.claude-quality-gates` exists
+- [ ] Works on fresh clone (no prior state)
 
 ---
 
