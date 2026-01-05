@@ -91,8 +91,8 @@ check_plan_complete() {
         return 0
     fi
 
-    # If has checkboxes and all checked, consider complete
-    if grep -q '\- \[x\]' "$plan_file"; then
+    # If has checkboxes and all checked (case insensitive), consider complete
+    if grep -qi '\- \[x\]' "$plan_file"; then
         return 0
     fi
 
@@ -241,7 +241,7 @@ if is_loop_active "$PROJECT_DIR"; then
 
 Full protocol re-read required before continuing.
 
-1. Read AUTONOMOUS_BUILD_CLAUDE.md completely (from start to end)
+1. Read AUTONOMOUS_BUILD_CLAUDE_v2.md completely (from start to end)
 2. After reading, check $STATE_FILE for expected_verification_code
 3. Update the same file's verification_response field with that code
 4. Resume work
@@ -265,7 +265,7 @@ EOF
 
 Full protocol re-read required before continuing.
 
-1. Read AUTONOMOUS_BUILD_CLAUDE.md completely (from start to end)
+1. Read AUTONOMOUS_BUILD_CLAUDE_v2.md completely (from start to end)
 2. After reading, check $STATE_FILE for expected_verification_code
 3. Update the same file's verification_response field with that code
 4. Resume work

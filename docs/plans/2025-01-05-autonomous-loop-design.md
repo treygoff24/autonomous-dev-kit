@@ -114,8 +114,8 @@ Project hash is derived from absolute path: `echo -n "$PROJECT_PATH" | sha256sum
 | Field | Purpose |
 |-------|---------|
 | `active` | Is loop mode on? |
-| `session_token` | Random token generated on activation, must match current session |
-| `project_path` | Absolute path to project (for validation) |
+| `session_token` | Random nonce generated on activation (makes state file unique per initialization; Claude Code doesn't expose session IDs so true validation isn't possible) |
+| `project_path` | Absolute path to project (recorded for debugging) |
 | `goal` | Original task for re-injection |
 | `started_at` | When loop started (for elapsed time) |
 | `iteration` | Current iteration count |

@@ -1,7 +1,7 @@
 ## AUTONOMOUS BUILD MODE ACTIVE
 
 You are in an autonomous build session. This cheat sheet summarizes
-AUTONOMOUS_BUILD_CLAUDE.md — re-read the full protocol if anything is unclear.
+AUTONOMOUS_BUILD_CLAUDE_v2.md — re-read the full protocol if anything is unclear.
 
 DO NOT STOP until completion criteria are met. Execute with precision.
 
