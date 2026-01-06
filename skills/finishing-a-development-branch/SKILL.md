@@ -193,8 +193,8 @@ git worktree remove <worktree-path>
 ## Integration
 
 **Called by:**
-- **subagent-driven-development** (Step 7) - After all tasks complete
-- **executing-plans** (Step 5) - After all batches complete
+- **plan-executor** agent - After all tasks complete
+- **writing-plans** skill - After plan execution completes
 
 **Pairs with:**
 - **using-git-worktrees** - Cleans up worktree created by that skill

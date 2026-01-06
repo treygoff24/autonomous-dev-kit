@@ -67,6 +67,7 @@ Skills require conversation context and user interaction. Use for collaborative 
 | `receiving-code-review` | Handle review feedback with rigor |
 | `spec-quality-checklist` | Validate specs for precision |
 | `accessibility-checklist` | WCAG compliance for UI |
+| `autonomous-loop` | Activate autonomous loop mode with explicit goal |
 
 ### Rules (Auto-loaded)
 
@@ -303,7 +304,7 @@ Run all quality gates one final time.
 
 ### Step 2: Internal Verification
 
-Use `verification-before-completion` skill—no claims without evidence. Run the actual commands, see the actual output.
+Follow the verification-standards rule—no claims without evidence. Run the actual commands, see the actual output.
 
 ### Step 3: Codex Final Cross-Check
 
@@ -356,7 +357,7 @@ This is how the system gets smarter over time.
 **Stuck in a loop (same error 3+ times):**
 
 1. **First:** Spawn `bug-hunter` subagent with full error context
-2. **If still stuck:** Use `systematic-debugging` skill for disciplined diagnosis
+2. **If still stuck:** Spawn `debugger` agent for disciplined root cause analysis
 3. **If still stuck:** Call Codex for external perspective:
 
 ```bash
@@ -371,7 +372,7 @@ If still stuck after all three: log the blocker, skip to an unblocked phase, ret
 
 **Build failing mysteriously:** Clear caches (language-specific), check for circular imports/dependencies.
 
-**Flaky tests or race conditions:** Use `condition-based-waiting` skill to replace arbitrary timeouts with condition polling.
+**Flaky tests or race conditions:** Follow the testing-standards rule—replace arbitrary timeouts with condition polling.
 
 **Context feels degraded:** Run `/clear` to trigger a fresh context load with the auto-handoff. The SessionStart hook will inject your latest state.
 
@@ -384,8 +385,8 @@ Build tests as you build features, not as an afterthought.
 **Use the right tools:**
 
 - Spawn `test-architect` subagent for comprehensive test coverage on new features
-- Use `test-driven-development` skill for red-green-refactor workflow
-- Use `testing-anti-patterns` skill to avoid mocking pitfalls
+- Spawn `tdd-implementer` agent for red-green-refactor workflow
+- Follow the testing-standards rule to avoid mocking pitfalls
 
 **Unit Tests:**
 

@@ -20,11 +20,12 @@ Creates:
   - AUTONOMOUS_BUILD_CODEX.md — protocol for Codex
   - .claude/ directory for project-specific config
 
-Note: Spec writing and implementation planning are handled by skills:
-  - superpowers:brainstorming — refine ideas into specs
-  - superpowers:writing-plans — create implementation plans
-  - spec-quality-checklist — validate specs
-  - accessibility-checklist — a11y checks for UI
+Note: Spec writing and implementation planning are handled by skills and agents:
+  - brainstorming — refine ideas into specs (skill)
+  - writing-plans — create implementation plans (skill)
+  - plan-executor — execute plans task-by-task (agent)
+  - spec-quality-checklist — validate specs (skill)
+  - accessibility-checklist — a11y checks for UI (skill)
 
 Options:
   --help    Show this help message
@@ -152,7 +153,7 @@ Example:
     echo ""
     echo "Next steps:"
     echo "  1. Edit CLAUDE.md with project-specific instructions"
-    echo "  2. Create SPEC.md for your feature (use superpowers:brainstorming)"
+    echo "  2. Create SPEC.md for your feature (use /brainstorming skill)"
     echo "  3. Run: claude 'Read AUTONOMOUS_BUILD_CLAUDE.md and build this'"
 }
 

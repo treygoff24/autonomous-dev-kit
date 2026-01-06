@@ -8,26 +8,20 @@ This template references `--dangerously-skip-permissions`, which bypasses safety
 
 ## 🔄 Protocol Reminder (Re-read on every phase start)
 
-**The Loop**: IMPLEMENT → TYPECHECK → LINT → BUILD → TEST → REVIEW → FIX → REPEAT → COMMIT
-
-**Cross-agent checkpoints (mandatory):**
-- Spec creation → Claude reviews
-- Implementation plan creation → Claude reviews  
-- Phase completion → Dual code review with Claude
-- Final completion → Claude cross-check
-- Stuck in error loop → Call Claude for fresh perspective
-
-**How to call Claude:**
-```bash
-claude -p --model opus --dangerously-skip-permissions --output-format text "[PROMPT]"
-```
-
-**Be patient:** Claude may take 30 seconds to several minutes to respond for complex reviews.
+**The Loop**: IMPLEMENT → TYPECHECK → LINT → BUILD → TEST → REVIEW → FIX → SLOP REMOVAL → COMMIT
 
 **Quality gates before review:**
 ```bash
 npm run typecheck && npm run lint && npm run build && npm run test
 ```
+
+**Key agents and rules for this phase:**
+- `tdd-implementer` agent — Write test first, watch it fail, implement
+- `debugger` agent — Don't guess, investigate root causes
+- `verification-standards` rule — No claims without evidence
+- `requesting-code-review` skill — Get review before proceeding
+
+**If context feels stale:** Re-read `AUTONOMOUS_BUILD_CLAUDE_v2.md` for the full protocol.
 
 ## Build Context
 

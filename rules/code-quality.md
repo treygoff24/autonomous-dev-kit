@@ -1,3 +1,7 @@
+---
+globs: "**/*.js,**/*.jsx,**/*.ts,**/*.tsx,**/*.py,**/*.go,**/*.rs,**/*.java,**/*.rb,**/*.php,**/*.c,**/*.cpp,**/*.h,**/*.hpp,**/*.cs,**/*.swift,**/*.kt"
+---
+
 # Code Quality Standards
 
 Auto-loaded for all code work.

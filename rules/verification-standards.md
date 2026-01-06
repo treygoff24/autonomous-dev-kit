@@ -1,3 +1,7 @@
+---
+globs: "**/*"
+---
+
 # Verification Standards
 
 These standards apply to ALL work. Always loaded.

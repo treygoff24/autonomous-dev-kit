@@ -33,7 +33,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use `executing-plans` skill to implement this plan task-by-task.
+> **For Claude:** Spawn `plan-executor` agent to implement this plan task-by-task.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -100,17 +100,17 @@ After saving the plan, offer execution choice:
 
 **"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
 
-**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
+**1. Execute Now (this session)** - I spawn `plan-executor` agent per task, review between tasks, fast iteration
 
-**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
+**2. Parallel Session (separate)** - Open new session in worktree, spawn `plan-executor` agent, batch execution with checkpoints
 
 **Which approach?"**
 
-**If Subagent-Driven chosen:**
-- **REQUIRED SUB-SKILL:** Use `subagent-driven-development` skill
+**If Execute Now chosen:**
+- Spawn `plan-executor` agent with the plan path
 - Stay in this session
-- Fresh subagent per task + code review
+- Fresh agent per task + code review
 
 **If Parallel Session chosen:**
 - Guide them to open new session in worktree
-- **REQUIRED SUB-SKILL:** New session uses `executing-plans` skill
+- Spawn `plan-executor` agent with the plan path

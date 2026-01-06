@@ -32,11 +32,11 @@ codex exec --model gpt-5.2-codex --config model_reasoning_effort="xhigh" --yolo 
 - accessibility-auditor → UI changes
 - test-architect → comprehensive test coverage
 
-**Skills:**
-- Stuck in error loop → systematic-debugging
-- Writing tests → test-driven-development (red-green-refactor)
-- Before claiming done → verification-before-completion
-- UI work → frontend-design + accessibility-checklist
+**Agents & Rules:**
+- Stuck in error loop → spawn `debugger` agent
+- Writing tests → spawn `tdd-implementer` agent (red-green-refactor)
+- Before claiming done → follow verification-standards rule
+- UI work → frontend-design skill + accessibility-checklist skill
 
 **Context Hygiene:**
 - Update CONTEXT.md 2x per phase minimum

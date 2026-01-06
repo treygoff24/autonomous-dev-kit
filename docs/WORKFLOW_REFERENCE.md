@@ -480,7 +480,7 @@ Check for:
 
 - Replace arbitrary timeouts with condition polling
 - Wait for actual state changes, not time
-- Use the `superpowers:condition-based-waiting` skill
+- Follow the `testing-standards` rule for best practices
 
 ---
 

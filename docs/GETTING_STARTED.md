@@ -101,6 +101,9 @@ Custom agents at `~/.claude/agents/` run in isolated context windows. They can r
 | `tdd-implementer` | Test-driven development |
 | `plan-executor` | Execute implementation plans task-by-task |
 | `slop-cleaner` | Remove AI-generated cruft before commits |
+| `validator` | Defense-in-depth validation at multiple layers |
+| `root-cause-tracer` | Trace bugs backward through call stack |
+| `parallel-investigator` | Investigate independent failures concurrently |
 
 Spawn agents via the Task tool: "Spawn the debugger agent to investigate this error."
 
@@ -112,6 +115,12 @@ Skills at `~/.claude/skills/` require conversation context and user interaction.
 |-------|---------|
 | `/brainstorming` | Refine vague ideas into concrete designs |
 | `/writing-plans` | Create detailed implementation plans |
+| `/using-git-worktrees` | Isolated workspaces for risky changes |
+| `/finishing-a-development-branch` | Clean up for merge/PR |
+| `/requesting-code-review` | Request review before proceeding |
+| `/receiving-code-review` | Handle review feedback with rigor |
+| `/spec-quality-checklist` | Validate specs for precision |
+| `/accessibility-checklist` | WCAG compliance for UI |
 | `/autonomous-loop` | Activate autonomous loop mode |
 
 ### Rules (Auto-loaded Standards)

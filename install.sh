@@ -783,6 +783,28 @@ setup_claude_directory_full() {
             run rm "$skills_dest/autonomous-loop.md"
             success "Removed legacy autonomous-loop.md (replaced by autonomous-loop/ directory)"
         fi
+
+        # Clean up deprecated skills (converted to agents/rules)
+        local deprecated_skills=(
+            "systematic-debugging"
+            "test-driven-development"
+            "executing-plans"
+            "slop-cleanup"
+            "defense-in-depth"
+            "root-cause-tracing"
+            "dispatching-parallel-agents"
+            "subagent-driven-development"
+            "testing-anti-patterns"
+            "verification-before-completion"
+            "condition-based-waiting"
+        )
+        for skill in "${deprecated_skills[@]}"; do
+            if [ -d "$skills_dest/$skill" ]; then
+                backup_dir "$skills_dest/$skill"
+                run rm -rf "$skills_dest/$skill"
+                success "Removed deprecated skill: $skill (converted to agent/rule)"
+            fi
+        done
     fi
 
     # Install agents
@@ -859,6 +881,29 @@ setup_claude_directory_additive() {
             run rm "$skills_dest/autonomous-loop.md"
             success "Removed legacy autonomous-loop.md (replaced by autonomous-loop/ directory)"
         fi
+
+        # Clean up deprecated skills (converted to agents/rules)
+        local deprecated_skills=(
+            "systematic-debugging"
+            "test-driven-development"
+            "executing-plans"
+            "slop-cleanup"
+            "defense-in-depth"
+            "root-cause-tracing"
+            "dispatching-parallel-agents"
+            "subagent-driven-development"
+            "testing-anti-patterns"
+            "verification-before-completion"
+            "condition-based-waiting"
+        )
+        for skill in "${deprecated_skills[@]}"; do
+            if [ -d "$skills_dest/$skill" ]; then
+                backup_dir "$skills_dest/$skill"
+                run rm -rf "$skills_dest/$skill"
+                success "Removed deprecated skill: $skill (converted to agent/rule)"
+            fi
+        done
+
         if [ $skills_installed -eq 0 ]; then
             success "All skills already installed"
         else
