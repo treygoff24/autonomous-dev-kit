@@ -18,58 +18,76 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 Read AUTONOMOUS_BUILD_CLAUDE.md and the spec at [SPEC_PATH]. Build autonomously. Do not stop until complete.
 ```
 
-If no spec exists, use `superpowers:brainstorming` to draft one. If no implementation plan exists, use `superpowers:writing-plans` after the spec is approved.
+If no spec exists, use `brainstorming` skill to draft one. If no implementation plan exists, use `writing-plans` skill after the spec is approved.
 
 ---
 
 ## Your Toolkit
 
-You have powerful internal capabilities. Use them.
+You have powerful capabilities organized in three layers: agents (isolated execution), skills (conversation context), and rules (auto-loaded standards).
 
-### Subagents (via Task tool)
+### Custom Agents (via Task tool)
 
-Spawn specialized subagents for focused work. They run autonomously and return results.
+Custom agents at `~/.claude/agents/` provide isolated execution with fresh context. They can run in parallel and don't pollute your main conversation.
 
-| Subagent                      | When to Use                                                  |
-| ----------------------------- | ------------------------------------------------------------ |
-| `Explore`                     | Codebase exploration, finding files, understanding structure |
-| `Plan`                        | Designing implementation strategies for complex tasks        |
-| `spec-implementation-planner` | Breaking specs/PRDs into sequenced implementation tasks      |
-| `code-reviewer`               | Thorough code review before commits                          |
-| `test-architect`              | Writing comprehensive test coverage                          |
-| `security-auditor`            | Security review of auth, inputs, dependencies                |
-| `accessibility-auditor`       | WCAG compliance for UI components                            |
-| `bug-hunter`                  | Diagnosing errors, failures, unexpected behavior             |
+| Agent | When to Use |
+|-------|-------------|
+| `debugger` | Systematic debugging with root cause analysis. Use BEFORE proposing fixes. |
+| `tdd-implementer` | Test-driven development. Write failing test first. |
+| `plan-executor` | Execute implementation plans task-by-task with quality gates. |
+| `slop-cleaner` | Remove AI-generated cruft before commits. |
+| `validator` | Defense-in-depth validation across layers. |
+| `root-cause-tracer` | Trace bugs backward through call stack. |
+| `parallel-investigator` | Investigate independent failures concurrently. |
 
-**Parallel agents:** For independent tasks, spawn multiple subagents simultaneously to maximize throughput.
+**Built-in subagents** (also via Task tool):
+
+| Subagent | When to Use |
+|----------|-------------|
+| `Explore` | Codebase exploration, finding files |
+| `Plan` | Designing implementation strategies |
+| `code-reviewer` | Code review before commits |
+| `test-architect` | Comprehensive test coverage |
+| `security-auditor` | Security review |
+| `bug-hunter` | Diagnosing errors |
+
+**Parallel execution:** Custom agents can run in background. Spawn multiple for independent problems to maximize throughput.
 
 ### Skills (via Skill tool)
 
-Invoke skills for structured workflows. These encode battle-tested processes.
+Skills require conversation context and user interaction. Use for collaborative work.
 
-| Skill                                        | When to Use                                                     |
-| -------------------------------------------- | --------------------------------------------------------------- |
-| `superpowers:writing-plans`                  | Turn ambiguous goals into executable plans                      |
-| `superpowers:executing-plans`                | Run plans in controlled batches with verification               |
-| `superpowers:test-driven-development`        | Red-green-refactor—write test first, watch it fail, implement   |
-| `superpowers:systematic-debugging`           | Disciplined failure diagnosis (don't guess, investigate)        |
-| `superpowers:verification-before-completion` | Evidence-based validation—no claims without proof               |
-| `superpowers:requesting-code-review`         | Structured self-review before completion                        |
-| `superpowers:using-git-worktrees`            | Isolated workspaces for risky changes                           |
-| `superpowers:finishing-a-development-branch` | Clean up and package for merge/PR                               |
-| `superpowers:dispatching-parallel-agents`    | Dispatch 3+ agents for independent failures                     |
-| `superpowers:subagent-driven-development`    | Fresh subagent per task with code review gates                  |
-| `example-skills:webapp-testing`              | Playwright-based UI verification                                |
-| `frontend-design:frontend-design`            | Distinctive, production-grade UI (avoids generic AI aesthetics) |
+| Skill | When to Use |
+|-------|-------------|
+| `brainstorming` | Refine rough ideas into designs through dialogue |
+| `writing-plans` | Turn designs into executable implementation plans |
+| `using-git-worktrees` | Isolated workspaces for risky changes |
+| `finishing-a-development-branch` | Clean up and package for merge/PR |
+| `requesting-code-review` | Request review (spawns code-reviewer agent) |
+| `receiving-code-review` | Handle review feedback with rigor |
+| `spec-quality-checklist` | Validate specs for precision |
+| `accessibility-checklist` | WCAG compliance for UI |
 
-**Skill sequences for common scenarios:**
+### Rules (Auto-loaded)
 
-| Scenario                   | Skill Sequence                                                                                                             |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| New feature / big refactor | `writing-plans` → `using-git-worktrees` → `executing-plans` → `test-driven-development` → `verification-before-completion` |
-| Bug with reproduction      | `test-driven-development` → `systematic-debugging` → `verification-before-completion`                                      |
-| UI bug / flaky behavior    | `webapp-testing` → `systematic-debugging` → `webapp-testing` to verify                                                     |
-| Building UI                | `frontend-design`                                                                                                          |
+Rules at `~/.claude/rules/` are automatically loaded based on file patterns. No invocation needed.
+
+| Rule | Scope | Content |
+|------|-------|---------|
+| `testing-standards.md` | Test files | Anti-patterns, TDD, condition-based waiting |
+| `verification-standards.md` | All work | Evidence before claims |
+| `code-quality.md` | All code | Slop patterns, commit hygiene |
+
+### Workflow Sequences
+
+| Scenario | Sequence |
+|----------|----------|
+| New feature / refactor | `brainstorming` → `writing-plans` → `using-git-worktrees` → spawn `plan-executor` agent |
+| Bug with reproduction | spawn `tdd-implementer` → spawn `debugger` if stuck |
+| Flaky tests | spawn `debugger` (testing-standards rule auto-loaded) |
+| Code review flow | `requesting-code-review` → `receiving-code-review` → spawn `slop-cleaner` |
+| Multiple failures | spawn multiple `parallel-investigator` agents concurrently |
+| Before commit | spawn `slop-cleaner` agent |
 
 ---
 
@@ -168,13 +186,13 @@ Before writing any code:
 
 **If no spec exists:**
 
-- Use `superpowers:brainstorming` skill to refine requirements into a spec
+- Use `brainstorming` skill to refine requirements into a spec
 - Run `spec-quality-checklist` skill to validate completeness
 - Call Codex to review the spec for edge cases and feasibility
 
 **If no implementation plan exists:**
 
-- Use `superpowers:writing-plans` skill to create the phased plan
+- Use `writing-plans` skill to create the phased plan
 - Or spawn `spec-implementation-planner` subagent with the spec
 - Call Codex to review sequencing and dependencies
 
@@ -285,7 +303,7 @@ Run all quality gates one final time.
 
 ### Step 2: Internal Verification
 
-Use `superpowers:verification-before-completion` skill—no claims without evidence. Run the actual commands, see the actual output.
+Use `verification-before-completion` skill—no claims without evidence. Run the actual commands, see the actual output.
 
 ### Step 3: Codex Final Cross-Check
 
@@ -303,7 +321,7 @@ Run the application. Verify core flows work. For UI: keyboard navigation, screen
 
 ### Step 5: Declare Complete
 
-Use `superpowers:finishing-a-development-branch` skill to clean up and package:
+Use `finishing-a-development-branch` skill to clean up and package:
 
 1. All commits pushed
 2. `IMPLEMENTATION_PLAN.md` marked complete
@@ -338,7 +356,7 @@ This is how the system gets smarter over time.
 **Stuck in a loop (same error 3+ times):**
 
 1. **First:** Spawn `bug-hunter` subagent with full error context
-2. **If still stuck:** Use `superpowers:systematic-debugging` skill for disciplined diagnosis
+2. **If still stuck:** Use `systematic-debugging` skill for disciplined diagnosis
 3. **If still stuck:** Call Codex for external perspective:
 
 ```bash
@@ -353,7 +371,7 @@ If still stuck after all three: log the blocker, skip to an unblocked phase, ret
 
 **Build failing mysteriously:** Clear caches (language-specific), check for circular imports/dependencies.
 
-**Flaky tests or race conditions:** Use `superpowers:condition-based-waiting` skill to replace arbitrary timeouts with condition polling.
+**Flaky tests or race conditions:** Use `condition-based-waiting` skill to replace arbitrary timeouts with condition polling.
 
 **Context feels degraded:** Run `/clear` to trigger a fresh context load with the auto-handoff. The SessionStart hook will inject your latest state.
 
@@ -366,8 +384,8 @@ Build tests as you build features, not as an afterthought.
 **Use the right tools:**
 
 - Spawn `test-architect` subagent for comprehensive test coverage on new features
-- Use `superpowers:test-driven-development` skill for red-green-refactor workflow
-- Use `superpowers:testing-anti-patterns` skill to avoid mocking pitfalls
+- Use `test-driven-development` skill for red-green-refactor workflow
+- Use `testing-anti-patterns` skill to avoid mocking pitfalls
 
 **Unit Tests:**
 
@@ -387,7 +405,7 @@ Build tests as you build features, not as an afterthought.
 - Test critical user flows end-to-end
 - Cover the happy path for core features
 - Test authentication flows if applicable
-- Use `example-skills:webapp-testing` for Playwright-based UI verification
+- Use Playwright for E2E UI verification (see project test setup)
 
 **When to write tests:**
 
@@ -414,26 +432,31 @@ If context feels stale, re-read AUTONOMOUS_BUILD_CLAUDE.md for the full protocol
 
 ## Companion Files
 
-These files should be at repo root alongside this protocol:
+**In this repo:**
 
-| File                             | Purpose                                |
-| -------------------------------- | -------------------------------------- |
-| `CONTEXT_TEMPLATE.md`            | Template for context preservation      |
-| `LEARNINGS.md`                   | Project-specific learnings accumulator |
+| File | Purpose |
+|------|---------|
+| `CONTEXT_TEMPLATE.md` | Template for context preservation |
+| `LEARNINGS.md` | Project-specific learnings accumulator |
 
-**Skills (installed globally in ~/.claude/skills/):**
+**Installed globally at `~/.claude/`:**
 
-| Skill                      | Purpose                                  |
-| -------------------------- | ---------------------------------------- |
-| `spec-quality-checklist`   | Validate specs before implementation     |
-| `accessibility-checklist`  | A11y checks for UI components            |
+| Directory | Purpose |
+|-----------|---------|
+| `agents/` | Custom agents (isolated execution) |
+| `skills/` | Skills (conversation context) |
+| `rules/` | Auto-loaded standards |
 
-**Superpowers skills (for spec/plan creation):**
+**Key tools by build phase:**
 
-| Skill                        | Purpose                                  |
-| ---------------------------- | ---------------------------------------- |
-| `superpowers:brainstorming`  | Refine ideas into specs                  |
-| `superpowers:writing-plans`  | Create phased implementation plans       |
+| Phase | Tools |
+|-------|-------|
+| Spec creation | `brainstorming` skill → `spec-quality-checklist` skill |
+| Planning | `writing-plans` skill |
+| Implementation | `plan-executor` agent, `tdd-implementer` agent, `using-git-worktrees` skill |
+| Debugging | `debugger` agent, `root-cause-tracer` agent, `validator` agent |
+| Quality & Review | `requesting-code-review` skill, verification-standards rule |
+| Cleanup & Completion | `slop-cleaner` agent, `finishing-a-development-branch` skill |
 
 ---
 
