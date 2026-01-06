@@ -9,7 +9,7 @@ Validate a specification for precision and completeness before implementation.
 
 ## When to Use
 
-- After drafting a spec with `superpowers:brainstorming`
+- After drafting a spec with `brainstorming` skill
 - Before creating an implementation plan
 - When reviewing an existing spec for gaps
 
