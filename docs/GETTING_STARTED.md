@@ -58,7 +58,7 @@ The installer is interactive and will:
 - Install CLI tools (fd, fzf, bat, ripgrep, delta, zoxide, jq, yq, sd)
 - Install Claude Code CLI
 - Set up shell aliases and functions
-- Create `~/.claude/` with hooks, skills, lib files, and templates
+- Create `~/.claude/` with hooks, agents, skills, rules, lib files, and templates
 - Let you pick what to install (skips what you already have)
 
 ### Step 2: Restart Your Terminal
@@ -84,6 +84,47 @@ autonomous-init --help
 ```
 
 If anything is missing, run `./install.sh` again or install manually via `brew install <tool>`.
+
+---
+
+## Understanding Agents, Skills, and Rules
+
+The kit organizes Claude's capabilities into three layers:
+
+### Agents (Isolated Execution)
+
+Custom agents at `~/.claude/agents/` run in isolated context windows. They can run in parallel and don't pollute your main conversation. Use them for focused work.
+
+| Agent | Purpose |
+|-------|---------|
+| `debugger` | Systematic debugging with root cause analysis |
+| `tdd-implementer` | Test-driven development |
+| `plan-executor` | Execute implementation plans task-by-task |
+| `slop-cleaner` | Remove AI-generated cruft before commits |
+
+Spawn agents via the Task tool: "Spawn the debugger agent to investigate this error."
+
+### Skills (Conversation Context)
+
+Skills at `~/.claude/skills/` require conversation context and user interaction. Use them for collaborative work. Invoke via `/skill-name`.
+
+| Skill | Purpose |
+|-------|---------|
+| `/brainstorming` | Refine vague ideas into concrete designs |
+| `/writing-plans` | Create detailed implementation plans |
+| `/autonomous-loop` | Activate autonomous loop mode |
+
+### Rules (Auto-loaded Standards)
+
+Rules at `~/.claude/rules/` are automatically loaded based on file patterns. No invocation needed—they just apply when relevant.
+
+| Rule | Applied To |
+|------|-----------|
+| `testing-standards.md` | Test files (`*.test.*`, `*.spec.*`) |
+| `verification-standards.md` | All work |
+| `code-quality.md` | All code |
+
+**The architecture:** Agents do the work, Skills guide the methodology, Rules enforce standards.
 
 ---
 

@@ -9,8 +9,11 @@ Bootstrap repo for autonomous AI-assisted development. Contains install scripts,
 ## Repository Structure
 
 - `install.sh` — Main installer (Homebrew, CLI tools, Node.js, Claude Code CLI, shell config, hooks)
-- `hooks/` — Claude Code hooks for session continuity (pre-compact.sh, session-start.sh)
-- `templates/` — Protocol documents (AUTONOMOUS_BUILD_CLAUDE_v2.md, SPEC_WRITING.md, etc.)
+- `agents/` — Custom agent definitions for isolated execution (→ `~/.claude/agents/`)
+- `rules/` — Auto-loaded standards based on file patterns (→ `~/.claude/rules/`)
+- `skills/` — Interactive workflows requiring conversation context (→ `~/.claude/skills/`)
+- `hooks/` — Claude Code hooks for session continuity (pre-compact.sh, session-start.sh, stop.sh)
+- `templates/` — Protocol documents (AUTONOMOUS_BUILD_CLAUDE_v2.md, CONTEXT_TEMPLATE.md, etc.)
 - `shell/` — Shell aliases and functions (functions.zsh, aliases.zsh)
 - `docs/` — User documentation (GETTING_STARTED.md, WORKFLOW_REFERENCE.md, TROUBLESHOOTING.md)
 - `examples/todo-app/` — Worked example with full build cycle
@@ -59,13 +62,39 @@ Handoffs are saved to:
 
 Only handoffs < 48 hours old are auto-injected to prevent stale context.
 
+## Agents, Skills, and Rules
+
+The kit organizes Claude's capabilities in three layers:
+
+**Agents** (`agents/` → `~/.claude/agents/`): Run in isolated context windows, can run in parallel.
+- `debugger` — Systematic debugging with root cause analysis
+- `tdd-implementer` — Test-driven development
+- `plan-executor` — Execute implementation plans task-by-task
+- `slop-cleaner` — Remove AI-generated cruft
+- `validator` — Defense-in-depth validation
+- `root-cause-tracer` — Trace bugs backward through call stack
+- `parallel-investigator` — Investigate independent failures concurrently
+
+**Skills** (`skills/` → `~/.claude/skills/`): Require conversation context and user interaction.
+- `brainstorming` — Refine ideas into designs through dialogue
+- `writing-plans` — Create detailed implementation plans
+- `using-git-worktrees` — Isolated workspaces for risky changes
+- `finishing-a-development-branch` — Clean up for merge/PR
+- `requesting-code-review` / `receiving-code-review` — Code review workflow
+- `spec-quality-checklist` / `accessibility-checklist` — Validation checklists
+- `autonomous-loop` — Activate autonomous loop mode
+
+**Rules** (`rules/` → `~/.claude/rules/`): Auto-loaded based on file patterns. No invocation needed.
+- `testing-standards.md` — Anti-patterns, TDD, condition-based waiting
+- `verification-standards.md` — Evidence before claims
+- `code-quality.md` — Slop patterns, commit hygiene
+
 ## Template Files
 
 Templates are copied to user projects via `autonomous-init`. Key ones:
 - `AUTONOMOUS_BUILD_CLAUDE_v2.md` — Main protocol for Claude-driven builds
 - `AUTONOMOUS_BUILD_CODEX_v2.md` — Protocol for Codex-driven builds
 - `CONTEXT_TEMPLATE.md` — Context preservation across sessions
-- `SPEC_WRITING.md` / `IMPLEMENTATION_PLAN_WRITING.md` — Guides for specs and plans
 
 ## Shell Functions
 
