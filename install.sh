@@ -163,6 +163,8 @@ detect_claude_files() {
         "$HOME/.claude/lib/cheatsheet.md"
         "$HOME/.claude/autonomous-dev-kit/templates"
         "$HOME/.claude/skills"
+        "$HOME/.claude/agents"
+        "$HOME/.claude/rules"
     )
     
     MISSING_FILES=()
@@ -738,6 +740,8 @@ setup_claude_directory() {
     run mkdir -p "$claude_dir/learnings"
     run mkdir -p "$claude_dir/handoffs"
     run mkdir -p "$claude_dir/skills"
+    run mkdir -p "$claude_dir/agents"
+    run mkdir -p "$claude_dir/rules"
     run mkdir -p "$claude_dir/autonomous-loop"
     run mkdir -p "$kit_dir"
 
@@ -779,6 +783,32 @@ setup_claude_directory_full() {
             run rm "$skills_dest/autonomous-loop.md"
             success "Removed legacy autonomous-loop.md (replaced by autonomous-loop/ directory)"
         fi
+    fi
+
+    # Install agents
+    local agents_src="$SCRIPT_DIR/agents"
+    local agents_dest="$claude_dir/agents"
+    if [ -d "$agents_src" ]; then
+        info "Installing agents..."
+        for agent_file in "$agents_src"/*.md; do
+            if [ -f "$agent_file" ]; then
+                local agent_name=$(basename "$agent_file")
+                install_file_with_prompt "$agent_file" "$agents_dest/$agent_name" "agent: $agent_name"
+            fi
+        done
+    fi
+
+    # Install rules
+    local rules_src="$SCRIPT_DIR/rules"
+    local rules_dest="$claude_dir/rules"
+    if [ -d "$rules_src" ]; then
+        info "Installing rules..."
+        for rule_file in "$rules_src"/*.md; do
+            if [ -f "$rule_file" ]; then
+                local rule_name=$(basename "$rule_file")
+                install_file_with_prompt "$rule_file" "$rules_dest/$rule_name" "rule: $rule_name"
+            fi
+        done
     fi
 
     # Install hooks
@@ -833,6 +863,50 @@ setup_claude_directory_additive() {
             success "All skills already installed"
         else
             success "Installed $skills_installed skills"
+        fi
+    fi
+
+    # Install missing agents
+    local agents_src="$SCRIPT_DIR/agents"
+    local agents_dest="$claude_dir/agents"
+    local agents_installed=0
+    if [ -d "$agents_src" ]; then
+        for agent_file in "$agents_src"/*.md; do
+            if [ -f "$agent_file" ]; then
+                local agent_name=$(basename "$agent_file")
+                if [ ! -f "$agents_dest/$agent_name" ]; then
+                    run cp "$agent_file" "$agents_dest/$agent_name"
+                    success "Installed agent: $agent_name"
+                    agents_installed=$((agents_installed + 1))
+                fi
+            fi
+        done
+        if [ $agents_installed -eq 0 ]; then
+            success "All agents already installed"
+        else
+            success "Installed $agents_installed agents"
+        fi
+    fi
+
+    # Install missing rules
+    local rules_src="$SCRIPT_DIR/rules"
+    local rules_dest="$claude_dir/rules"
+    local rules_installed=0
+    if [ -d "$rules_src" ]; then
+        for rule_file in "$rules_src"/*.md; do
+            if [ -f "$rule_file" ]; then
+                local rule_name=$(basename "$rule_file")
+                if [ ! -f "$rules_dest/$rule_name" ]; then
+                    run cp "$rule_file" "$rules_dest/$rule_name"
+                    success "Installed rule: $rule_name"
+                    rules_installed=$((rules_installed + 1))
+                fi
+            fi
+        done
+        if [ $rules_installed -eq 0 ]; then
+            success "All rules already installed"
+        else
+            success "Installed $rules_installed rules"
         fi
     fi
 
@@ -1153,6 +1227,32 @@ verify_installation() {
         fi
     else
         warn "Skills directory not found"
+    fi
+
+    # Check agents
+    local agents_dir="$HOME/.claude/agents"
+    if [ -d "$agents_dir" ]; then
+        local agent_count=$(find "$agents_dir" -maxdepth 1 -name "*.md" -type f | wc -l)
+        if [ $agent_count -gt 0 ]; then
+            success "$agent_count agents installed in $agents_dir"
+        else
+            warn "No agents found in $agents_dir"
+        fi
+    else
+        warn "Agents directory not found"
+    fi
+
+    # Check rules
+    local rules_dir="$HOME/.claude/rules"
+    if [ -d "$rules_dir" ]; then
+        local rule_count=$(find "$rules_dir" -maxdepth 1 -name "*.md" -type f | wc -l)
+        if [ $rule_count -gt 0 ]; then
+            success "$rule_count rules installed in $rules_dir"
+        else
+            warn "No rules found in $rules_dir"
+        fi
+    else
+        warn "Rules directory not found"
     fi
 
     echo ""
