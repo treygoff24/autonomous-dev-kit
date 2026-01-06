@@ -6,7 +6,7 @@ Complete reference for the autonomous build workflow.
 
 ## Maximum Autonomy Warning
 
-This workflow uses maximum autonomy commands. Examples below include `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex), which bypass safety prompts and allow tools to run without confirmation.
+This workflow uses maximum autonomy commands. Examples below include `--dangerously-skip-permissions` (Claude) and `--dangerously-bypass-approvals-and-sandbox` (Codex), which bypass safety prompts and allow tools to run without confirmation.
 
 Use only in trusted repos and isolated environments. Review diffs before committing, avoid running against production systems, and remove those flags if you want approval gates.
 
@@ -143,11 +143,11 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 
 | Checkpoint | Command |
 |------------|---------|
-| Spec review | `codex exec --model gpt-5.2-codex --config model_reasoning_effort="xhigh" --yolo "Review SPEC.md for completeness, edge cases, security gaps, and implementation feasibility. Output: Critical gaps / Ambiguities / Suggestions / Verdict."` |
-| Plan review | `codex exec --model gpt-5.2-codex --config model_reasoning_effort="xhigh" --yolo "Review IMPLEMENTATION_PLAN.md against SPEC.md. Check for sequencing risks and alternative approaches. Verdict: approve or revise."` |
-| Phase review | `codex exec --model gpt-5.2-codex --config model_reasoning_effort="xhigh" --yolo "Review the current branch diff for Phase [N]. Check for security issues, edge cases, test coverage, performance. Verdict: approve or revise."` |
-| Final check | `codex exec --model gpt-5.2-codex --config model_reasoning_effort="xhigh" --yolo "Final cross-check. Read SPEC.md and IMPLEMENTATION_PLAN.md. Verify all criteria met. Verdict: ship it or fix issues."` |
-| Stuck | `codex exec --model gpt-5.2-codex --config model_reasoning_effort="xhigh" --yolo "I'm stuck. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?"` |
+| Spec review | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Review SPEC.md for completeness, edge cases, security gaps, and implementation feasibility. Output: Critical gaps / Ambiguities / Suggestions / Verdict."` |
+| Plan review | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Review IMPLEMENTATION_PLAN.md against SPEC.md. Check for sequencing risks and alternative approaches. Verdict: approve or revise."` |
+| Phase review | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Review the current branch diff for Phase [N]. Check for security issues, edge cases, test coverage, performance. Verdict: approve or revise."` |
+| Final check | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Final cross-check. Read SPEC.md and IMPLEMENTATION_PLAN.md. Verify all criteria met. Verdict: ship it or fix issues."` |
+| Stuck | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "I'm stuck. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?"` |
 
 ---
 

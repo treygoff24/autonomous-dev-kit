@@ -6,7 +6,7 @@ This guide walks you through your first autonomous AI-assisted build, from zero 
 
 ## Maximum Autonomy Warning
 
-This kit is configured for maximum autonomy. Command examples intentionally include `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex), which bypass safety prompts and allow tools to run without confirmation.
+This kit is configured for maximum autonomy. Command examples intentionally include `--dangerously-skip-permissions` (Claude) and `--dangerously-bypass-approvals-and-sandbox` (Codex), which bypass safety prompts and allow tools to run without confirmation.
 
 Use this only in trusted repos and isolated environments. Review diffs before committing, avoid running against production systems, and remove those flags if you want approval gates.
 
@@ -47,20 +47,19 @@ export OPENAI_API_KEY="sk-..."
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/autonomous-dev-kit.git
+git clone https://github.com/treygoff24/autonomous-dev-kit.git
 cd autonomous-dev-kit
 
 # Run the installer
 ./install.sh
 ```
 
-The installer will:
-- Install CLI tools (fd, fzf, bat, ripgrep, etc.)
+The installer is interactive and will:
+- Install CLI tools (fd, fzf, bat, ripgrep, delta, zoxide, jq, yq, sd)
 - Install Claude Code CLI
-- Configure shell aliases
-- Create `~/.claude/` directory
-- Copy templates to `~/.claude/autonomous-dev-kit/templates`
-- Prompt before overwriting existing `~/.claude/` files
+- Set up shell aliases and functions
+- Create `~/.claude/` with hooks, skills, lib files, and templates
+- Let you pick what to install (skips what you already have)
 
 ### Step 2: Restart Your Terminal
 
@@ -113,13 +112,13 @@ This creates:
 
 ### Step 3: Write the Spec
 
-Create `SPEC.md` with your requirements. Use the SPEC_WRITING template as guidance:
+Create `SPEC.md` with your requirements. Use the `/brainstorming` skill to refine your idea, or just write it directly:
 
 ```bash
-# Read the spec writing guide first
-cat ~/.claude/autonomous-dev-kit/templates/SPEC_WRITING.md
+# Option A: Use Claude to help brainstorm
+claude "Use the brainstorming skill to help me write a spec for a CLI task manager"
 
-# Then create your spec
+# Option B: Write it directly
 code SPEC.md
 ```
 
@@ -196,10 +195,10 @@ Fix any issues Claude identifies, then repeat until approved.
 ### Step 5: Create the Implementation Plan
 
 ```bash
-# Read the planning guide
-cat ~/.claude/autonomous-dev-kit/templates/IMPLEMENTATION_PLAN_WRITING.md
+# Option A: Use Claude to help create the plan
+claude "Use the writing-plans skill to create an implementation plan for SPEC.md"
 
-# Create your plan
+# Option B: Create it directly
 code IMPLEMENTATION_PLAN.md
 ```
 

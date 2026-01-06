@@ -6,7 +6,7 @@ Common issues and how to fix them.
 
 ## Maximum Autonomy Warning
 
-This kit uses maximum autonomy commands in examples and helpers, including `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex). These bypass safety prompts and allow tools to run without confirmation.
+This kit uses maximum autonomy commands in examples and helpers, including `--dangerously-skip-permissions` (Claude) and `--dangerously-bypass-approvals-and-sandbox` (Codex). These bypass safety prompts and allow tools to run without confirmation.
 
 Use only in trusted repos and isolated environments. Review diffs before committing, avoid running against production systems, and remove those flags if you want approval gates.
 
@@ -121,7 +121,8 @@ Either:
 1. **Call the other agent for fresh perspective:**
    ```bash
    # If using Claude, call Codex
-   codex exec --model gpt-5.2-codex --config model_reasoning_effort="xhigh" --yolo \
+   codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" \
+     --dangerously-bypass-approvals-and-sandbox \
      "I'm stuck in an error loop. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?"
 
    # If using Codex, call Claude
