@@ -285,7 +285,7 @@ PLAN
     # Initialize with iteration at max - 1
     initialize_loop_state "$test_dir" "Test goal" 10
     update_state_field "$test_dir" ".iteration" "9"
-    update_state_field "$test_dir" ".last_protocol_reread" "9"  # Prevent verification trigger
+    update_state_field "$test_dir" ".last_verified_iteration" "9"  # Prevent verification trigger
 
     # Run hook - should hit max and pause
     local output=$(run_hook "$test_dir" 2>/dev/null || true)
@@ -324,7 +324,7 @@ PLAN
     # Initialize with iteration 2 (next will be 3)
     initialize_loop_state "$test_dir" "Test goal" 100
     update_state_field "$test_dir" ".iteration" "2"
-    update_state_field "$test_dir" ".last_protocol_reread" "0"
+    update_state_field "$test_dir" ".last_verified_iteration" "0"
 
     # Capture output
     local output=$(run_hook "$test_dir" 2>/dev/null || true)

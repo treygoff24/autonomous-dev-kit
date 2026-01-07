@@ -143,8 +143,8 @@ PLAN
 
     # Run hook twice to hit max
     run_hook "$test_dir" > /dev/null 2>&1 || true  # iteration 1
-    # Need to prevent verification trigger
-    update_state_field "$test_dir" ".last_protocol_reread" "1"
+    # Prevent verification trigger
+    update_state_field "$test_dir" ".last_verified_iteration" "1"
     local output=$(run_hook "$test_dir" 2>/dev/null || true)  # iteration 2 (max)
     local decision=$(json_field "$output" '.decision // ""')
     local reason=$(json_field "$output" '.reason // ""')
@@ -285,10 +285,10 @@ PLAN
     git -C "$test_dir" add .
     git -C "$test_dir" commit -q -m "add plan"
 
-    # Initialize at iteration 2, last_reread at 0
+    # Initialize at iteration 2, last_verified at 0
     initialize_loop_state "$test_dir" "Test goal" 100
     update_state_field "$test_dir" ".iteration" "2"
-    update_state_field "$test_dir" ".last_protocol_reread" "0"
+    update_state_field "$test_dir" ".last_verified_iteration" "0"
 
     # Run hook (will increment to 3)
     local output=$(run_hook "$test_dir" 2>/dev/null || true)

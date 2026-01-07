@@ -258,8 +258,14 @@ test_initialize_loop_state() {
     local token=$(echo "$state" | jq -r '.session_token')
     assert_not_empty "$token" "session_token is set"
 
-    local code=$(echo "$state" | jq -r '.expected_verification_code')
-    assert_not_empty "$code" "verification code is set"
+    local verification_pending=$(echo "$state" | jq -r '.verification_pending')
+    assert_equals "false" "$verification_pending" "verification_pending defaults to false"
+
+    local verification_attempts=$(echo "$state" | jq -r '.verification_attempts')
+    assert_equals "0" "$verification_attempts" "verification_attempts starts at 0"
+
+    local last_verified_iteration=$(echo "$state" | jq -r '.last_verified_iteration')
+    assert_equals "0" "$last_verified_iteration" "last_verified_iteration starts at 0"
 
     delete_state_file "$test_project"
 }

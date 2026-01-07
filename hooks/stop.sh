@@ -188,7 +188,7 @@ check_verification_tag() {
     local output="$1"
 
     # Look for <verified/> or <verified></verified> or <verified>anything</verified>
-    if echo "$output" | grep -qE '<verified\s*/?>' 2>/dev/null; then
+    if echo "$output" | grep -qE '<verified[[:space:]]*/?>|<verified>.*</verified>' 2>/dev/null; then
         return 0
     fi
     return 1
@@ -305,6 +305,7 @@ if is_loop_active "$PROJECT_DIR"; then
             update_state_field "$PROJECT_DIR" ".verification_pending" "false"
             update_state_field "$PROJECT_DIR" ".verification_attempts" "0"
             update_state_field "$PROJECT_DIR" ".last_verified_iteration" "$NEW_ITERATION"
+            LAST_VERIFIED="$NEW_ITERATION"
         else
             # Verification not found, increment attempts
             NEW_ATTEMPTS=$((VERIFY_ATTEMPTS + 1))
@@ -316,6 +317,7 @@ if is_loop_active "$PROJECT_DIR"; then
                 update_state_field "$PROJECT_DIR" ".verification_pending" "false"
                 update_state_field "$PROJECT_DIR" ".verification_attempts" "0"
                 update_state_field "$PROJECT_DIR" ".last_verified_iteration" "$NEW_ITERATION"
+                LAST_VERIFIED="$NEW_ITERATION"
             fi
             # If still under max attempts, verification_pending stays true
             # and the systemMessage will keep asking
