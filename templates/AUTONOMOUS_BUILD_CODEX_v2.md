@@ -167,11 +167,11 @@ npm run test         # All tests pass
 
 ### Step 3: Dual Code Review
 
-Self-review first, then call Claude:
+Self-review first, then call Claude with `/requesting-code-review` (forked `code-reviewer` agent):
 
 ```bash
 claude -p --model opus --dangerously-skip-permissions --output-format text \
-  "Use the code-reviewer subagent to review the current branch diff for Phase [N]: [Phase Name]. Review against: the spec at SPEC.md, the implementation plan, security best practices, accessibility, and edge cases. Output: Critical issues / Warnings / Suggestions / Verdict (approve or revise)."
+  "/requesting-code-review Review the current branch diff for Phase [N]: [Phase Name]. Review against: the spec at SPEC.md, the implementation plan, security best practices, accessibility, and edge cases. Output: Critical issues / Warnings / Suggestions / Verdict (approve or revise)."
 ```
 
 Fix all issues, re-run quality gates, repeat until approved with zero issues.

@@ -65,7 +65,7 @@ Skills require conversation context and user interaction. Use for collaborative 
 | `writing-plans` | Turn designs into executable implementation plans |
 | `using-git-worktrees` | Isolated workspaces for risky changes |
 | `finishing-a-development-branch` | Clean up and package for merge/PR |
-| `requesting-code-review` | Request review (spawns code-reviewer agent) |
+| `requesting-code-review` | Request review (forked `code-reviewer` agent) |
 | `receiving-code-review` | Handle review feedback with rigor |
 | `spec-quality-checklist` | Validate specs for precision |
 | `accessibility-checklist` | WCAG compliance for UI |
@@ -259,7 +259,7 @@ mypy src/            # Type checks pass (if configured)
 
 **Internal review first** using your subagents:
 
-1. Spawn `code-reviewer` subagent to review the phase diff
+1. Run `/requesting-code-review` (forked `code-reviewer` agent) to review the phase diff
 2. For security-sensitive changes, also spawn `security-auditor`
 3. For UI changes, spawn `accessibility-auditor`
 
@@ -458,7 +458,7 @@ If context feels stale, re-read AUTONOMOUS_BUILD_CLAUDE.md for the full protocol
 | Planning | `writing-plans` skill |
 | Implementation | `plan-executor` agent, `tdd-implementer` agent, `using-git-worktrees` skill |
 | Debugging | `debugger` agent, `root-cause-tracer` agent, `validator` agent |
-| Quality & Review | `requesting-code-review` skill, verification-standards rule |
+| Quality & Review | `requesting-code-review` (forked `code-reviewer`), verification-standards rule |
 | Cleanup & Completion | `slop-cleaner` agent, `finishing-a-development-branch` skill |
 
 ---
