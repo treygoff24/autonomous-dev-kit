@@ -1133,12 +1133,14 @@ configure_hooks_full() {
             # Replace the hooks section entirely while preserving other settings
             if $configure_stop_hook; then
                 jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '
+                    .respectGitignore = (if .respectGitignore == null then true else .respectGitignore end) |
                     .hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}] |
                     .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}] |
                     .hooks.Stop = [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
                 ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
             else
                 jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '
+                    .respectGitignore = (if .respectGitignore == null then true else .respectGitignore end) |
                     .hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}] |
                     .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}] |
                     del(.hooks.Stop)
@@ -1152,6 +1154,7 @@ configure_hooks_full() {
     # Create new settings file
     if $configure_stop_hook; then
         jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '{
+            "respectGitignore": true,
             "hooks": {
                 "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
                 "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
@@ -1160,6 +1163,7 @@ configure_hooks_full() {
         }' > "$settings_file"
     else
         jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
+            "respectGitignore": true,
             "hooks": {
                 "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
                 "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
@@ -1175,13 +1179,7 @@ configure_hooks_additive() {
     local hook_path_sessionstart="$3"
     local hook_path_stop="$4"
     local configure_stop_hook="$5"
-
-    if [ $MISSING_HOOKS -eq 0 ]; then
-        success "All hooks already configured"
-        return
-    fi
-
-    info "Adding ${MISSING_HOOKS} missing hooks (additive mode)..."
+    local needs_respect_gitignore=false
 
     # Check if settings file exists and is valid JSON
     if [ -f "$settings_file" ]; then
@@ -1191,6 +1189,29 @@ configure_hooks_additive() {
             rm "$settings_file"
         fi
     fi
+
+    if [ -f "$settings_file" ] && command_exists jq; then
+        if ! jq -e '.respectGitignore != null' "$settings_file" > /dev/null 2>&1; then
+            needs_respect_gitignore=true
+        fi
+    fi
+
+    if [ $MISSING_HOOKS -eq 0 ] && ! $needs_respect_gitignore; then
+        success "All hooks already configured"
+        return
+    fi
+
+    if [ $MISSING_HOOKS -eq 0 ] && $needs_respect_gitignore; then
+        info "Setting respectGitignore default (additive mode)..."
+        backup_file "$settings_file"
+        jq '
+            .respectGitignore = (if .respectGitignore == null then true else .respectGitignore end)
+        ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+        success "Set respectGitignore in settings.json"
+        return
+    fi
+
+    info "Adding ${MISSING_HOOKS} missing hooks (additive mode)..."
 
     if [ -f "$settings_file" ]; then
         # Guard: ensure .hooks exists and is an object (not array or other type)
@@ -1247,6 +1268,7 @@ configure_hooks_additive() {
         if $needs_precompact; then
             # Normalize to array if single object, then append
             jq --arg cmd "$hook_path_precompact" '
+                .respectGitignore = (if .respectGitignore == null then true else .respectGitignore end) |
                 .hooks.PreCompact = (
                     if .hooks.PreCompact == null then []
                     elif (.hooks.PreCompact | type) == "array" then .hooks.PreCompact
@@ -1260,6 +1282,7 @@ configure_hooks_additive() {
         if $needs_sessionstart; then
             # Normalize to array if single object, then append
             jq --arg cmd "$hook_path_sessionstart" '
+                .respectGitignore = (if .respectGitignore == null then true else .respectGitignore end) |
                 .hooks.SessionStart = (
                     if .hooks.SessionStart == null then []
                     elif (.hooks.SessionStart | type) == "array" then .hooks.SessionStart
@@ -1273,6 +1296,7 @@ configure_hooks_additive() {
         if $needs_stop; then
             # Normalize to array if single object, then append
             jq --arg cmd "$hook_path_stop" '
+                .respectGitignore = (if .respectGitignore == null then true else .respectGitignore end) |
                 .hooks.Stop = (
                     if .hooks.Stop == null then []
                     elif (.hooks.Stop | type) == "array" then .hooks.Stop
@@ -1286,6 +1310,7 @@ configure_hooks_additive() {
         # Create new settings file with hooks
         if $configure_stop_hook; then
             jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '{
+                "respectGitignore": true,
                 "hooks": {
                     "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
                     "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
@@ -1294,6 +1319,7 @@ configure_hooks_additive() {
             }' > "$settings_file"
         else
             jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
+                "respectGitignore": true,
                 "hooks": {
                     "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
                     "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]

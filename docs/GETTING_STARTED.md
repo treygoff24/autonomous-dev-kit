@@ -85,6 +85,8 @@ autonomous-init --help
 
 If anything is missing, run `./install.sh` again or install manually via `brew install <tool>`.
 
+**Note:** The installer sets `respectGitignore: true` in `~/.claude/settings.json` by default. Set it to `false` if you want to @-mention ignored paths like `.claude/`.
+
 ---
 
 ## Understanding Agents, Skills, and Rules
