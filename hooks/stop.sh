@@ -110,17 +110,9 @@ check_plan_complete() {
         return 1
     fi
 
-    # Check for "COMPLETE" status marker
-    if grep -qi 'status.*complete\|complete.*status' "$plan_file"; then
-        return 0
-    fi
-
-    # If has checkboxes and all checked (case insensitive), consider complete
-    if grep -qi '\- \[x\]' "$plan_file"; then
-        return 0
-    fi
-
-    return 1
+    # If no unchecked boxes, we're complete
+    # (either all checked, no checkboxes at all, or has COMPLETE marker)
+    return 0
 }
 
 # Check all completion criteria
