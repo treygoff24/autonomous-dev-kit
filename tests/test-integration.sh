@@ -236,30 +236,31 @@ test_continuation_prompt_format() {
     local output=$(run_hook "$test_dir" 2>/dev/null || true)
     local decision=$(json_field "$output" '.decision // ""')
     local reason=$(json_field "$output" '.reason // ""')
+    local system_msg=$(json_field "$output" '.systemMessage // ""')
 
     local checks_passed=true
 
-    # Check for cheatsheet header
-    if [[ "$decision" == "block" && "$reason" == *"AUTONOMOUS BUILD MODE ACTIVE"* ]]; then
-        echo "  Cheatsheet header ✓"
+    # Check decision is block (work incomplete due to dirty git)
+    if [[ "$decision" == "block" ]]; then
+        echo "  Decision is block ✓"
     else
-        echo "  Cheatsheet header ✗"
+        echo "  Decision is block ✗"
         checks_passed=false
     fi
 
-    # Check for loop status
-    if [[ "$reason" == *"Loop Status"* ]]; then
-        echo "  Loop status section ✓"
+    # Check reason IS the goal (not cheatsheet, not status)
+    if [[ "$reason" == "Test goal" ]]; then
+        echo "  Reason equals goal ✓"
     else
-        echo "  Loop status section ✗"
+        echo "  Reason equals goal ✗ (got: $reason)"
         checks_passed=false
     fi
 
-    # Check for goal display
-    if [[ "$reason" == *"Test goal"* ]]; then
-        echo "  Goal displayed ✓"
+    # Check systemMessage contains iteration info
+    if [[ "$system_msg" == *"Iteration"* ]]; then
+        echo "  SystemMessage has iteration ✓"
     else
-        echo "  Goal displayed ✗"
+        echo "  SystemMessage has iteration ✗"
         checks_passed=false
     fi
 
