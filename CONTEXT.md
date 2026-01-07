@@ -1,6 +1,6 @@
 # Project Context — DO NOT DELETE
 
-**Last Updated**: Phase [N] - [Name] ([STATUS])
+**Last Updated**: 2026-01-07 - Claude Code 2.1.0 alignment (in progress)
 
 ## Maximum Autonomy Warning
 
@@ -45,7 +45,7 @@ npm run typecheck && npm run lint && npm run build && npm run test
 
 ## Current Phase
 
-[What you're working on right now]
+Align autonomous-dev-kit with Claude Code 2.1.0 features per plan in `docs/plans/2026-01-07-claude-code-2-1-0-updates.md`.
 
 ## Hook Signatures
 
