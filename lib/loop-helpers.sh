@@ -7,30 +7,12 @@
 
 set -euo pipefail
 
-# Constants
-LOOP_STATE_DIR="$HOME/.claude/autonomous-loop"
-
-# Ensure state directory exists
-mkdir -p "$LOOP_STATE_DIR"
-
-# Get a consistent 12-char hash for a project path
-# Usage: get_project_hash "/path/to/project"
-get_project_hash() {
-    local project_path="$1"
-    # Use shasum (macOS) or sha256sum (Linux)
-    if command -v shasum &> /dev/null; then
-        echo -n "$project_path" | shasum -a 256 | cut -c1-12
-    else
-        echo -n "$project_path" | sha256sum | cut -c1-12
-    fi
-}
-
-# Get the state file path for a project
+# Get the state file path for a project (project-local, like ralph-wiggum)
 # Usage: get_state_file_path "/path/to/project"
 get_state_file_path() {
     local project_path="$1"
-    local hash=$(get_project_hash "$project_path")
-    echo "$LOOP_STATE_DIR/$hash.json"
+    # Store in project's .claude directory (like ralph-wiggum does)
+    echo "$project_path/.claude/autonomous-loop.json"
 }
 
 # Generate a random 4-digit verification code (OS-agnostic)
@@ -80,6 +62,8 @@ write_state_file() {
     local state="$2"
     local state_file=$(get_state_file_path "$project_path")
 
+    # Ensure .claude directory exists in project
+    mkdir -p "$(dirname "$state_file")"
     echo "$state" > "$state_file"
 }
 
@@ -90,6 +74,9 @@ update_state_field() {
     local field="$2"
     local value="$3"
     local state_file=$(get_state_file_path "$project_path")
+
+    # Ensure .claude directory exists
+    mkdir -p "$(dirname "$state_file")"
 
     if [[ ! -f "$state_file" ]]; then
         echo "{}" > "$state_file"
