@@ -1,6 +1,6 @@
 # Autonomous Loop Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Claude:** REQUIRED SUB-SKILL: Use `executing-plans` skill to implement this plan task-by-task.
 
 **Goal:** Implement persistent development loops with safety net and explicit loop mode for autonomous Claude Code sessions.
 

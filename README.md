@@ -154,6 +154,25 @@ Prompt it: "Read the autonomous build protocol and help me create a spec for [yo
 ```
 autonomous-dev-kit/
 ├── install.sh                # Interactive installer
+├── agents/                   # Custom agent definitions (→ ~/.claude/agents/)
+│   ├── debugger.md           # Systematic debugging
+│   ├── tdd-implementer.md    # Test-driven development
+│   ├── plan-executor.md      # Execute plans task-by-task
+│   ├── slop-cleaner.md       # Remove AI cruft
+│   ├── validator.md          # Defense-in-depth validation
+│   ├── root-cause-tracer.md  # Backward stack tracing
+│   └── parallel-investigator.md  # Concurrent problem investigation
+├── rules/                    # Auto-loaded standards (→ ~/.claude/rules/)
+│   ├── testing-standards.md  # Anti-patterns, TDD, condition-based waiting
+│   ├── verification-standards.md  # Evidence before claims
+│   └── code-quality.md       # Slop patterns, commit hygiene
+├── skills/                   # Interactive skills (→ ~/.claude/skills/)
+│   ├── autonomous-loop/
+│   ├── brainstorming/
+│   ├── writing-plans/
+│   ├── requesting-code-review/
+│   ├── receiving-code-review/
+│   └── ... (9 total)
 ├── docs/
 │   ├── GETTING_STARTED.md    # First project walkthrough
 │   ├── WORKFLOW_REFERENCE.md # Complete workflow details
@@ -162,9 +181,7 @@ autonomous-dev-kit/
 │   ├── AUTONOMOUS_BUILD_CLAUDE_v2.md  # The main protocol
 │   ├── AUTONOMOUS_BUILD_CODEX_v2.md   # Codex variant
 │   ├── CONTEXT_TEMPLATE.md            # Context preservation template
-│   ├── CLAUDE.md                      # Project-specific Claude instructions
-│   ├── LEARNINGS.md                   # Cross-session learning accumulator
-│   └── .claude-quality-gates.example  # Example quality gates config
+│   └── CLAUDE.md                      # Project-specific Claude instructions
 ├── hooks/
 │   ├── pre-compact.sh        # Saves handoff before context compaction
 │   ├── session-start.sh      # Injects context on session start
@@ -174,16 +191,8 @@ autonomous-dev-kit/
 │   └── cheatsheet.md         # Protocol cheatsheet (injected during loop)
 ├── shell/
 │   ├── aliases.zsh           # fd, bat, delta, zoxide aliases
-│   ├── functions.zsh         # autonomous-init, quality-gates, etc.
-│   └── README.md             # Manual shell setup if needed
-├── skills/                   # Claude Code skills (see Skills section)
-│   ├── autonomous-loop/
-│   ├── brainstorming/
-│   ├── writing-plans/
-│   ├── test-driven-development/
-│   ├── systematic-debugging/
-│   └── ... (15 total)
-├── tests/                    # Test suites (43 tests)
+│   └── functions.zsh         # autonomous-init, quality-gates, etc.
+├── tests/                    # Test suites
 │   ├── test-loop-helpers.sh
 │   ├── test-stop-hook.sh
 │   └── test-integration.sh
@@ -229,29 +238,53 @@ All commands support `--help` for usage details.
 
 ---
 
-## Skills
+## Agents, Skills, and Rules
 
-Skills are reusable workflows that Claude invokes via `/skill-name`. Installed to `~/.claude/skills/`.
+The kit organizes Claude's capabilities in three layers:
+
+### Agents (Isolated Execution)
+
+Custom agents run in isolated context windows. They can run in parallel and don't pollute your main conversation. Installed to `~/.claude/agents/`.
+
+| Agent | What it does |
+|-------|--------------|
+| `debugger` | Systematic debugging with root cause analysis |
+| `tdd-implementer` | Test-driven development: write failing test first |
+| `plan-executor` | Execute plans task-by-task with quality gates |
+| `slop-cleaner` | Remove AI-generated cruft before commits |
+| `validator` | Defense-in-depth validation at every layer |
+| `root-cause-tracer` | Trace bugs backward through call stack |
+| `parallel-investigator` | Investigate independent failures concurrently |
+
+**Parallel execution:** Spawn multiple agents for independent problems to maximize throughput.
+
+### Skills (Interactive Workflows)
+
+Skills require conversation context and user interaction. Invoke via `/skill-name`. Installed to `~/.claude/skills/`.
 
 | Skill | What it does |
 |-------|--------------|
-| `/autonomous-loop` | Activate autonomous loop mode with explicit goal |
-| `/brainstorming` | Refine vague ideas into concrete designs via Socratic questioning |
-| `/writing-plans` | Create detailed implementation plans with phases and acceptance criteria |
-| `/test-driven-development` | Red-green-refactor: write failing test first, then implement |
-| `/systematic-debugging` | Structured debugging: reproduce → isolate → hypothesize → fix |
-| `/verification-before-completion` | Require proof (test output, screenshots) before claiming done |
-| `/requesting-code-review` | Self-review checklist before commit |
+| `/brainstorming` | Refine vague ideas into concrete designs via dialogue |
+| `/writing-plans` | Create detailed implementation plans with phases |
 | `/using-git-worktrees` | Create isolated worktrees for risky changes |
 | `/finishing-a-development-branch` | Clean up branch for merge/PR |
-| `/spec-quality-checklist` | Validate specs before implementation |
+| `/requesting-code-review` | Request code review before proceeding |
+| `/receiving-code-review` | Handle code review feedback with rigor |
+| `/spec-quality-checklist` | Validate specs for precision and completeness |
 | `/accessibility-checklist` | A11y audit for UI components |
-| `/slop-cleanup` | Find and remove AI-generated cruft |
-| `/testing-anti-patterns` | Avoid common testing mistakes |
-| `/condition-based-waiting` | Replace flaky sleeps with condition polling |
-| `/subagent-driven-development` | Dispatch subagents for parallel task execution |
+| `/autonomous-loop` | Activate autonomous loop mode with explicit goal |
 
-Skills are the "how" — they encode methodology so Claude doesn't improvise.
+### Rules (Auto-loaded Standards)
+
+Rules are automatically loaded based on file patterns. No invocation needed. Installed to `~/.claude/rules/`.
+
+| Rule | Scope | What it does |
+|------|-------|--------------|
+| `testing-standards.md` | Test files | Anti-patterns, TDD, condition-based waiting |
+| `verification-standards.md` | All work | Evidence before claims |
+| `code-quality.md` | All code | Slop patterns, commit hygiene |
+
+The architecture: **Agents** do the work, **Skills** guide the methodology, **Rules** enforce standards.
 
 ---
 

@@ -29,6 +29,22 @@ run_hook() {
     echo '{}' | CLAUDE_PROJECT_DIR="$project_dir" "$SCRIPT_DIR/../hooks/stop.sh"
 }
 
+# Helpers to tolerate approve paths with empty stdout.
+is_empty_output() {
+    local output="$1"
+    [[ -z "${output//[[:space:]]/}" ]]
+}
+
+json_field() {
+    local output="$1"
+    local filter="$2"
+    if is_empty_output "$output"; then
+        echo ""
+        return 0
+    fi
+    echo "$output" | jq -r "$filter"
+}
+
 # --- Integration Tests ---
 
 test_full_loop_lifecycle() {
@@ -51,11 +67,12 @@ PLAN
 
     # Step 1: Loop should block incomplete work
     local exit_code=0
-    run_hook "$test_dir" > /dev/null 2>&1 || exit_code=$?
-    if [[ $exit_code -eq 2 ]]; then
+    local output=$(run_hook "$test_dir" 2>/dev/null) || exit_code=$?
+    local decision=$(json_field "$output" '.decision // ""')
+    if [[ $exit_code -eq 0 && "$decision" == "block" ]]; then
         echo "  Step 1: Loop blocks incomplete work ✓"
     else
-        echo "  Step 1: Loop should block (got exit code $exit_code) ✗"
+        echo "  Step 1: Loop should block (exit $exit_code, decision=$decision) ✗"
         all_steps_passed=false
     fi
 
@@ -79,7 +96,13 @@ PLAN
     git -C "$test_dir" commit -q -m "complete plan"
 
     # Step 4: Loop should allow exit when complete
-    if run_hook "$test_dir" > /dev/null 2>&1; then
+    local output_complete=$(run_hook "$test_dir" 2>/dev/null)
+    local decision_complete=$(json_field "$output_complete" '.decision // ""')
+    local output_complete_empty=false
+    if is_empty_output "$output_complete"; then
+        output_complete_empty=true
+    fi
+    if [[ "$decision_complete" == "approve" || $output_complete_empty == true ]]; then
         echo "  Step 3: Loop allows exit when complete ✓"
     else
         echo "  Step 3: Loop should allow exit ✗"
@@ -122,13 +145,15 @@ PLAN
     run_hook "$test_dir" > /dev/null 2>&1 || true  # iteration 1
     # Need to prevent verification trigger
     update_state_field "$test_dir" ".last_protocol_reread" "1"
-    run_hook "$test_dir" > /dev/null 2>&1 || true  # iteration 2 (max)
+    local output=$(run_hook "$test_dir" 2>/dev/null || true)  # iteration 2 (max)
+    local decision=$(json_field "$output" '.decision // ""')
+    local reason=$(json_field "$output" '.reason // ""')
 
     # Check paused flag
     local state=$(read_state_file "$test_dir")
     local paused=$(echo "$state" | jq -r '.paused')
 
-    if [[ "$paused" == "true" ]]; then
+    if [[ "$paused" == "true" && "$decision" == "block" && "$reason" == *"Max Iterations Reached"* ]]; then
         echo "  ✓ Loop paused at max iterations"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
@@ -151,11 +176,18 @@ test_quality_gates_integration() {
     git -C "$test_dir" commit -q -m "add passing gates"
 
     # Should allow exit (clean git + passing gates)
-    if run_hook "$test_dir" > /dev/null 2>&1; then
+    local output=$(run_hook "$test_dir" 2>/dev/null)
+    local decision=$(json_field "$output" '.decision // ""')
+    local output_empty=false
+    if is_empty_output "$output"; then
+        output_empty=true
+    fi
+
+    if [[ "$decision" == "approve" || $output_empty == true ]]; then
         echo "  ✓ Passing quality gates allow exit"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Passing quality gates should allow exit"
+        echo "  ✗ Passing quality gates should allow exit (decision=$decision)"
     fi
 
     rm -rf "$test_dir"
@@ -201,12 +233,14 @@ test_continuation_prompt_format() {
     initialize_loop_state "$test_dir" "Test goal" 100
 
     # Capture output
-    local output=$(run_hook "$test_dir" 2>&1 || true)
+    local output=$(run_hook "$test_dir" 2>/dev/null || true)
+    local decision=$(json_field "$output" '.decision // ""')
+    local reason=$(json_field "$output" '.reason // ""')
 
     local checks_passed=true
 
     # Check for cheatsheet header
-    if [[ "$output" == *"AUTONOMOUS BUILD MODE ACTIVE"* ]]; then
+    if [[ "$decision" == "block" && "$reason" == *"AUTONOMOUS BUILD MODE ACTIVE"* ]]; then
         echo "  Cheatsheet header ✓"
     else
         echo "  Cheatsheet header ✗"
@@ -214,7 +248,7 @@ test_continuation_prompt_format() {
     fi
 
     # Check for loop status
-    if [[ "$output" == *"Loop Status"* ]]; then
+    if [[ "$reason" == *"Loop Status"* ]]; then
         echo "  Loop status section ✓"
     else
         echo "  Loop status section ✗"
@@ -222,7 +256,7 @@ test_continuation_prompt_format() {
     fi
 
     # Check for goal display
-    if [[ "$output" == *"Test goal"* ]]; then
+    if [[ "$reason" == *"Test goal"* ]]; then
         echo "  Goal displayed ✓"
     else
         echo "  Goal displayed ✗"
@@ -237,8 +271,8 @@ test_continuation_prompt_format() {
     rm -rf "$test_dir"
 }
 
-test_verification_trigger() {
-    echo "Testing verification trigger at iteration 3..."
+test_verification_disabled_at_iteration_3() {
+    echo "Testing iteration 3 does not trigger verification..."
     TESTS_RUN=$((TESTS_RUN + 1))
 
     local test_dir=$(create_test_repo)
@@ -256,14 +290,16 @@ PLAN
     update_state_field "$test_dir" ".iteration" "2"
     update_state_field "$test_dir" ".last_protocol_reread" "0"
 
-    # Run hook (will increment to 3, triggering verification)
-    local output=$(run_hook "$test_dir" 2>&1 || true)
+    # Run hook (will increment to 3)
+    local output=$(run_hook "$test_dir" 2>/dev/null || true)
+    local decision=$(json_field "$output" '.decision // ""')
+    local reason=$(json_field "$output" '.reason // ""')
 
-    if [[ "$output" == *"Protocol Re-Read Required"* ]]; then
-        echo "  ✓ Verification triggered at iteration 3"
+    if [[ "$decision" == "block" && "$reason" == *"Test goal"* && "$reason" != *"Protocol Re-Read Required"* ]]; then
+        echo "  ✓ Iteration 3 behaves like normal loop block"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Verification not triggered"
+        echo "  ✗ Unexpected verification behavior"
     fi
 
     delete_state_file "$test_dir"
@@ -279,7 +315,7 @@ test_max_iterations_pause
 test_quality_gates_integration
 test_hook_chain_integration
 test_continuation_prompt_format
-test_verification_trigger
+test_verification_disabled_at_iteration_3
 
 # Summary
 echo ""

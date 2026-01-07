@@ -32,6 +32,22 @@ run_hook() {
     echo '{}' | CLAUDE_PROJECT_DIR="$project_dir" "$HOOK_PATH"
 }
 
+# Helpers to tolerate approve paths with empty stdout.
+is_empty_output() {
+    local output="$1"
+    [[ -z "${output//[[:space:]]/}" ]]
+}
+
+json_field() {
+    local output="$1"
+    local filter="$2"
+    if is_empty_output "$output"; then
+        echo ""
+        return 0
+    fi
+    echo "$output" | jq -r "$filter"
+}
+
 # --- Tests ---
 
 test_safety_net_allows_clean_git() {
@@ -40,14 +56,23 @@ test_safety_net_allows_clean_git() {
 
     local test_dir=$(create_test_repo)
 
-    # Run hook - should allow exit (code 0)
-    if run_hook "$test_dir" > /dev/null 2>&1; then
+    local err_file=$(mktemp)
+    local exit_code=0
+    local output=$(run_hook "$test_dir" 2>"$err_file") || exit_code=$?
+    local decision=$(json_field "$output" '.decision // ""')
+    local output_empty=false
+    if is_empty_output "$output"; then
+        output_empty=true
+    fi
+
+    if [[ $exit_code -eq 0 && ( "$decision" == "approve" || $output_empty == true ) ]]; then
         echo "  ✓ Clean git state allows exit"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Clean git state allows exit"
+        echo "  ✗ Expected approve decision (exit $exit_code, decision=$decision)"
     fi
 
+    rm -f "$err_file"
     rm -rf "$test_dir"
 }
 
@@ -58,17 +83,24 @@ test_safety_net_blocks_dirty_git() {
     local test_dir=$(create_test_repo)
     echo "modified" > "$test_dir/file.txt"  # Uncommitted change
 
-    # Run hook - should block exit (code 2)
+    local err_file=$(mktemp)
     local exit_code=0
-    run_hook "$test_dir" > /dev/null 2>&1 || exit_code=$?
+    local output=$(run_hook "$test_dir" 2>"$err_file") || exit_code=$?
+    local decision=$(json_field "$output" '.decision // ""')
+    local output_empty=false
+    if is_empty_output "$output"; then
+        output_empty=true
+    fi
+    local warnings=$(cat "$err_file")
 
-    if [[ $exit_code -eq 2 ]]; then
-        echo "  ✓ Dirty git state blocks exit with code 2"
+    if [[ $exit_code -eq 0 && ( "$decision" == "approve" || $output_empty == true ) && "$warnings" == *"Uncommitted changes in git"* ]]; then
+        echo "  ✓ Dirty git state warns but does not block"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Expected exit code 2, got $exit_code"
+        echo "  ✗ Expected advisory warning with approve decision (exit $exit_code, decision=$decision)"
     fi
 
+    rm -f "$err_file"
     rm -rf "$test_dir"
 }
 
@@ -78,14 +110,23 @@ test_safety_net_skips_quality_gates_if_missing() {
 
     local test_dir=$(create_test_repo)
 
-    # No .claude-quality-gates file - should allow exit
-    if run_hook "$test_dir" > /dev/null 2>&1; then
+    local err_file=$(mktemp)
+    local exit_code=0
+    local output=$(run_hook "$test_dir" 2>"$err_file") || exit_code=$?
+    local decision=$(json_field "$output" '.decision // ""')
+    local output_empty=false
+    if is_empty_output "$output"; then
+        output_empty=true
+    fi
+
+    if [[ $exit_code -eq 0 && ( "$decision" == "approve" || $output_empty == true ) ]]; then
         echo "  ✓ No quality gates file = skip checks"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ No quality gates file = skip checks"
+        echo "  ✗ No quality gates file = skip checks (exit $exit_code, decision=$decision)"
     fi
 
+    rm -f "$err_file"
     rm -rf "$test_dir"
 }
 
@@ -100,17 +141,24 @@ test_safety_net_runs_quality_gates_if_present() {
     git -C "$test_dir" add .
     git -C "$test_dir" commit -q -m "add gates"
 
-    # Should block exit
+    local err_file=$(mktemp)
     local exit_code=0
-    run_hook "$test_dir" > /dev/null 2>&1 || exit_code=$?
+    local output=$(run_hook "$test_dir" 2>"$err_file") || exit_code=$?
+    local decision=$(json_field "$output" '.decision // ""')
+    local output_empty=false
+    if is_empty_output "$output"; then
+        output_empty=true
+    fi
+    local warnings=$(cat "$err_file")
 
-    if [[ $exit_code -eq 2 ]]; then
-        echo "  ✓ Quality gates failure blocks exit"
+    if [[ $exit_code -eq 0 && ( "$decision" == "approve" || $output_empty == true ) && "$warnings" == *"Quality gate failed"* ]]; then
+        echo "  ✓ Quality gates failure warns (advisory mode)"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Expected exit code 2, got $exit_code"
+        echo "  ✗ Expected advisory warning with approve decision (exit $exit_code, decision=$decision)"
     fi
 
+    rm -f "$err_file"
     rm -rf "$test_dir"
 }
 
@@ -131,15 +179,15 @@ PLAN
     # Initialize loop state
     initialize_loop_state "$test_dir" "Test goal" 100
 
-    # Run hook - should block (loop active, work not complete)
     local exit_code=0
-    run_hook "$test_dir" > /dev/null 2>&1 || exit_code=$?
+    local output=$(run_hook "$test_dir" 2>/dev/null) || exit_code=$?
+    local decision=$(json_field "$output" '.decision // ""')
 
-    if [[ $exit_code -eq 2 ]]; then
+    if [[ $exit_code -eq 0 && "$decision" == "block" ]]; then
         echo "  ✓ Loop mode blocks incomplete work"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Expected exit code 2, got $exit_code"
+        echo "  ✗ Expected block decision (exit $exit_code, decision=$decision)"
     fi
 
     delete_state_file "$test_dir"
@@ -166,11 +214,18 @@ PLAN
     initialize_loop_state "$test_dir" "Test goal" 100
 
     # Run hook - should allow exit (work complete)
-    if run_hook "$test_dir" > /dev/null 2>&1; then
+    local output=$(run_hook "$test_dir" 2>/dev/null)
+    local decision=$(json_field "$output" '.decision // ""')
+    local output_empty=false
+    if is_empty_output "$output"; then
+        output_empty=true
+    fi
+
+    if [[ "$decision" == "approve" || $output_empty == true ]]; then
         echo "  ✓ Loop mode allows exit when complete"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Loop mode should allow exit when complete"
+        echo "  ✗ Loop mode should allow exit when complete (decision=$decision)"
     fi
 
     delete_state_file "$test_dir"
@@ -233,25 +288,27 @@ PLAN
     update_state_field "$test_dir" ".last_protocol_reread" "9"  # Prevent verification trigger
 
     # Run hook - should hit max and pause
-    run_hook "$test_dir" > /dev/null 2>&1 || true
+    local output=$(run_hook "$test_dir" 2>/dev/null || true)
+    local decision=$(json_field "$output" '.decision // ""')
+    local reason=$(json_field "$output" '.reason // ""')
 
     # Check paused flag
     local state=$(read_state_file "$test_dir")
     local paused=$(echo "$state" | jq -r '.paused')
 
-    if [[ "$paused" == "true" ]]; then
+    if [[ "$paused" == "true" && "$decision" == "block" && "$reason" == *"Max Iterations Reached"* ]]; then
         echo "  ✓ Loop paused at max iterations"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Expected paused=true, got $paused"
+        echo "  ✗ Expected pause with block decision (paused=$paused, decision=$decision)"
     fi
 
     delete_state_file "$test_dir"
     rm -rf "$test_dir"
 }
 
-test_verification_required_every_3() {
-    echo "Testing verification required every 3 iterations..."
+test_verification_disabled_at_iteration_3() {
+    echo "Testing iteration 3 does not trigger verification..."
     TESTS_RUN=$((TESTS_RUN + 1))
 
     local test_dir=$(create_test_repo)
@@ -264,20 +321,21 @@ PLAN
     git -C "$test_dir" add .
     git -C "$test_dir" commit -q -m "add plan"
 
-    # Initialize with iteration 2 (next will be 3, triggering verification)
+    # Initialize with iteration 2 (next will be 3)
     initialize_loop_state "$test_dir" "Test goal" 100
     update_state_field "$test_dir" ".iteration" "2"
     update_state_field "$test_dir" ".last_protocol_reread" "0"
 
     # Capture output
-    local output=$(run_hook "$test_dir" 2>&1 || true)
+    local output=$(run_hook "$test_dir" 2>/dev/null || true)
+    local decision=$(json_field "$output" '.decision // ""')
+    local reason=$(json_field "$output" '.reason // ""')
 
-    if [[ "$output" == *"Protocol Re-Read Required"* ]]; then
-        echo "  ✓ Verification triggered at iteration 3"
+    if [[ "$decision" == "block" && "$reason" == *"Test goal"* && "$reason" != *"Protocol Re-Read Required"* ]]; then
+        echo "  ✓ Iteration 3 behaves like normal loop block"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Verification not triggered"
-        echo "    Output: $output"
+        echo "  ✗ Unexpected verification behavior (decision=$decision, reason=$reason)"
     fi
 
     delete_state_file "$test_dir"
@@ -295,9 +353,11 @@ test_cheatsheet_injected() {
     initialize_loop_state "$test_dir" "Test goal" 100
 
     # Capture output
-    local output=$(run_hook "$test_dir" 2>&1 || true)
+    local output=$(run_hook "$test_dir" 2>/dev/null || true)
+    local decision=$(json_field "$output" '.decision // ""')
+    local reason=$(json_field "$output" '.reason // ""')
 
-    if [[ "$output" == *"AUTONOMOUS BUILD MODE ACTIVE"* ]]; then
+    if [[ "$decision" == "block" && "$reason" == *"AUTONOMOUS BUILD MODE ACTIVE"* ]]; then
         echo "  ✓ Cheatsheet header present"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
@@ -315,12 +375,18 @@ test_no_git_repo() {
     local test_dir=$(mktemp -d)
     echo "test" > "$test_dir/file.txt"
 
-    # Should allow exit (no git = skip git check)
-    if run_hook "$test_dir" > /dev/null 2>&1; then
+    local output=$(run_hook "$test_dir" 2>/dev/null)
+    local decision=$(json_field "$output" '.decision // ""')
+    local output_empty=false
+    if is_empty_output "$output"; then
+        output_empty=true
+    fi
+
+    if [[ "$decision" == "approve" || $output_empty == true ]]; then
         echo "  ✓ Non-git directory allows exit"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Non-git directory should allow exit"
+        echo "  ✗ Non-git directory should allow exit (decision=$decision)"
     fi
 
     rm -rf "$test_dir"
@@ -337,7 +403,7 @@ test_loop_mode_blocks_when_incomplete
 test_loop_mode_allows_when_complete
 test_loop_increments_iteration
 test_max_iterations_pauses
-test_verification_required_every_3
+test_verification_disabled_at_iteration_3
 test_cheatsheet_injected
 test_no_git_repo
 
