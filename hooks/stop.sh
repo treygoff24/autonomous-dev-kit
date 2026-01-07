@@ -146,6 +146,54 @@ get_cheatsheet() {
     fi
 }
 
+# --- Transcript Reading (for output-based verification) ---
+
+# Get the last assistant message from the transcript
+# Returns empty string if transcript can't be read
+get_last_assistant_output() {
+    local transcript_path="$1"
+
+    if [[ ! -f "$transcript_path" ]]; then
+        echo ""
+        return
+    fi
+
+    # Check if there are any assistant messages
+    if ! grep -q '"role":"assistant"' "$transcript_path" 2>/dev/null; then
+        echo ""
+        return
+    fi
+
+    # Extract last assistant message (JSONL format - one JSON per line)
+    local last_line
+    last_line=$(grep '"role":"assistant"' "$transcript_path" | tail -1)
+
+    if [[ -z "$last_line" ]]; then
+        echo ""
+        return
+    fi
+
+    # Parse JSON and extract text content
+    echo "$last_line" | jq -r '
+        .message.content |
+        map(select(.type == "text")) |
+        map(.text) |
+        join("\n")
+    ' 2>/dev/null || echo ""
+}
+
+# Check if Claude's output contains the verification tag
+# Returns 0 (true) if verified, 1 (false) if not
+check_verification_tag() {
+    local output="$1"
+
+    # Look for <verified/> or <verified></verified> or <verified>anything</verified>
+    if echo "$output" | grep -qE '<verified\s*/?>' 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
 # Calculate elapsed time
 get_elapsed_time() {
     local started_at="$1"
@@ -214,8 +262,6 @@ if is_loop_active "$PROJECT_DIR"; then
     GOAL=$(echo "$STATE" | jq -r '.goal')
     PAUSED=$(echo "$STATE" | jq -r '.paused')
     STARTED_AT=$(echo "$STATE" | jq -r '.started_at')
-    AWAITING_VERIFICATION=$(echo "$STATE" | jq -r '.awaiting_verification')
-    LAST_REREAD=$(echo "$STATE" | jq -r '.last_protocol_reread')
 
     # If paused, allow exit (no JSON output = approve)
     if [[ "$PAUSED" == "true" ]]; then
@@ -235,12 +281,55 @@ if is_loop_active "$PROJECT_DIR"; then
     NEW_ITERATION=$((ITERATION + 1))
     update_state_field "$PROJECT_DIR" ".iteration" "$NEW_ITERATION"
 
-    # --- Protocol Verification (DISABLED - caused infinite loops) ---
-    # The verification checkpoint mechanism required Claude to manually update
-    # a JSON file, which it couldn't do during automated runs, causing loops.
-    #
-    # If re-enabling, ensure Claude can actually complete the verification
-    # or provide a different mechanism (e.g., keyword in response).
+    # --- Protocol Verification (Output-based with soft fail) ---
+    # Every VERIFY_INTERVAL iterations, remind Claude to re-read protocol and output <verified/>
+    # Check transcript for the tag. After MAX_VERIFY_ATTEMPTS, soft fail and continue.
+
+    VERIFY_INTERVAL=5           # Request verification every N iterations
+    MAX_VERIFY_ATTEMPTS=3       # Give up after this many attempts (prevent infinite loops)
+
+    VERIFICATION_PENDING=$(echo "$STATE" | jq -r '.verification_pending // false')
+    VERIFY_ATTEMPTS=$(echo "$STATE" | jq -r '.verification_attempts // 0')
+    LAST_VERIFIED=$(echo "$STATE" | jq -r '.last_verified_iteration // 0')
+
+    # Get transcript path from hook input
+    TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // ""')
+
+    # Check if verification is pending (we asked Claude to verify last iteration)
+    if [[ "$VERIFICATION_PENDING" == "true" ]]; then
+        LAST_OUTPUT=$(get_last_assistant_output "$TRANSCRIPT_PATH")
+
+        if check_verification_tag "$LAST_OUTPUT"; then
+            # Verification successful!
+            echo "✅ Protocol verification confirmed" >&2
+            update_state_field "$PROJECT_DIR" ".verification_pending" "false"
+            update_state_field "$PROJECT_DIR" ".verification_attempts" "0"
+            update_state_field "$PROJECT_DIR" ".last_verified_iteration" "$NEW_ITERATION"
+        else
+            # Verification not found, increment attempts
+            NEW_ATTEMPTS=$((VERIFY_ATTEMPTS + 1))
+            update_state_field "$PROJECT_DIR" ".verification_attempts" "$NEW_ATTEMPTS"
+
+            if [[ $NEW_ATTEMPTS -ge $MAX_VERIFY_ATTEMPTS ]]; then
+                # Soft fail - give up and continue
+                echo "⚠️  Verification not received after $MAX_VERIFY_ATTEMPTS attempts, continuing anyway" >&2
+                update_state_field "$PROJECT_DIR" ".verification_pending" "false"
+                update_state_field "$PROJECT_DIR" ".verification_attempts" "0"
+                update_state_field "$PROJECT_DIR" ".last_verified_iteration" "$NEW_ITERATION"
+            fi
+            # If still under max attempts, verification_pending stays true
+            # and the systemMessage will keep asking
+        fi
+    fi
+
+    # Check if it's time to request verification
+    VERIFICATION_PENDING=$(echo "$(read_state_file "$PROJECT_DIR")" | jq -r '.verification_pending // false')
+    if [[ "$VERIFICATION_PENDING" != "true" ]] && [[ $((NEW_ITERATION - LAST_VERIFIED)) -ge $VERIFY_INTERVAL ]]; then
+        # Time for verification
+        echo "📋 Requesting protocol verification (iteration $NEW_ITERATION)" >&2
+        update_state_field "$PROJECT_DIR" ".verification_pending" "true"
+        update_state_field "$PROJECT_DIR" ".verification_attempts" "0"
+    fi
 
     # Check max iterations
     if [[ $NEW_ITERATION -ge $MAX_ITERATIONS ]]; then
@@ -283,6 +372,13 @@ EOF
         for blocker in "${BLOCKERS[@]}"; do
             SYSTEM_MSG="$SYSTEM_MSG $blocker;"
         done
+    fi
+
+    # Add verification request if pending
+    VERIFICATION_PENDING=$(echo "$(read_state_file "$PROJECT_DIR")" | jq -r '.verification_pending // false')
+    if [[ "$VERIFICATION_PENDING" == "true" ]]; then
+        VERIFY_ATTEMPTS=$(echo "$(read_state_file "$PROJECT_DIR")" | jq -r '.verification_attempts // 0')
+        SYSTEM_MSG="$SYSTEM_MSG | ⚠️ VERIFICATION REQUIRED (attempt $((VERIFY_ATTEMPTS + 1))/$MAX_VERIFY_ATTEMPTS): Re-read AUTONOMOUS_BUILD_CLAUDE.md then output <verified/> to confirm"
     fi
 
     # KEY: reason = the GOAL (actionable task), systemMessage = status info

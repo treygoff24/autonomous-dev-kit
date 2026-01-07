@@ -116,7 +116,6 @@ initialize_loop_state() {
     local max_iterations="${3:-100}"
 
     local session_token=$(generate_session_token)
-    local verification_code=$(generate_verification_code)
     local started_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     local state=$(jq -n \
@@ -127,10 +126,10 @@ initialize_loop_state() {
         --arg started "$started_at" \
         --argjson iter 0 \
         --argjson max "$max_iterations" \
-        --argjson last_reread 0 \
         --arg paused "false" \
-        --arg awaiting "false" \
-        --arg code "$verification_code" \
+        --arg verification_pending "false" \
+        --argjson verification_attempts 0 \
+        --argjson last_verified 0 \
         '{
             active: ($active == "true"),
             session_token: $token,
@@ -139,11 +138,10 @@ initialize_loop_state() {
             started_at: $started,
             iteration: $iter,
             max_iterations: $max,
-            last_protocol_reread: $last_reread,
             paused: ($paused == "true"),
-            awaiting_verification: ($awaiting == "true"),
-            verification_response: null,
-            expected_verification_code: $code
+            verification_pending: ($verification_pending == "true"),
+            verification_attempts: $verification_attempts,
+            last_verified_iteration: $last_verified
         }')
 
     write_state_file "$project_path" "$state"
