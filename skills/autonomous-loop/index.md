@@ -38,12 +38,13 @@ source ~/.claude/lib/loop-helpers.sh
 initialize_loop_state "$(pwd)" "Your goal here" 100
 ```
 
-This creates a state file at `~/.claude/autonomous-loop/<hash>.json` with:
+This creates a state file at `.claude/autonomous-loop.json` (project-local) with:
 - `active: true`
 - `goal: "Your goal"`
 - `max_iterations: 100`
 - `iteration: 0`
-- Session token and verification code
+- `verification_pending: false`
+- `last_verified_iteration: 0`
 
 ### Step 3: Confirm Activation
 
@@ -52,12 +53,12 @@ Output to user:
 Autonomous loop activated:
 - Goal: [goal]
 - Max iterations: 100
-- State file: ~/.claude/autonomous-loop/[hash].json
+- State file: .claude/autonomous-loop.json
 
 I'll keep working until all completion criteria are met:
 - All quality gates pass (if .claude-quality-gates exists)
 - All phases in IMPLEMENTATION_PLAN.md complete
-- Clean git state
+- Clean git state (excluding .claude/ directory)
 
 To pause: press Escape and say "stop autonomous mode"
 To force quit: Ctrl+C
@@ -74,9 +75,27 @@ Starting now...
 ## Completion Criteria
 
 The loop automatically ends when ALL of these are true:
-1. Git working directory is clean (no uncommitted changes)
+1. Git working directory is clean (no uncommitted changes, `.claude/` excluded)
 2. All quality gates pass (if `.claude-quality-gates` exists)
-3. All tasks in IMPLEMENTATION_PLAN.md are checked off (if file exists)
+3. All tasks in IMPLEMENTATION_PLAN.md are checked off (if file exists, no `- [ ]` boxes)
+
+## Protocol Verification
+
+Every 5 iterations, the Stop hook requests protocol verification to ensure Claude stays aligned with the autonomous build protocol.
+
+**How it works:**
+1. At iteration 5, 10, 15, etc., the hook sets `verification_pending: true`
+2. The `systemMessage` includes: "Re-read AUTONOMOUS_BUILD_CLAUDE.md then output `<verified/>` to confirm"
+3. Claude should re-read the protocol and include `<verified/>` in its response
+4. The hook reads the transcript and looks for the `<verified/>` tag
+5. If found, verification passes and `last_verified_iteration` is updated
+
+**Soft fail (prevents infinite loops):**
+- If Claude doesn't output `<verified/>` after 3 attempts, the hook gives up and continues
+- This prevents the verification system from causing infinite loops
+- A warning is logged: "Verification not received after 3 attempts, continuing anyway"
+
+**To pass verification:** Simply output `<verified/>` anywhere in your response after re-reading the protocol.
 
 ## Deactivation
 
@@ -105,18 +124,6 @@ Options:
 
 To resume: update max_iterations in state file and set paused=false, or user says "resume" / "continue".
 
-## Protocol Re-Read
-
-Every 3 iterations, the Stop hook triggers protocol re-read verification:
-
-1. Hook prompts: "Read AUTONOMOUS_BUILD_CLAUDE.md and report verification code"
-2. Read the full protocol file
-3. Check state file for `expected_verification_code`
-4. Update state file `verification_response` with the code
-5. Continue working
-
-This ensures the protocol stays fresh across context compactions.
-
 ## Arguments
 
 - **goal** (optional): The task to work on. If not provided, inferred from context.
@@ -127,4 +134,24 @@ Examples:
 /autonomous-loop "Implement user authentication"
 /autonomous-loop --max 50
 /autonomous-loop "Fix all failing tests" --max 200
+```
+
+## State File Reference
+
+Location: `.claude/autonomous-loop.json` (project-local)
+
+```json
+{
+  "active": true,
+  "session_token": "abc123",
+  "project_path": "/path/to/project",
+  "goal": "Your goal here",
+  "started_at": "2026-01-07T20:00:00Z",
+  "iteration": 5,
+  "max_iterations": 100,
+  "paused": false,
+  "verification_pending": false,
+  "verification_attempts": 0,
+  "last_verified_iteration": 0
+}
 ```
