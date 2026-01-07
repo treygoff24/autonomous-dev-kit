@@ -100,6 +100,7 @@ Custom agents at `~/.claude/agents/` run in isolated context windows. They can r
 | `debugger` | Systematic debugging with root cause analysis |
 | `tdd-implementer` | Test-driven development |
 | `plan-executor` | Execute implementation plans task-by-task |
+| `code-reviewer` | Review diffs against specs/plans before commits |
 | `slop-cleaner` | Remove AI-generated cruft before commits |
 | `validator` | Defense-in-depth validation at multiple layers |
 | `root-cause-tracer` | Trace bugs backward through call stack |

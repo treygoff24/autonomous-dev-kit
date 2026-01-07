@@ -35,10 +35,13 @@ Custom agents at `~/.claude/agents/` provide isolated execution with fresh conte
 | `debugger` | Systematic debugging with root cause analysis. Use BEFORE proposing fixes. |
 | `tdd-implementer` | Test-driven development. Write failing test first. |
 | `plan-executor` | Execute implementation plans task-by-task with quality gates. |
+| `code-reviewer` | Review diffs against specs/plans before commits. |
 | `slop-cleaner` | Remove AI-generated cruft before commits. |
 | `validator` | Defense-in-depth validation across layers. |
 | `root-cause-tracer` | Trace bugs backward through call stack. |
 | `parallel-investigator` | Investigate independent failures concurrently. |
+
+Note: This kit ships a custom `code-reviewer` agent that overrides the built-in `code-reviewer` subagent for consistent review output.
 
 **Built-in subagents** (also via Task tool):
 
@@ -46,7 +49,6 @@ Custom agents at `~/.claude/agents/` provide isolated execution with fresh conte
 |----------|-------------|
 | `Explore` | Codebase exploration, finding files |
 | `Plan` | Designing implementation strategies |
-| `code-reviewer` | Code review before commits |
 | `test-architect` | Comprehensive test coverage |
 | `security-auditor` | Security review |
 | `bug-hunter` | Diagnosing errors |

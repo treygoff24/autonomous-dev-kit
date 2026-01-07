@@ -251,6 +251,7 @@ Custom agents run in isolated context windows. They can run in parallel and don'
 | `debugger` | Systematic debugging with root cause analysis |
 | `tdd-implementer` | Test-driven development: write failing test first |
 | `plan-executor` | Execute plans task-by-task with quality gates |
+| `code-reviewer` | Review diffs against specs/plans before commits |
 | `slop-cleaner` | Remove AI-generated cruft before commits |
 | `validator` | Defense-in-depth validation at every layer |
 | `root-cause-tracer` | Trace bugs backward through call stack |
