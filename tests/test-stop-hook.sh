@@ -342,26 +342,31 @@ PLAN
     rm -rf "$test_dir"
 }
 
-test_cheatsheet_injected() {
-    echo "Testing cheatsheet is injected in continuation..."
+test_goal_in_reason() {
+    echo "Testing goal is in reason field (not status info)..."
     TESTS_RUN=$((TESTS_RUN + 1))
 
     local test_dir=$(create_test_repo)
     echo "uncommitted" > "$test_dir/dirty.txt"  # Make it dirty
 
     # Initialize loop
-    initialize_loop_state "$test_dir" "Test goal" 100
+    initialize_loop_state "$test_dir" "Test goal for verification" 100
 
     # Capture output
     local output=$(run_hook "$test_dir" 2>/dev/null || true)
     local decision=$(json_field "$output" '.decision // ""')
     local reason=$(json_field "$output" '.reason // ""')
+    local system_msg=$(json_field "$output" '.systemMessage // ""')
 
-    if [[ "$decision" == "block" && "$reason" == *"AUTONOMOUS BUILD MODE ACTIVE"* ]]; then
-        echo "  ✓ Cheatsheet header present"
+    # Reason should be the GOAL, not status info
+    # SystemMessage should have iteration info
+    if [[ "$decision" == "block" && "$reason" == "Test goal for verification" && "$system_msg" == *"Iteration"* ]]; then
+        echo "  ✓ Goal in reason, status in systemMessage"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Cheatsheet header missing"
+        echo "  ✗ Expected goal in reason and iteration in systemMessage"
+        echo "    reason: $reason"
+        echo "    systemMessage: $system_msg"
     fi
 
     delete_state_file "$test_dir"
@@ -404,7 +409,7 @@ test_loop_mode_allows_when_complete
 test_loop_increments_iteration
 test_max_iterations_pauses
 test_verification_disabled_at_iteration_3
-test_cheatsheet_injected
+test_goal_in_reason
 test_no_git_repo
 
 # Summary

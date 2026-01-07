@@ -55,8 +55,10 @@ check_git_clean() {
         return 0
     fi
 
-    # Check for uncommitted changes
-    if [[ -n "$(git -C "$PROJECT_DIR" status --porcelain 2>/dev/null)" ]]; then
+    # Check for uncommitted changes, excluding .claude/ directory (our state files)
+    local status
+    status=$(git -C "$PROJECT_DIR" status --porcelain 2>/dev/null | grep -v '^?? \.claude/' | grep -v '^.. \.claude/')
+    if [[ -n "$status" ]]; then
         return 1
     fi
 

@@ -41,35 +41,13 @@ assert_not_empty() {
 
 # --- Tests ---
 
-test_get_project_hash() {
-    echo "Testing get_project_hash..."
-
-    # Same path should return same hash
-    local hash1=$(get_project_hash "/Users/test/project")
-    local hash2=$(get_project_hash "/Users/test/project")
-    assert_equals "$hash1" "$hash2" "Same path returns same hash"
-
-    # Different paths should return different hashes
-    local hash3=$(get_project_hash "/Users/test/other")
-    TESTS_RUN=$((TESTS_RUN + 1))
-    if [[ "$hash1" != "$hash3" ]]; then
-        echo "  ✓ Different paths return different hashes"
-        TESTS_PASSED=$((TESTS_PASSED + 1))
-    else
-        echo "  ✗ Different paths return different hashes"
-    fi
-
-    # Hash should be 12 characters
-    assert_equals "12" "${#hash1}" "Hash is 12 characters"
-}
-
 test_get_state_file_path() {
     echo "Testing get_state_file_path..."
 
     local path=$(get_state_file_path "/Users/test/project")
 
-    # Should be in the state directory
-    assert_equals "$HOME/.claude/autonomous-loop/" "${path%/*}/" "Path is in state directory"
+    # Should be in project's .claude directory (project-local, like ralph-wiggum)
+    assert_equals "/Users/test/project/.claude/autonomous-loop.json" "$path" "Path is project-local"
 
     # Should end with .json
     TESTS_RUN=$((TESTS_RUN + 1))
@@ -78,16 +56,6 @@ test_get_state_file_path() {
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
         echo "  ✗ Path ends with .json"
-    fi
-
-    # Should contain project hash
-    local hash=$(get_project_hash "/Users/test/project")
-    TESTS_RUN=$((TESTS_RUN + 1))
-    if [[ "$path" == *"$hash"* ]]; then
-        echo "  ✓ Path contains project hash"
-        TESTS_PASSED=$((TESTS_PASSED + 1))
-    else
-        echo "  ✗ Path contains project hash"
     fi
 }
 
@@ -298,7 +266,6 @@ test_update_state_field() {
 # Run tests
 echo "=== Loop Helpers Tests ==="
 echo ""
-test_get_project_hash
 test_get_state_file_path
 test_generate_verification_code
 test_generate_session_token
