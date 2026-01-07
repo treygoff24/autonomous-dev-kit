@@ -21,9 +21,6 @@ INPUT=$(cat)
 # Get project directory
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
-# Debug: show what directory we're checking
-echo "🔍 Stop hook checking: $PROJECT_DIR" >&2
-
 # --- Output Helpers ---
 
 # NOTE: Only use for "block" decisions. For "approve", just exit 0 with no JSON output.
@@ -254,9 +251,7 @@ build_continuation_prompt() {
 BLOCKERS=()
 
 # Check if in loop mode
-echo "🔍 Checking loop active for: $PROJECT_DIR" >&2
 if is_loop_active "$PROJECT_DIR"; then
-    echo "🔄 Loop IS active" >&2
     # Read state
     STATE=$(read_state_file "$PROJECT_DIR")
     ITERATION=$(echo "$STATE" | jq -r '.iteration')
@@ -401,7 +396,6 @@ fi
 
 # --- Safety Net (not in loop mode) ---
 # In non-loop mode, safety net is advisory only (warns but doesn't block)
-echo "📍 Loop NOT active - running safety net only" >&2
 
 # Safety net: git check
 if ! check_git_clean; then
