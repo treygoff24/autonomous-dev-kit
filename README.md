@@ -60,6 +60,7 @@ On Claude Code 2.1.0+, the Stop hook is attached to the `/autonomous-loop` skill
 
 - Brainstorming, plan writing, TDD, debugging, code review — each is a documented process the agent follows
 - Installed to `~/.claude/skills/` and invoked via slash commands
+- Claude Code 2.1.0+ hot-reloads skills from `~/.claude/skills` and `.claude/skills` without restarting the session
 
 **Shell functions** keep you in the loop:
 

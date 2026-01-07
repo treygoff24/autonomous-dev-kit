@@ -63,6 +63,16 @@ Either:
 - Re-run `./install.sh` to copy templates
 - Or update `possible_paths` in `~/.claude/shell/functions.zsh`
 
+### "Skill changes aren't showing up"
+
+**Cause:** You are on Claude Code < 2.1.0 or the session hasn't picked up file changes yet.
+
+**Fix:**
+
+- On Claude Code 2.1.0+, skills in `~/.claude/skills` and `.claude/skills` hot-reload automatically.
+- If it still doesn't appear, run `/context` or restart the session.
+- On older versions, restart is required.
+
 ---
 
 ## API Issues

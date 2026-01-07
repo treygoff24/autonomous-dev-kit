@@ -126,6 +126,8 @@ Skills at `~/.claude/skills/` require conversation context and user interaction.
 | `/accessibility-checklist` | WCAG compliance for UI |
 | `/autonomous-loop` | Activate autonomous loop mode |
 
+Claude Code 2.1.0+ hot-reloads skills from `~/.claude/skills` and `.claude/skills` without restarting the session.
+
 ### Rules (Auto-loaded Standards)
 
 Rules at `~/.claude/rules/` are automatically loaded based on file patterns. No invocation needed—they just apply when relevant.
