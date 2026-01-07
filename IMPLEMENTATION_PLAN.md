@@ -1,5 +1,5 @@
-   1 # Verification Test Plan
-   2 
-   3 - [ ] Wait for verification to trigger at iteration 5
-   4 - [ ] Output <verified/> when requested
-   5 - [ ] Complete the test
+# Verification Test Plan
+
+- [x] Wait for verification to trigger at iteration 5
+- [x] Output <verified/> when requested
+- [x] Complete the test
