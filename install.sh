@@ -179,17 +179,65 @@ detect_claude_files() {
     done
 }
 
+claude_version() {
+    if ! command_exists claude; then
+        echo ""
+        return
+    fi
+
+    claude --version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1
+}
+
+claude_supports_skill_hooks() {
+    local version
+    version=$(claude_version)
+    if [ -z "$version" ]; then
+        return 1
+    fi
+
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "$version"
+    if [ "$major" -gt 2 ]; then
+        return 0
+    fi
+    if [ "$major" -eq 2 ] && [ "$minor" -ge 1 ]; then
+        return 0
+    fi
+    return 1
+}
+
+use_legacy_stop_hook() {
+    if [ "${CLAUDE_CODE_LEGACY_STOP_HOOK:-}" = "1" ]; then
+        return 0
+    fi
+
+    if ! claude_supports_skill_hooks; then
+        return 0
+    fi
+
+    return 1
+}
+
 detect_hooks() {
     local settings_file="$HOME/.claude/settings.json"
     local hook_precompact="$HOME/.claude/hooks/pre-compact.sh"
     local hook_sessionstart="$HOME/.claude/hooks/session-start.sh"
     local hook_stop="$HOME/.claude/hooks/stop.sh"
+    local require_stop_hook=true
+
+    if ! use_legacy_stop_hook; then
+        require_stop_hook=false
+    fi
+    local required_hooks=2
+    if $require_stop_hook; then
+        required_hooks=3
+    fi
 
     MISSING_HOOKS=0
     EXISTING_HOOKS=0
 
     if [ ! -f "$settings_file" ]; then
-        MISSING_HOOKS=3
+        MISSING_HOOKS=$required_hooks
         return
     fi
 
@@ -207,17 +255,19 @@ detect_hooks() {
             MISSING_HOOKS=$((MISSING_HOOKS + 1))
         fi
 
-        if grep -Fq "$hook_stop" "$settings_file" 2>/dev/null; then
-            EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
-        else
-            MISSING_HOOKS=$((MISSING_HOOKS + 1))
+        if $require_stop_hook; then
+            if grep -Fq "$hook_stop" "$settings_file" 2>/dev/null; then
+                EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
+            else
+                MISSING_HOOKS=$((MISSING_HOOKS + 1))
+            fi
         fi
         return
     fi
 
     # Check if settings.json is valid JSON
     if ! jq empty "$settings_file" 2>/dev/null; then
-        MISSING_HOOKS=3
+        MISSING_HOOKS=$required_hooks
         return
     fi
 
@@ -243,15 +293,17 @@ detect_hooks() {
         MISSING_HOOKS=$((MISSING_HOOKS + 1))
     fi
 
-    # Check for Stop hook (handle both single-object and array formats)
-    if jq -e --arg cmd "$hook_stop" '
-        (.hooks.Stop // []) |
-        if type == "array" then . else [.] end |
-        .[].hooks[]? | select(.command == $cmd)
-    ' "$settings_file" > /dev/null 2>&1; then
-        EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
-    else
-        MISSING_HOOKS=$((MISSING_HOOKS + 1))
+    if $require_stop_hook; then
+        # Check for Stop hook (handle both single-object and array formats)
+        if jq -e --arg cmd "$hook_stop" '
+            (.hooks.Stop // []) |
+            if type == "array" then . else [.] end |
+            .[].hooks[]? | select(.command == $cmd)
+        ' "$settings_file" > /dev/null 2>&1; then
+            EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
+        else
+            MISSING_HOOKS=$((MISSING_HOOKS + 1))
+        fi
     fi
 }
 
@@ -1043,6 +1095,11 @@ configure_hooks() {
     local hook_path_precompact="$HOME/.claude/hooks/pre-compact.sh"
     local hook_path_sessionstart="$HOME/.claude/hooks/session-start.sh"
     local hook_path_stop="$HOME/.claude/hooks/stop.sh"
+    local configure_stop_hook=true
+
+    if ! use_legacy_stop_hook; then
+        configure_stop_hook=false
+    fi
 
     if $DRY_RUN; then
         echo -e "${CYAN}[DRY-RUN]${NC} Would configure hooks in $settings_file"
@@ -1050,9 +1107,9 @@ configure_hooks() {
     fi
 
     if [ "$INSTALL_MODE" = "full" ]; then
-        configure_hooks_full "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart" "$hook_path_stop"
+        configure_hooks_full "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart" "$hook_path_stop" "$configure_stop_hook"
     else
-        configure_hooks_additive "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart" "$hook_path_stop"
+        configure_hooks_additive "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart" "$hook_path_stop" "$configure_stop_hook"
     fi
 }
 
@@ -1061,6 +1118,7 @@ configure_hooks_full() {
     local hook_path_precompact="$2"
     local hook_path_sessionstart="$3"
     local hook_path_stop="$4"
+    local configure_stop_hook="$5"
 
     info "Configuring hooks (full mode)..."
 
@@ -1073,24 +1131,41 @@ configure_hooks_full() {
         else
             backup_file "$settings_file"
             # Replace the hooks section entirely while preserving other settings
-            jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '
-                .hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}] |
-                .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}] |
-                .hooks.Stop = [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
-            ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            if $configure_stop_hook; then
+                jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '
+                    .hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}] |
+                    .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}] |
+                    .hooks.Stop = [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
+                ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            else
+                jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '
+                    .hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}] |
+                    .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}] |
+                    del(.hooks.Stop)
+                ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            fi
             success "Replaced hooks in settings.json"
             return
         fi
     fi
 
     # Create new settings file
-    jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '{
-        "hooks": {
-            "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
-            "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
-            "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
-        }
-    }' > "$settings_file"
+    if $configure_stop_hook; then
+        jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '{
+            "hooks": {
+                "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
+                "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
+                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
+            }
+        }' > "$settings_file"
+    else
+        jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
+            "hooks": {
+                "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
+                "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
+            }
+        }' > "$settings_file"
+    fi
     success "Created settings.json with hooks"
 }
 
@@ -1099,6 +1174,7 @@ configure_hooks_additive() {
     local hook_path_precompact="$2"
     local hook_path_sessionstart="$3"
     local hook_path_stop="$4"
+    local configure_stop_hook="$5"
 
     if [ $MISSING_HOOKS -eq 0 ]; then
         success "All hooks already configured"
@@ -1131,6 +1207,9 @@ configure_hooks_additive() {
         local needs_precompact=true
         local needs_sessionstart=true
         local needs_stop=true
+        if ! $configure_stop_hook; then
+            needs_stop=false
+        fi
 
         if jq -e --arg cmd "$hook_path_precompact" '
             (.hooks.PreCompact // []) |
@@ -1146,12 +1225,14 @@ configure_hooks_additive() {
         ' "$settings_file" > /dev/null 2>&1; then
             needs_sessionstart=false
         fi
-        if jq -e --arg cmd "$hook_path_stop" '
-            (.hooks.Stop // []) |
-            if type == "array" then . else [.] end |
-            .[].hooks[]? | select(.command == $cmd)
-        ' "$settings_file" > /dev/null 2>&1; then
-            needs_stop=false
+        if $configure_stop_hook; then
+            if jq -e --arg cmd "$hook_path_stop" '
+                (.hooks.Stop // []) |
+                if type == "array" then . else [.] end |
+                .[].hooks[]? | select(.command == $cmd)
+            ' "$settings_file" > /dev/null 2>&1; then
+                needs_stop=false
+            fi
         fi
 
         if ! $needs_precompact && ! $needs_sessionstart && ! $needs_stop; then
@@ -1203,13 +1284,22 @@ configure_hooks_additive() {
         fi
     else
         # Create new settings file with hooks
-        jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '{
-            "hooks": {
-                "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
-                "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
-                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
-            }
-        }' > "$settings_file"
+        if $configure_stop_hook; then
+            jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '{
+                "hooks": {
+                    "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
+                    "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
+                    "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
+                }
+            }' > "$settings_file"
+        else
+            jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
+                "hooks": {
+                    "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
+                    "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
+                }
+            }' > "$settings_file"
+        fi
         success "Created settings.json with hooks"
     fi
 }

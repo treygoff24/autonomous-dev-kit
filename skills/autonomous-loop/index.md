@@ -1,6 +1,11 @@
 ---
 name: autonomous-loop
 description: Activate autonomous loop mode for persistent development sessions. Use when user says "go autonomous" or wants unattended iteration until completion.
+hooks:
+  Stop:
+    - type: command
+      command: ~/.claude/hooks/stop.sh
+      once: true
 ---
 
 # Autonomous Loop Activation

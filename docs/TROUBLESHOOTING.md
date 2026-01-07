@@ -118,6 +118,23 @@ Either:
 
 **Fix:**
 
+### "Stop hook isn't firing" or "autonomous loop doesn't block exit"
+
+**Cause:** Claude Code 2.1.0+ uses a skill-scoped Stop hook attached to `/autonomous-loop`. The global Stop hook is only installed for older versions or when legacy mode is enabled.
+
+**Fix:**
+
+```bash
+# Enable the loop explicitly
+/autonomous-loop "your goal here"
+```
+
+If you want the global Stop hook back (legacy behavior), reinstall with:
+
+```bash
+CLAUDE_CODE_LEGACY_STOP_HOOK=1 ./install.sh
+```
+
 1. **Call the other agent for fresh perspective:**
    ```bash
    # If using Claude, call Codex

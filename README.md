@@ -48,6 +48,8 @@ Okay I'll let Claude explain how it works in detail:
 - `session-start.sh` — Fires on new session, injects recent handoffs + learnings into context
 - `stop.sh` — Fires on exit attempt, blocks if work is incomplete, enables autonomous loop mode
 
+On Claude Code 2.1.0+, the Stop hook is attached to the `/autonomous-loop` skill (skill-scoped hook). To force the legacy global Stop hook, set `CLAUDE_CODE_LEGACY_STOP_HOOK=1` before running `./install.sh`.
+
 **Templates** encode methodology:
 
 - `AUTONOMOUS_BUILD_CLAUDE_v2.md` — The master protocol: how to move through spec → plan → build → verify
