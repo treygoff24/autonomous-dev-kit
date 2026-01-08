@@ -105,18 +105,33 @@ git commit -m "feat: add specific feature"
 
 ## Owned Files Validation
 
-Use a quick duplicate check before running parallel tasks:
+Use a quick duplicate check before running parallel tasks (awk is more portable than sed across macOS/Linux):
 
 ```bash
 rg '^\*\*Owned files:\*\*' IMPLEMENTATION_PLAN.md \
   | sed 's/^\*\*Owned files:\*\*//g' \
   | tr ',' '\n' \
-  | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+  | awk '{$1=$1};1' \
   | sort \
   | uniq -d
 ```
 
 If this outputs any paths, fix overlaps before parallelizing.
+
+## Example Parallel Task
+
+```markdown
+### Task 3.2: Add User Authentication
+
+**Parallel:** yes
+**Blocked by:** Task 3.1
+**Owned files:** `src/auth/auth.ts`, `src/auth/auth.test.ts`, `src/middleware/auth-middleware.ts`
+
+**Files:**
+- Create: `src/auth/auth.ts`
+- Modify: `src/middleware/auth-middleware.ts:12-48`
+- Test: `src/auth/auth.test.ts`
+```
 
 ## Execution Handoff
 
@@ -142,7 +157,8 @@ After saving the plan, offer execution choice:
 - Spawn `plan-executor` agent with the plan path
 
 **If Parallel Tickets chosen:**
-- Ensure plan tasks include Parallel/Blocked by/Owned files
+- Validate plan tasks include Parallel/Blocked by/Owned files
+- Run the Owned Files Validation script to check for overlaps
 - Create one worktree per parallel task
 - Run `/ticket-builder` for each worktree
 - Review diffs + tests in worktrees before merging
