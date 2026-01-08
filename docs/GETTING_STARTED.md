@@ -106,6 +106,7 @@ Custom agents at `~/.claude/agents/` run in isolated context windows. They can r
 | `a11y-reviewer` | Accessibility review for interactive UI |
 | `spec-reviewer` | Spec completeness and precision review |
 | `review-triager` | Triage review feedback before implementation |
+| `ticket-builder` | Execute a single plan task in an isolated worktree |
 | `slop-cleaner` | Remove AI-generated cruft before commits |
 | `validator` | Defense-in-depth validation at multiple layers |
 | `root-cause-tracer` | Trace bugs backward through call stack |
@@ -128,6 +129,7 @@ Skills at `~/.claude/skills/` require conversation context and user interaction.
 | `/spec-quality-checklist` | Validate specs for precision |
 | `/accessibility-checklist` | WCAG compliance for UI |
 | `/autonomous-loop` | Activate autonomous loop mode |
+| `/ticket-builder` | Execute a single plan task in an isolated worktree |
 
 Claude Code 2.1.0+ hot-reloads skills from `~/.claude/skills` and `.claude/skills` without restarting the session.
 
@@ -260,7 +262,7 @@ claude "Use the writing-plans skill to create an implementation plan for SPEC.md
 code IMPLEMENTATION_PLAN.md
 ```
 
-Break the work into phases:
+Break the work into phases. If you plan to run tasks in parallel with `/ticket-builder`, add **Parallel**, **Blocked by**, and **Owned files** for each task, then create worktrees before invoking the skill.
 
 ```markdown
 # Implementation Plan: Task CLI

@@ -49,6 +49,10 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ```markdown
 ### Task N: [Component Name]
 
+**Parallel:** yes | no
+**Blocked by:** [Task IDs or none]
+**Owned files:** `path/to/file.ts`, `path/to/test.ts`
+
 **Files:**
 - Create: `exact/path/to/file.py`
 - Modify: `exact/path/to/existing.py:123-145`
@@ -92,7 +96,24 @@ git commit -m "feat: add specific feature"
 - Complete code in plan (not "add validation")
 - Exact commands with expected output
 - Reference relevant skills with @ syntax
+- Include **Parallel**, **Blocked by**, and **Owned files** for every task
+- Validate **Owned files** do not overlap across parallel tasks (use a quick table or script to check for duplicates)
 - DRY, YAGNI, TDD, frequent commits
+
+## Owned Files Validation
+
+Use a quick duplicate check before running parallel tasks:
+
+```bash
+rg '^\*\*Owned files:\*\*' IMPLEMENTATION_PLAN.md \
+  | sed 's/^\*\*Owned files:\*\*//g' \
+  | tr ',' '\n' \
+  | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+  | sort \
+  | uniq -d
+```
+
+If this outputs any paths, fix overlaps before parallelizing.
 
 ## Execution Handoff
 
