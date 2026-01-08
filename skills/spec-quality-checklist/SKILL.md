@@ -1,6 +1,8 @@
 ---
 name: spec-quality-checklist
-description: "Validate a specification before implementation. Use when you've drafted a spec and need to verify it's complete, precise, and unambiguous. Creates TodoWrite items for each check. Run this before proceeding to implementation planning."
+description: "Validate a specification before implementation. Use when you've drafted a spec and need to verify it's complete, precise, and unambiguous. Runs in a forked spec-reviewer agent. Creates TodoWrite items for each check. Run this before proceeding to implementation planning."
+context: fork
+agent: spec-reviewer
 ---
 
 # Spec Quality Checklist
@@ -15,7 +17,7 @@ Validate a specification for precision and completeness before implementation.
 
 ## How to Use
 
-**Announce:** "I'm using the spec-quality-checklist skill to validate this spec."
+**Announce:** "I'm using the spec-quality-checklist skill to validate this spec." This runs in a forked `spec-reviewer` agent context.
 
 **Create TodoWrite items** for each section below. Mark items as you verify them.
 
@@ -89,7 +91,7 @@ Create TodoWrite items for each:
 ## Output
 
 After validation, provide:
-- **Verdict:** Ready / Needs revision
+- **Verdict:** approve / revise
 - **Gaps fixed:** List of issues you corrected
 - **Needs clarification:** Items requiring user input
 - **Red flags:** Any vague language that should be made precise

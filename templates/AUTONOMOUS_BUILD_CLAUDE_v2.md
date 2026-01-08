@@ -36,6 +36,9 @@ Custom agents at `~/.claude/agents/` provide isolated execution with fresh conte
 | `tdd-implementer` | Test-driven development. Write failing test first. |
 | `plan-executor` | Execute implementation plans task-by-task with quality gates. |
 | `code-reviewer` | Review diffs against specs/plans before commits. |
+| `a11y-reviewer` | Accessibility review for interactive UI changes. |
+| `spec-reviewer` | Spec completeness and precision review. |
+| `review-triager` | Triage review feedback before implementation. |
 | `slop-cleaner` | Remove AI-generated cruft before commits. |
 | `validator` | Defense-in-depth validation across layers. |
 | `root-cause-tracer` | Trace bugs backward through call stack. |

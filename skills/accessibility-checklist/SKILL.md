@@ -1,6 +1,8 @@
 ---
 name: accessibility-checklist
-description: "Run accessibility checks on interactive UI components. Use after implementing UI, before code review. Creates TodoWrite items for each check. Covers WCAG AA compliance: labels, keyboard nav, focus, color contrast, motion, and content."
+description: "Run accessibility checks on interactive UI components. Use after implementing UI, before code review. Forked to a11y-reviewer agent. Creates TodoWrite items for each check. Covers WCAG AA compliance: labels, keyboard nav, focus, color contrast, motion, and content."
+context: fork
+agent: a11y-reviewer
 ---
 
 # Accessibility Checklist
@@ -15,7 +17,7 @@ Run accessibility checks on every interactive component before code review.
 
 ## How to Use
 
-**Announce:** "I'm using the accessibility-checklist skill to verify this component."
+**Announce:** "I'm using the accessibility-checklist skill to verify this component." This runs in a forked `a11y-reviewer` agent context.
 
 **Create TodoWrite items** for each applicable check below. Mark as you verify.
 
@@ -110,7 +112,7 @@ button:focus-visible {
 ## Output
 
 After verification, provide:
-- **Verdict:** Passes / Needs fixes
+- **Verdict:** approve / revise
 - **Issues fixed:** What you corrected during the check
 - **Manual test results:** Keyboard, screen reader, zoom outcomes
 - **Remaining issues:** Anything that needs user attention
