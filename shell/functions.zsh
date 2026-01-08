@@ -48,9 +48,9 @@ Example:
     # Find the autonomous-dev-kit templates directory
     local kit_dir=""
     local possible_paths=(
-        "$HOME/.claude/autonomous-dev-kit/templates"
         "$HOME/Code/autonomous-dev-kit/templates"
         "$HOME/autonomous-dev-kit/templates"
+        "$HOME/.claude/autonomous-dev-kit/templates"
     )
 
     for _p in "${possible_paths[@]}"; do

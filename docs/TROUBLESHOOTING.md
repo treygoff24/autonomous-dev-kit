@@ -55,9 +55,9 @@ rg --version
 **Fix:**
 
 The function looks for templates in these locations:
-1. `$HOME/.claude/autonomous-dev-kit/templates`
-2. `$HOME/Code/autonomous-dev-kit/templates`
-3. `$HOME/autonomous-dev-kit/templates`
+1. `$HOME/Code/autonomous-dev-kit/templates`
+2. `$HOME/autonomous-dev-kit/templates`
+3. `$HOME/.claude/autonomous-dev-kit/templates`
 
 Either:
 - Re-run `./install.sh` to copy templates

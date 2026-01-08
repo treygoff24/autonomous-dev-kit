@@ -144,9 +144,9 @@ The CLI tools (fd, bat, delta, etc.) need to be installed. Run:
 
 The function looks for templates in these locations:
 
-1. `$HOME/.claude/autonomous-dev-kit/templates`
-2. `$HOME/Code/autonomous-dev-kit/templates`
-3. `$HOME/autonomous-dev-kit/templates`
+1. `$HOME/Code/autonomous-dev-kit/templates`
+2. `$HOME/autonomous-dev-kit/templates`
+3. `$HOME/.claude/autonomous-dev-kit/templates`
 
 Either:
 - Run `install.sh` to copy templates to `~/.claude/`
