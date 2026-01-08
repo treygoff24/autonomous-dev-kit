@@ -989,21 +989,42 @@ setup_claude_directory_additive() {
     local agents_src="$SCRIPT_DIR/agents"
     local agents_dest="$claude_dir/agents"
     local agents_installed=0
+    local agents_updated=0
     if [ -d "$agents_src" ]; then
         for agent_file in "$agents_src"/*.md; do
             if [ -f "$agent_file" ]; then
                 local agent_name=$(basename "$agent_file")
-                if [ ! -f "$agents_dest/$agent_name" ]; then
-                    run cp "$agent_file" "$agents_dest/$agent_name"
+                local dest_file="$agents_dest/$agent_name"
+                if [ ! -f "$dest_file" ]; then
+                    run cp "$agent_file" "$dest_file"
                     success "Installed agent: $agent_name"
                     agents_installed=$((agents_installed + 1))
+                else
+                    if diff -q "$agent_file" "$dest_file" > /dev/null 2>&1; then
+                        continue
+                    else
+                        local diff_status=$?
+                        if [ $diff_status -eq 1 ]; then
+                            backup_file "$dest_file"
+                            run cp "$agent_file" "$dest_file"
+                            success "Updated agent: $agent_name"
+                            agents_updated=$((agents_updated + 1))
+                        else
+                            warn "Failed to compare agent: $agent_name"
+                        fi
+                    fi
                 fi
             fi
         done
-        if [ $agents_installed -eq 0 ]; then
+        if [ $agents_installed -eq 0 ] && [ $agents_updated -eq 0 ]; then
             success "All agents already installed"
         else
-            success "Installed $agents_installed agents"
+            if [ $agents_installed -gt 0 ]; then
+                success "Installed $agents_installed agents"
+            fi
+            if [ $agents_updated -gt 0 ]; then
+                success "Updated $agents_updated agents"
+            fi
         fi
     fi
 
