@@ -916,14 +916,31 @@ setup_claude_directory_additive() {
 
     # Always install missing skills, even if other files exist
     local skills_installed=0
+    local skills_updated=0
     if [ -d "$skills_src" ]; then
         for skill_dir in "$skills_src"/*/; do
             if [ -d "$skill_dir" ]; then
                 local skill_name=$(basename "$skill_dir")
-                if [ ! -d "$skills_dest/$skill_name" ]; then
-                    run cp -R "$skill_dir" "$skills_dest/$skill_name"
+                local dest_dir="$skills_dest/$skill_name"
+                if [ ! -d "$dest_dir" ]; then
+                    run cp -R "$skill_dir" "$dest_dir"
                     success "Installed skill: $skill_name"
                     skills_installed=$((skills_installed + 1))
+                else
+                    if diff -qr "$skill_dir" "$dest_dir" > /dev/null 2>&1; then
+                        continue
+                    else
+                        local diff_status=$?
+                        if [ $diff_status -eq 1 ]; then
+                            backup_dir "$dest_dir"
+                            run rm -rf "$dest_dir"
+                            run cp -R "$skill_dir" "$dest_dir"
+                            success "Updated skill: $skill_name"
+                            skills_updated=$((skills_updated + 1))
+                        else
+                            warn "Failed to compare skill: $skill_name"
+                        fi
+                    fi
                 fi
             fi
         done
@@ -956,10 +973,15 @@ setup_claude_directory_additive() {
             fi
         done
 
-        if [ $skills_installed -eq 0 ]; then
+        if [ $skills_installed -eq 0 ] && [ $skills_updated -eq 0 ]; then
             success "All skills already installed"
         else
-            success "Installed $skills_installed skills"
+            if [ $skills_installed -gt 0 ]; then
+                success "Installed $skills_installed skills"
+            fi
+            if [ $skills_updated -gt 0 ]; then
+                success "Updated $skills_updated skills"
+            fi
         fi
     fi
 
