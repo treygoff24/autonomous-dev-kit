@@ -1,6 +1,14 @@
 ---
 name: brainstorming
 description: Use when creating or developing, before writing code or implementation plans - refines rough ideas into fully-formed designs through collaborative questioning, alternative exploration, and incremental validation. Don't use during clear 'mechanical' processes
+skills:
+  - using-git-worktrees
+  - writing-plans
+hooks:
+  Stop:
+    - type: prompt
+      prompt: "Before ending: Was a design document saved to docs/plans/? If the user approved a design, verify it was committed to git."
+      once: true
 ---
 
 # Brainstorming Ideas Into Designs

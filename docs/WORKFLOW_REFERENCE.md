@@ -543,6 +543,134 @@ Check for:
 
 ---
 
+## Claude Code 2.1.0 Features
+
+This toolkit leverages features from Claude Code 2.1.0. Here's what's available:
+
+### Skill Hot-Reload
+
+Skills in `~/.claude/skills` or `.claude/skills` are **immediately available** without restarting the session. Edit a skill file and it's live instantly.
+
+### Named Sessions
+
+Organize work with named sessions:
+
+```bash
+# In REPL
+/rename "auth-feature"       # Name current session
+/resume auth-feature         # Resume by name
+
+# From terminal
+claude --resume auth-feature
+```
+
+### LSP Tool
+
+Agents can use Language Server Protocol for code intelligence:
+- Go-to-definition
+- Find references
+- Hover documentation
+
+No configuration needed — works automatically when LSP servers are available.
+
+### Wildcard Bash Permissions
+
+Configure flexible bash permissions in `settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm *)",
+      "Bash(git * main)",
+      "Bash(* --help)"
+    ]
+  }
+}
+```
+
+### Background Agents
+
+Long-running tasks can run in the background while you continue working:
+- Press `Ctrl+B` to background running tasks
+- Agents notify when complete
+- Check status with `/tasks`
+
+### Forked Context (`context: fork`)
+
+Skills can run in isolated sub-agent context:
+
+```yaml
+---
+name: my-skill
+context: fork      # Runs in fresh context
+agent: my-agent    # Optional: specify agent type
+---
+```
+
+Benefits:
+- Clean context without conversation noise
+- Parallel execution without interference
+- Focused task completion
+
+Skills using `context: fork` in this kit:
+- `writing-plans`
+- `using-git-worktrees`
+- `accessibility-checklist`
+- `requesting-code-review`
+- `receiving-code-review`
+- `spec-quality-checklist`
+- `ticket-builder`
+
+### Skills Auto-Loading
+
+Skills can declare dependencies that auto-load for subagents:
+
+```yaml
+---
+name: brainstorming
+skills:
+  - using-git-worktrees
+  - writing-plans
+---
+```
+
+When `brainstorming` runs, its subagents automatically have access to the listed skills.
+
+### Hooks in Skills
+
+Skills can define hooks that fire during execution:
+
+```yaml
+---
+name: my-skill
+hooks:
+  Stop:
+    - type: prompt
+      prompt: "Verify the output file was saved"
+      once: true    # Only fires once
+  PreToolUse:
+    - type: command
+      command: ./validate.sh
+---
+```
+
+Hook types:
+- `prompt` — Runs a prompt-based check
+- `command` — Runs a shell command
+
+### Plan Mode Shortcut
+
+Enter plan mode directly:
+
+```bash
+/plan                    # Shortcut to enable plan mode
+```
+
+Or say "think" / "make a plan" in your prompt.
+
+---
+
 ## Shell Commands Quick Reference
 
 ```bash

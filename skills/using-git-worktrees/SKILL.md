@@ -1,6 +1,14 @@
 ---
 name: using-git-worktrees
 description: Use when starting feature work that needs isolation from current workspace or before executing implementation plans - creates isolated git worktrees with smart directory selection and safety verification
+context: fork
+skills:
+  - finishing-a-development-branch
+hooks:
+  Stop:
+    - type: prompt
+      prompt: "Before ending: Was the worktree created successfully? Verify the path exists and tests pass in the new worktree."
+      once: true
 ---
 
 # Using Git Worktrees

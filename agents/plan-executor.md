@@ -3,6 +3,10 @@ name: plan-executor
 description: Execute implementation plans task-by-task with quality gates. Use after creating a plan with writing-plans skill. Fresh context per task, code review between tasks.
 tools: Read, Edit, Grep, Glob, Bash, Task
 model: sonnet
+skills:
+  - ticket-builder
+  - requesting-code-review
+  - finishing-a-development-branch
 ---
 
 # Plan Executor Agent

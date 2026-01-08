@@ -1,6 +1,15 @@
 ---
 name: writing-plans
 description: Use when design is complete and you need detailed implementation tasks for engineers with zero codebase context - creates comprehensive implementation plans with exact file paths, complete code examples, and verification steps assuming engineer has minimal domain knowledge
+context: fork
+skills:
+  - ticket-builder
+  - requesting-code-review
+hooks:
+  Stop:
+    - type: prompt
+      prompt: "Before ending: Was the implementation plan saved to docs/plans/YYYY-MM-DD-<feature>.md? Verify the file exists and was committed."
+      once: true
 ---
 
 # Writing Plans
