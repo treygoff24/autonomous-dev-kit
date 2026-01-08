@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-01-07
+
+### Added
+
+- **Ticket Builder parallel workflow**
+  - `ticket-builder` agent and skill for executing single plan tasks in isolated worktrees
+  - Parallel task metadata (`Parallel`, `Blocked by`, `Owned files`) guidance
+  - Worktree-based workflow example in `docs/WORKFLOW_REFERENCE.md`
+- **Installer update prompts**
+  - Update-all/none/individual prompts for skills and agents
+  - Non-interactive detection to skip prompts in CI
+
+### Changed
+
+- **Writing plans guidance**
+  - Owned files validation script for parallel work
+  - Execution handoff updated for ticket-builder
+- **Documentation**
+  - Added ticket-builder references across README and getting started materials
+
+---
+
 ## [1.1.0] - 2025-01-05
 
 ### Added
