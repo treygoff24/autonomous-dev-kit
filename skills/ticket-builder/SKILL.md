@@ -7,7 +7,7 @@ agent: ticket-builder
 
 # Ticket Builder
 
-Use this skill to execute one implementation plan task in a fresh, isolated agent context.
+Use this skill to execute one implementation plan task in a fresh, isolated agent context. It orchestrates the `ticket-builder` agent for implementation while the orchestrator handles review and test commands.
 
 The ticket builder runs without Bash permissions; the orchestrator handles git diffs and test commands in the worktree.
 
@@ -29,8 +29,10 @@ Provide these before starting:
 - Task identifier (e.g., Phase 3, Task 3.2)
 - Worktree path to operate in
 - Any constraints or file ownership notes from the plan
-- Ensure `SPEC.md` and `IMPLEMENTATION_PLAN.md` are present in the worktree for review context
+- Confirm `IMPLEMENTATION_PLAN.md` is present in the worktree root (required). If missing, the agent reports `needs-clarification` and stops
+- Confirm `SPEC.md` is present for context (recommended)
 - Verify the worktree exists and is clean before invoking this skill
+- If plan/spec changes are uncommitted, copy them into the worktree (or commit before creating the worktree)
 
 ## Review Gate (Mandatory)
 
@@ -57,7 +59,7 @@ The agent will return:
 ## Example Workflow
 
 ```bash
-# 1. Create isolated worktree
+# 1. Create isolated worktree (see /using-git-worktrees for details)
 git worktree add ../project-task-3-2 feature/task-3-2 || { echo "Failed to create worktree"; exit 1; }
 cd ../project-task-3-2 && git status -sb
 
@@ -90,5 +92,6 @@ git restore -SW .
 **If abandoning the worktree:**
 ```bash
 cd [main-repo]
+# Only use --force if you intend to discard unmerged changes
 git worktree remove ../project-task-3-2 --force
 ```

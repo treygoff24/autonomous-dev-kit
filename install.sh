@@ -952,10 +952,13 @@ setup_claude_directory_additive() {
             if $DRY_RUN; then
                 info "DRY-RUN: would prompt to update ${#updated_skills[@]} skills"
                 update_choice="none"
+            elif [ ! -t 0 ] || [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+                info "Non-interactive mode: skipping skill updates"
+                update_choice="none"
             else
                 local response=""
                 while true; do
-                    read -r -p "Update all skills? [Y/n/i] " response
+                    read -r -p "Update all skills? [Y/n/i for individual] " response
                     case "$response" in
                         ""|[yY]|[yY][eE][sS]) update_choice="all"; break ;;
                         [nN]|[nN][oO]) update_choice="none"; break ;;
@@ -1081,10 +1084,13 @@ setup_claude_directory_additive() {
             if $DRY_RUN; then
                 info "DRY-RUN: would prompt to update ${#updated_agents[@]} agents"
                 update_choice="none"
+            elif [ ! -t 0 ] || [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+                info "Non-interactive mode: skipping agent updates"
+                update_choice="none"
             else
                 local response=""
                 while true; do
-                    read -r -p "Update all agents? [Y/n/i] " response
+                    read -r -p "Update all agents? [Y/n/i for individual] " response
                     case "$response" in
                         ""|[yY]|[yY][eE][sS]) update_choice="all"; break ;;
                         [nN]|[nN][oO]) update_choice="none"; break ;;

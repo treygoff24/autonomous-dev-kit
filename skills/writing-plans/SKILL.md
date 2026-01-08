@@ -105,13 +105,15 @@ git commit -m "feat: add specific feature"
 
 ## Owned Files Validation
 
-Use a quick duplicate check before running parallel tasks (awk-based for portability across macOS/Linux):
+Use a quick duplicate check before running parallel tasks (portable across macOS/Linux):
 
 ```bash
-rg '^\*\*Owned files:\*\*' IMPLEMENTATION_PLAN.md \
-  | awk -F'\\*\\*Owned files:\\*\\*' '{print $2}' \
+rg '\*\*Owned files:\*\*' IMPLEMENTATION_PLAN.md \
+  | sed 's/.*\*\*Owned files:\*\* *//' \
   | tr ',' '\n' \
-  | awk '{$1=$1};1' \
+  | sed 's/`//g' \
+  | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+  | grep -v '^$' \
   | sort \
   | uniq -d
 ```

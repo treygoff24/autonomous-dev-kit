@@ -264,6 +264,8 @@ code IMPLEMENTATION_PLAN.md
 
 Break the work into phases. If you plan to run tasks in parallel with `/ticket-builder`, add **Parallel**, **Blocked by**, and **Owned files** for each task, then create worktrees before invoking the skill.
 
+Use `plan-executor` for sequential tasks or when multiple tasks touch the same files. Reserve `ticket-builder` for parallel-safe tasks with clear file ownership. See `docs/WORKFLOW_REFERENCE.md` for the full workflow.
+
 ```markdown
 # Implementation Plan: Task CLI
 

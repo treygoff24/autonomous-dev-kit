@@ -30,6 +30,8 @@ Use this format when planning parallel work with `/ticket-builder`:
 - Test: `src/types/todo.test.ts`
 ```
 
+Phases below use a compact checklist format; include Parallel/Blocked by/Owned files when planning parallel execution.
+
 ---
 
 ## Phase 1: Project Setup

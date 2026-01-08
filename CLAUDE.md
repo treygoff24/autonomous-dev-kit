@@ -70,6 +70,7 @@ The kit organizes Claude's capabilities in three layers:
 - `debugger` — Systematic debugging with root cause analysis
 - `tdd-implementer` — Test-driven development
 - `plan-executor` — Execute implementation plans task-by-task
+- `ticket-builder` — Implement a single plan task in an isolated worktree
 - `slop-cleaner` — Remove AI-generated cruft
 - `validator` — Defense-in-depth validation
 - `root-cause-tracer` — Trace bugs backward through call stack
@@ -78,6 +79,7 @@ The kit organizes Claude's capabilities in three layers:
 **Skills** (`skills/` → `~/.claude/skills/`): Require conversation context and user interaction.
 - `brainstorming` — Refine ideas into designs through dialogue
 - `writing-plans` — Create detailed implementation plans
+- `ticket-builder` — Execute a single plan task in an isolated worktree
 - `using-git-worktrees` — Isolated workspaces for risky changes
 - `finishing-a-development-branch` — Clean up for merge/PR
 - `requesting-code-review` / `receiving-code-review` — Code review workflow

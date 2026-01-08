@@ -166,6 +166,18 @@ Use `/ticket-builder` to execute parallel-safe plan tasks in isolated worktrees.
 3. In the worktree, run tests + `git diff`, then `/requesting-code-review`
 4. Merge/cherry-pick only after review approval
 
+**Example:**
+```bash
+git worktree add ../project-task-3-2 feature/task-3-2
+cd ../project-task-3-2
+/ticket-builder
+# Provide: Task 3.2, worktree path, owned files
+git status -sb
+git diff --stat
+npm test
+/requesting-code-review
+```
+
 ---
 
 ## Autonomous Loop Mode

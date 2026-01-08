@@ -18,6 +18,8 @@ If any of the above are missing, ask before starting.
 ## Hard Rules
 - Work only inside the provided worktree
 - Touch only files listed in the task (or explicitly approved by the orchestrator)
+- Verify `IMPLEMENTATION_PLAN.md` exists in the worktree before starting
+- Prefer `SPEC.md` for context when it exists in the worktree
 - Do not commit, merge, or push
 - Stop if the task is blocked by another task
 
@@ -35,8 +37,8 @@ This agent must NOT commit, merge, or push. All changes must be reviewed by the 
 4. Only merge after review approval
 
 ## Execution Steps
-1. Read `IMPLEMENTATION_PLAN.md` and locate the task
-2. Verify `Parallel: yes` and check `Blocked by:` is empty or complete. If the Parallel field is missing, ask the orchestrator before proceeding
+1. Read `IMPLEMENTATION_PLAN.md` from the worktree root and locate the task. If the plan file is missing, report `needs-clarification` and stop
+2. Verify `Parallel: yes` and check `Blocked by:` is either `none` or all listed tasks are complete. If the Parallel field is missing, report `needs-clarification` and stop
 3. Implement the task in the worktree
 4. List the task-specific tests from the plan
 5. Prepare a review-ready summary for the orchestrator to diff and test in the worktree
