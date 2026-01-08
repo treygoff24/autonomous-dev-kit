@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Review diffs against specs/plans for correctness, risks, and missing tests. Use before commits. Read-only.
+description: Review diffs against specs/plans for correctness, risks, and missing tests. Use before commits. Bash is for read-only git inspection.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
