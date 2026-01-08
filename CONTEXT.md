@@ -11,15 +11,25 @@ This template references `--dangerously-skip-permissions`, which bypasses safety
 **The Loop**: IMPLEMENT → TYPECHECK → LINT → BUILD → TEST → REVIEW → FIX → REPEAT → COMMIT
 
 **Cross-agent checkpoints (mandatory):**
-- Spec creation → Claude reviews
-- Implementation plan creation → Claude reviews  
-- Phase completion → Dual code review with Claude
-- Final completion → Claude cross-check
-- Stuck in error loop → Call Claude for fresh perspective
+- Spec creation → Codex + Gemini reviews
+- Implementation plan creation → Codex + Gemini reviews
+- Phase completion → Tri code review (Claude + Codex + Gemini)
+- Final completion → Codex + Gemini cross-check
+- Stuck in error loop → Call Codex or Gemini for fresh perspective
 
 **How to call Claude:**
 ```bash
 claude -p --model opus --dangerously-skip-permissions --output-format text "[PROMPT]"
+```
+
+**How to call Codex:**
+```bash
+codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "[PROMPT]"
+```
+
+**How to call Gemini:**
+```bash
+git diff | gemini -p "[PROMPT]" --output-format text
 ```
 
 **Be patient:** Claude may take 30 seconds to several minutes to respond for complex reviews.

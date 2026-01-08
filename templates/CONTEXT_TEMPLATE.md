@@ -20,6 +20,7 @@ npm run typecheck && npm run lint && npm run build && npm run test
 - `debugger` agent — Don't guess, investigate root causes
 - `verification-standards` rule — No claims without evidence
 - `requesting-code-review` skill — Get review before proceeding
+- External reviewers — run `codex-review` and `gemini-review` at checkpoints
 
 **If context feels stale:** Re-read `AUTONOMOUS_BUILD_CLAUDE_v2.md` for the full protocol.
 

@@ -1,0 +1,11 @@
+{
+  "tools": {
+    "sandbox": true,
+    "core": [],
+    "exclude": [
+      "run_shell_command",
+      "write_file",
+      "edit_file"
+    ]
+  }
+}

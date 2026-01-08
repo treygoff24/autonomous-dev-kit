@@ -24,6 +24,12 @@ Mandatory checkpoints:
 Syntax:
 codex exec --model gpt-5.2-codex --config model_reasoning_effort="xhigh" --yolo "<PROMPT>"
 
+**Gemini = External AI Reviewer:**
+Gemini is the third-party reviewer. Pipe in the diff (and spec/plan if needed).
+
+Syntax:
+git diff | gemini -p "<PROMPT>" --output-format text
+
 **Subagents (spawn via Task tool):**
 - code-reviewer → after each phase (before Codex)
 - bug-hunter → first step when hitting errors
@@ -43,4 +49,4 @@ codex exec --model gpt-5.2-codex --config model_reasoning_effort="xhigh" --yolo 
 - Update IMPLEMENTATION_PLAN.md after each phase
 
 **Completion Criteria:**
-All phases complete + all quality gates pass + Codex final verdict "ship it"
+All phases complete + all quality gates pass + Codex + Gemini final verdict "ship it"

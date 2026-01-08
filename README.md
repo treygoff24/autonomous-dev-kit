@@ -6,7 +6,7 @@ Most agent setups break down once the task lasts more than a few minutes. Contex
 
 The core idea is boring on purpose: specs, plans, checkpoints, and hard quality gates. The hooks keep context hydrated, the skills keep the protocol tight, and the stop hook refuses to let a run declare victory without the proof. Claude Code 2.1+ features like skill-scoped hooks and hot reload are incorporated thoughtfully as well.
 
-I also wanted a harness that treats model choice as a tool, not a religion. Claude does the building, GPT/Codex does cross-review, and they keep each other honest. I'll add gemini tomorrow. It is faster, calmer, and harder to fool.
+I also wanted a harness that treats model choice as a tool, not a religion. Claude does the building, Codex and Gemini do cross-review, and they keep each other honest.
 
 Parallelism is handled carefully. The ticket-builder workflow pushes single tasks into isolated worktrees with explicit file ownership and a mandatory review gate. You get speed without stepping on rakes.
 
@@ -18,7 +18,7 @@ If you are trying to ship something real with AI agents and want fewer surprises
 
 ### Prereqs
 
-macOS or Linux, Git, and a Claude API key. Use the installation method of your choice to install Claude Code. Codex is optional but recommended for cross-review.
+macOS or Linux, Git, and a Claude API key. Use the installation method of your choice to install Claude Code. Codex and Gemini are optional but recommended for cross-review.
 
 ### Install
 

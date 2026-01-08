@@ -9,6 +9,7 @@ build
 .env
 .env.local
 .env.*.local
+.gemini/.env
 
 # Editor directories
 .idea

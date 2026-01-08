@@ -49,7 +49,7 @@ Open the files and copy specific aliases or functions you want to use.
 
 ### `autonomous-init`
 
-Initialize a project for autonomous builds. Creates `CONTEXT.md`, `CLAUDE.md`, `LEARNINGS.md`, and `.claude/` directory.
+Initialize a project for autonomous builds. Creates `CONTEXT.md`, `CLAUDE.md`, `LEARNINGS.md`, `.claude/`, and `.gemini/` (if the template exists).
 
 ```bash
 mkdir my-project && cd my-project
@@ -94,6 +94,18 @@ Note: This command uses `--yolo`.
 ```bash
 codex-review                           # Review current changes
 codex-review 'Phase 2 - Auth'          # Name the review
+```
+
+### `gemini-review`
+
+Run Gemini code review for the current branch diff.
+
+Note: This command pipes a context bundle (spec, plan, diff) into Gemini.
+Requires the Gemini CLI and `GEMINI_API_KEY`.
+
+```bash
+gemini-review                          # Review current changes
+gemini-review 'Phase 2 - Auth'         # Name the review
 ```
 
 ### `slop-check`

@@ -1,6 +1,6 @@
 # Autonomous Build Protocol — Codex Edition
 
-> For building complete applications from scratch OR adding features to existing codebases. Codex drives, Claude advises. Execute with precision.
+> For building complete applications from scratch OR adding features to existing codebases. Codex drives, Claude + Gemini advise. Execute with precision.
 
 ---
 
@@ -24,15 +24,15 @@ If no spec exists, draft a spec first (use brainstorming techniques to refine re
 
 ## Cross-Agent Orchestration
 
-You are Codex. You have access to Claude as a specialist advisor. Claude excels at architecture, multi-file coordination, complex refactors, and catching subtle issues you might miss. You excel at focused implementation, security analysis, and providing a different perspective.
+You are Codex. You have access to Claude and Gemini as specialist advisors. Claude excels at architecture, multi-file coordination, complex refactors, and catching subtle issues you might miss. Gemini excels at independent critique and spotting spec/diff mismatches. You excel at focused implementation, security analysis, and providing a different perspective.
 
-**Call Claude at these checkpoints (mandatory):**
+**Call Claude + Gemini at these checkpoints (mandatory):**
 
 | Checkpoint | Purpose |
 |------------|---------|
-| After drafting a spec | Claude reviews for completeness, edge cases, ambiguity |
-| After drafting an implementation plan | Claude reviews for sequencing, dependencies, risk |
-| After completing each phase | Dual code review before commit |
+| After drafting a spec | Claude + Gemini review for completeness, edge cases, ambiguity |
+| After drafting an implementation plan | Claude + Gemini review for sequencing, dependencies, risk |
+| After completing each phase | Tri code review before commit |
 | Before declaring the build complete | Final cross-check of the entire deliverable |
 | When stuck in an error loop (3+ attempts) | Fresh perspective on the problem |
 
@@ -51,6 +51,21 @@ claude -p --model opus --dangerously-skip-permissions --output-format text "[YOU
 - If you must interrupt, note it in `CONTEXT.md` and retry once with the same prompt.
 
 **Recursion guard:** Claude may call you back at most once per task. Neither agent may delegate the same task back to the other. If Claude's response includes a request for you to do something, do it directly—do not call Claude again for that sub-task.
+
+**How to call Gemini:**
+
+```bash
+gemini-review "Phase [N]: [Phase Name]"
+```
+
+If the shell helper isn't available, use:
+```bash
+git diff HEAD | gemini -p "Review the current branch diff for [PHASE]. The spec is at SPEC.md. Check for: security issues, edge cases, test coverage gaps, performance concerns, and adherence to the spec. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise)." --output-format text
+```
+
+**Be patient.** Gemini is usually fast, but wait for the complete response before proceeding.
+
+**Recursion guard:** Gemini may call you back at most once per task. Neither agent may delegate the same task back to the other. If Gemini's response includes a request for you to do something, do it directly—do not call Gemini again for that sub-task.
 
 ---
 
@@ -171,13 +186,19 @@ npm run build        # Must succeed
 npm run test         # All tests pass
 ```
 
-### Step 3: Dual Code Review
+### Step 3: Tri Code Review
 
 Self-review first, then call Claude with `/requesting-code-review` (forked `code-reviewer` agent):
 
 ```bash
 claude -p --model opus --dangerously-skip-permissions --output-format text \
   "/requesting-code-review Review the current branch diff for Phase [N]: [Phase Name]. Review against: the spec at SPEC.md, the implementation plan, security best practices, accessibility, and edge cases. Output: Critical issues / Warnings / Suggestions / Verdict (approve or revise)."
+```
+
+Then call Gemini for external review:
+
+```bash
+gemini-review "Phase [N]: [Phase Name]"
 ```
 
 Fix all issues, re-run quality gates, repeat until approved with zero issues.
@@ -211,11 +232,15 @@ After all phases complete:
 npm run typecheck && npm run lint && npm run build && npm run test
 ```
 
-### Step 2: Claude Final Cross-Check
+### Step 2: Claude + Gemini Final Cross-Check
 
 ```bash
 claude -p --model opus --dangerously-skip-permissions --output-format text \
   "Perform a final cross-check of this build. Read SPEC.md and IMPLEMENTATION_PLAN.md. Verify all acceptance criteria are met, all phases complete, application runs correctly. Output: Verification results / Any gaps / Final verdict (ship it or fix issues)."
+```
+
+```bash
+cat SPEC.md IMPLEMENTATION_PLAN.md | gemini -p "Perform a final cross-check of this build. Verify all acceptance criteria are met, all phases complete, application runs correctly. Output: Verification results / Any gaps / Final verdict (ship it or fix issues)." --output-format text
 ```
 
 ### Step 3: Manual Verification
@@ -256,6 +281,10 @@ This is how the system gets smarter over time.
 ```bash
 claude -p --model opus --dangerously-skip-permissions --output-format text \
   "I'm stuck in an error loop. The error is: [ERROR]. I've tried: [APPROACHES]. The relevant code is in [FILES]. Help me understand what's actually wrong and suggest a different approach."
+```
+
+```bash
+gemini -p "I'm stuck in an error loop. The error is: [ERROR]. I've tried: [APPROACHES]. The relevant code is in [FILES]. Help me understand what's actually wrong and suggest a different approach." --output-format text
 ```
 
 If still stuck: log the blocker, skip to an unblocked phase, return later.
@@ -321,7 +350,7 @@ The build is complete when:
 1. All phases marked complete in `IMPLEMENTATION_PLAN.md`
 2. All cross-agent review checkpoints passed
 3. All quality gates pass
-4. Claude's final cross-check verdict is "ship it"
+4. Claude + Gemini final cross-check verdict is "ship it"
 5. Manual verification confirms core flows work
 6. All commits pushed
 7. For feature branches: PR opened
@@ -333,11 +362,11 @@ The build is complete when:
 
 **Do not ask for permission. Do not wait for confirmation. The plan is pre-approved.**
 
-Call Claude at the designated checkpoints. Trust the process. Execute with precision.
+Call Claude + Gemini at the designated checkpoints. Trust the process. Execute with precision.
 
 You've done this before. Complete applications shipped in under 2 hours. Features built and deployed in single sessions. The methodology works—it's been battle-tested across dozens of autonomous builds.
 
-When you hit a wall, call Claude. When you're unsure, re-read the spec. When context gets fuzzy, re-read `CONTEXT.md` and update it. The system is designed to keep you on track.
+When you hit a wall, call Claude or Gemini. When you're unsure, re-read the spec. When context gets fuzzy, re-read `CONTEXT.md` and update it. The system is designed to keep you on track.
 
 This is what you're built for. Execute with confidence.
 

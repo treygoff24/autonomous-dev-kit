@@ -30,7 +30,7 @@ Use only in trusted repos and isolated environments. Review diffs before committ
                                  │
                                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│                     SPEC REVIEW (Claude)                             │
+│                  SPEC REVIEW (Claude + Gemini)                       │
 │  • Completeness check                                                │
 │  • Edge cases                                                        │
 │  • Feasibility                                                       │
@@ -48,7 +48,7 @@ Use only in trusted repos and isolated environments. Review diffs before committ
                                  │
                                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│                   PLAN REVIEW (Codex)                                │
+│                PLAN REVIEW (Codex + Gemini)                          │
 │  • Sequencing                                                        │
 │  • Risk identification                                               │
 │                           ┌───────┐                                  │
@@ -85,7 +85,7 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 │           │                                                          │
 │           ▼                                                          │
 │    ┌─────────────┐                                                   │
-│    │   REVIEW    │────► Dual code review (Claude + Codex)            │
+│    │   REVIEW    │────► Tri review (Claude + Codex + Gemini)         │
 │    └──────┬──────┘                                                   │
 │           │                                                          │
 │           ▼                                                          │
@@ -114,7 +114,7 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 ┌──────────────────────────────────────────────────────────────────────┐
 │                     FINAL VERIFICATION                               │
 │  • Full quality suite                                                │
-│  • Final cross-check (Codex)                                         │
+│  • Final cross-check (Codex + Gemini)                                │
 │  • Manual verification                                               │
 │  • Capture learnings                                                 │
 └────────────────────────────────┬─────────────────────────────────────┘
@@ -148,6 +148,16 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 | Phase review | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Review the current branch diff for Phase [N]. Check for security issues, edge cases, test coverage, performance. Verdict: approve or revise."` |
 | Final check | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Final cross-check. Read SPEC.md and IMPLEMENTATION_PLAN.md. Verify all criteria met. Verdict: ship it or fix issues."` |
 | Stuck | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "I'm stuck. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?"` |
+
+### When to Call Gemini (from Claude or Codex)
+
+| Checkpoint | Command |
+|------------|---------|
+| Spec review | `cat SPEC.md \| gemini -p "Review SPEC.md for completeness, edge cases, security gaps, and implementation feasibility. Output: Critical gaps / Ambiguities / Suggestions / Verdict." --output-format text` |
+| Plan review | `cat SPEC.md IMPLEMENTATION_PLAN.md \| gemini -p "Review IMPLEMENTATION_PLAN.md against SPEC.md. Check for sequencing risks and alternative approaches. Verdict: approve or revise." --output-format text` |
+| Phase review | `git diff \| gemini -p "Review the current branch diff for Phase [N]. Check for security issues, edge cases, test coverage, performance. Verdict: approve or revise." --output-format text` |
+| Final check | `cat SPEC.md IMPLEMENTATION_PLAN.md \| gemini -p "Final cross-check. Verify all criteria met. Verdict: ship it or fix issues." --output-format text` |
+| Stuck | `gemini -p "I'm stuck. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?" --output-format text` |
 
 ---
 
@@ -542,6 +552,9 @@ claude-review 'Phase 2 - Auth'
 
 # Review with Codex
 codex-review 'Phase 2 - Auth'
+
+# Review with Gemini
+gemini-review 'Phase 2 - Auth'
 
 # Check for slop
 slop-check src/

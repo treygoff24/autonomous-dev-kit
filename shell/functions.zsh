@@ -19,6 +19,7 @@ Creates:
   - AUTONOMOUS_BUILD_CLAUDE.md — protocol for Claude Code
   - AUTONOMOUS_BUILD_CODEX.md — protocol for Codex
   - .claude/ directory for project-specific config
+  - .gemini/ directory with settings.json (if template exists)
 
 Note: Spec writing and implementation planning are handled by skills and agents:
   - brainstorming — refine ideas into specs (skill)
@@ -97,6 +98,19 @@ Example:
         echo "  .claude/ already exists, skipping"
     fi
 
+    # Create .gemini directory (if template exists)
+    if [[ -f "$kit_dir/.gemini/settings.json" ]]; then
+        if [[ ! -d ".gemini" ]]; then
+            if mkdir -p .gemini; then
+                echo "  Created .gemini/ directory"
+            else
+                echo "  Warning: failed to create .gemini/ directory"
+            fi
+        else
+            echo "  .gemini/ already exists, skipping"
+        fi
+    fi
+
     # Copy project CLAUDE.md
     if [[ -f "CLAUDE.md" ]]; then
         echo "  CLAUDE.md already exists, skipping"
@@ -144,6 +158,19 @@ Example:
                 echo "  Created AUTONOMOUS_BUILD_CODEX.md"
             else
                 echo "  Warning: failed to create AUTONOMOUS_BUILD_CODEX.md"
+            fi
+        fi
+    fi
+
+    # Copy Gemini settings template (if available)
+    if [[ -f ".gemini/settings.json" ]]; then
+        echo "  .gemini/settings.json already exists, skipping"
+    else
+        if [[ -f "$kit_dir/.gemini/settings.json" ]]; then
+            if cp "$kit_dir/.gemini/settings.json" .gemini/settings.json; then
+                echo "  Created .gemini/settings.json"
+            else
+                echo "  Warning: failed to create .gemini/settings.json"
             fi
         fi
     fi
@@ -399,6 +426,63 @@ Example:
         --config model_reasoning_effort="xhigh" \
         --yolo \
         "Review the current branch diff for '$phase_name'. Check for: security issues, edge cases, test coverage gaps, performance concerns, code quality. If SPEC.md exists, verify against it. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise)."
+}
+
+# Quick Gemini code review
+gemini-review() {
+    local help_text="
+Usage: gemini-review [PHASE_NAME]
+
+Run Gemini code review for the current branch diff.
+
+Arguments:
+  PHASE_NAME    Optional name for the phase being reviewed
+
+Example:
+  gemini-review 'Phase 2 - Authentication'
+"
+
+    if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+        echo "$help_text"
+        return 0
+    fi
+
+    if ! command -v gemini >/dev/null 2>&1; then
+        echo "Error: gemini CLI not found. Install it before running gemini-review."
+        return 1
+    fi
+
+    local phase_name="${1:-Current changes}"
+
+    echo "Requesting Gemini code review for: $phase_name"
+    echo ""
+
+    local diff_output
+    diff_output="$(git diff HEAD)"
+    if [[ -z "$diff_output" ]]; then
+        echo "Warning: git diff HEAD is empty. Nothing to review." >&2
+        return 1
+    fi
+
+    {
+        echo "=== SPEC ==="
+        if [[ -f "SPEC.md" ]]; then
+            cat "SPEC.md"
+        else
+            echo "(missing SPEC.md)"
+        fi
+        echo ""
+        echo "=== IMPLEMENTATION PLAN ==="
+        if [[ -f "IMPLEMENTATION_PLAN.md" ]]; then
+            cat "IMPLEMENTATION_PLAN.md"
+        else
+            echo "(missing IMPLEMENTATION_PLAN.md)"
+        fi
+        echo ""
+        echo "=== DIFF ==="
+        printf '%s\n' "$diff_output"
+    } | gemini -p "Review the current branch diff for '$phase_name'. Check for: security issues, edge cases, test coverage gaps, performance concerns, code quality. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise)." \
+        --output-format text
 }
 
 # Check for common slop patterns

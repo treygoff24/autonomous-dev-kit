@@ -31,13 +31,17 @@ You'll need accounts and API keys for:
 
 1. **Anthropic** — Get from [console.anthropic.com](https://console.anthropic.com/)
 2. **OpenAI** — Get from [platform.openai.com](https://platform.openai.com/)
+3. **Google Gemini** (optional) — Get from [aistudio.google.com](https://aistudio.google.com/app/apikey)
 
 Save these as environment variables in your shell config (`~/.zshrc` or `~/.bashrc`):
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
 export OPENAI_API_KEY="sk-..."
+export GEMINI_API_KEY="..."
 ```
+
+If you plan to use Gemini reviews, install the Gemini CLI and ensure `gemini` is on your PATH.
 
 ---
 
@@ -73,6 +77,9 @@ source ~/.zshrc
 ```bash
 # Check Claude Code is installed
 claude --version
+
+# Check Gemini CLI (optional)
+gemini --version
 
 # Check CLI tools
 fd --version
@@ -363,7 +370,7 @@ claude "Read AUTONOMOUS_BUILD_CLAUDE_v2.md and the spec at SPEC.md. Build autono
 Or if you have the protocol locally:
 
 ```bash
-claude "Read the autonomous build protocol and spec. Execute all phases. Call Codex at checkpoints. Ship it."
+claude "Read the autonomous build protocol and spec. Execute all phases. Call Codex + Gemini at checkpoints. Ship it."
 ```
 
 ### Step 8: Monitor Progress
@@ -372,7 +379,7 @@ Claude will:
 1. Read your spec and plan
 2. Execute each phase
 3. Run quality gates
-4. Call Codex for reviews at checkpoints
+4. Call Codex + Gemini for reviews at checkpoints
 5. Commit after each phase
 6. Continue until complete
 
