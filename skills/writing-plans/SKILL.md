@@ -105,11 +105,11 @@ git commit -m "feat: add specific feature"
 
 ## Owned Files Validation
 
-Use a quick duplicate check before running parallel tasks (awk is more portable than sed across macOS/Linux):
+Use a quick duplicate check before running parallel tasks (awk-based for portability across macOS/Linux):
 
 ```bash
 rg '^\*\*Owned files:\*\*' IMPLEMENTATION_PLAN.md \
-  | sed 's/^\*\*Owned files:\*\*//g' \
+  | awk -F'\\*\\*Owned files:\\*\\*' '{print $2}' \
   | tr ',' '\n' \
   | awk '{$1=$1};1' \
   | sort \
@@ -162,3 +162,4 @@ After saving the plan, offer execution choice:
 - Create one worktree per parallel task
 - Run `/ticket-builder` for each worktree
 - Review diffs + tests in worktrees before merging
+- Prefer `plan-executor` when tasks share files or require shared context

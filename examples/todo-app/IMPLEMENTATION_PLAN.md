@@ -14,6 +14,22 @@
 
 Simple todo application with React, TypeScript, and localStorage persistence. 4 phases covering setup, data layer, UI, and polish.
 
+## Parallel Task Metadata Example
+
+Use this format when planning parallel work with `/ticket-builder`:
+
+```markdown
+### Task 2.1: Define Todo type
+
+**Parallel:** no
+**Blocked by:** none
+**Owned files:** `src/types/todo.ts`
+
+**Files:**
+- Create: `src/types/todo.ts`
+- Test: `src/types/todo.test.ts`
+```
+
 ---
 
 ## Phase 1: Project Setup

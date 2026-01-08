@@ -948,7 +948,7 @@ setup_claude_directory_additive() {
             for skill_name in "${updated_skills[@]}"; do
                 echo "  - $skill_name"
             done
-            local update_choice="individual"
+            local update_choice=""
             if $DRY_RUN; then
                 info "DRY-RUN: would prompt to update ${#updated_skills[@]} skills"
                 update_choice="none"
@@ -1077,7 +1077,7 @@ setup_claude_directory_additive() {
             for agent_name in "${updated_agents[@]}"; do
                 echo "  - $agent_name"
             done
-            local update_choice="individual"
+            local update_choice=""
             if $DRY_RUN; then
                 info "DRY-RUN: would prompt to update ${#updated_agents[@]} agents"
                 update_choice="none"

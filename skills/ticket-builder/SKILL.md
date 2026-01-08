@@ -58,7 +58,8 @@ The agent will return:
 
 ```bash
 # 1. Create isolated worktree
-git worktree add ../project-task-3-2 feature/task-3-2
+git worktree add ../project-task-3-2 feature/task-3-2 || { echo "Failed to create worktree"; exit 1; }
+cd ../project-task-3-2 && git status -sb
 
 # 2. Invoke ticket-builder
 /ticket-builder
