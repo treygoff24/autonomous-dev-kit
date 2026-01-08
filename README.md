@@ -1,129 +1,28 @@
 # autonomous-dev-kit
 
-> A bootstrap repo for autonomous AI-assisted development with Claude Code and Codex CLI.
+A practical harness for long-running, autonomous AI development. I stole all the good parts of continuous claude v2, ralph riggum claude code plugin, and misc. other open source stuff the cursed X algorithnm gives me, threw in a few simple pieces of my own, and combined them all here. It is built around Claude Code and Codex and actually works for the use case everyone is promising of "chat with an AI Agent, let it work for hours, return to a completed working finished product". As far as I can tell, this harness is the only one capable of doing that so far (before anyone tries this and yells at me, do note I am not saying "bug free", I am just saying "it will actually work and be about 90% of what you intended, with zero work from you").
 
-This kit is the result of me taking the best of what works from continuous claude and that ralph skill & hook that's been making the rounds, along with tons of trial and error derived subagents, skills, and prompts to enable unlimited duration agent coding sessions that actually fully complete what you ask it to. Really only works with Claude Code, but if someone can make it work with Codex CLI, do it!
+Most agent setups break down once the task lasts more than a few minutes. Context gets shredded by compaction, prompts drift, tests are skipped, and the model starts guessing. This kit exists because I got tired of cleaning up after that.
 
-- `install.sh` installs CLI essentials, Claude Code CLI, and writes shell aliases/functions that drive the autonomous workflow. skips anything you already have installed, gives you options to pick and choose what to install.
-- Seeds Claude Code skills, templates, and checklists so agents follow opinionated protocols instead of ad-hoc prompting.
-- Installs Claude Code hooks (pre-compact, session-start, stop) to keep context synced, quality gates enforced, and enable autonomous loop mode.
-- Ships helper commands (`autonomous-init`, `quality-gates`, `claude-review`, `codex-review`, etc.) that keep sessions on-rails.
-- Includes a worked example app that demonstrates the full spec → plan → build → test loop.
+The core idea is boring on purpose: specs, plans, checkpoints, and hard quality gates. The hooks keep context hydrated, the skills keep the protocol tight, and the stop hook refuses to let a run declare victory without the proof. Claude Code 2.1+ features like skill-scoped hooks and hot reload are incorporated thoughtfully as well.
 
-## How It Works
+I also wanted a harness that treats model choice as a tool, not a religion. Claude does the building, GPT/Codex does cross-review, and they keep each other honest. I'll add gemini tomorrow. It is faster, calmer, and harder to fool.
 
-### The Problems
+Parallelism is handled carefully. The ticket-builder workflow pushes single tasks into isolated worktrees with explicit file ownership and a mandatory review gate. You get speed without stepping on rakes.
 
-Out of box, Opus 4.5 with Claude Code is very good, but it's not "build a whole web app without gigantic issues" good for a few reasons:
+As far as me and GPT-5.2 can tell after a quick scan, this is the only open-source harness that combines all of that in one place: continuous context, protocol enforcement, skill/agent separation, hook-based autonomy, and multi-frontier-model review. If you find another one, send it to me so I can steal the good parts and add them here.
 
-1. Context management remains an issue, especially with autocompaction running
-
-2. I get real tired of typing the same prompt over and over, and copy/pasting is annoying
-
-3. The model will still confidently ship broken code
-
-4. Getting Claude nice and wet again after you stopped one session and started another is very annoying
-
-5. LLM capability is spiky, so using only Claude won't work
-
-### The Solutions
-
-This kit solves each problem with a specific mechanism:
-
-| Problem                  | Solution                          | Implementation                                                                 |
-| ------------------------ | --------------------------------- | ------------------------------------------------------------------------------ |
-| Context amnesia          | Auto-handoffs + session injection | `pre-compact.sh` saves state before compaction; `session-start.sh` restores it |
-| Ad-hoc prompting         | Battle-tested protocols           | Templates define exactly how to write specs, plans, and execute phases         |
-| No quality enforcement   | Mandatory quality gates           | `stop.sh` blocks completion until typecheck/lint/build/test pass               |
-| Session fragmentation    | Living context file               | `CONTEXT.md` is updated each phase with decisions, hook signatures, next steps |
-| Single-agent limitations | Cross-agent review                | Claude and Codex review each other at checkpoints                              |
-
-Okay I'll let Claude explain how it works in detail:
-
-### The Mechanics
-
-**Hooks** intercept Claude Code events to enforce workflow:
-
-- `pre-compact.sh` — Fires before context compaction, dumps git state + CONTEXT.md to a handoff file
-- `session-start.sh` — Fires on new session, injects recent handoffs + learnings into context
-- `stop.sh` — Fires on exit attempt, blocks if work is incomplete, enables autonomous loop mode
-
-On Claude Code 2.1.0+, the Stop hook is attached to the `/autonomous-loop` skill (skill-scoped hook). To force the legacy global Stop hook, set `CLAUDE_CODE_LEGACY_STOP_HOOK=1` before running `./install.sh`.
-
-**Templates** encode methodology:
-
-- `AUTONOMOUS_BUILD_CLAUDE_v2.md` — The master protocol: how to move through spec → plan → build → verify
-- `CONTEXT_TEMPLATE.md` — What to track: current phase, hook signatures, import locations, decisions
-- `SPEC_WRITING.md` / `IMPLEMENTATION_PLAN_WRITING.md` — How to write docs that agents can execute
-
-**Skills** provide reusable workflows:
-
-- Brainstorming, plan writing, TDD, debugging, code review — each is a documented process the agent follows
-- Installed to `~/.claude/skills/` and invoked via slash commands
-- Claude Code 2.1.0+ hot-reloads skills from `~/.claude/skills` and `.claude/skills` without restarting the session
-
-**Shell functions** keep you in the loop:
-
-- `autonomous-init` seeds a project with templates
-- `quality-gates` runs the full check suite
-- `slop-check` greps for AI-generated cruft patterns
-
-### The Result
-
-Instead of:
-
-```
-You: "Build a todo app"
-AI: [writes random code]
-You: "Wait, run the tests"
-AI: [tests fail]
-You: "Fix the tests"
-AI: [fixes one, breaks another]
-You: [repeat for hours]
-```
-
-You get:
-
-```
-You: "Read the spec and go autonomous"
-AI: [activates loop mode]
-AI: [Phase 1: implement → typecheck → lint → build → test → commit]
-AI: [Phase 2: implement → typecheck → lint → build → test → commit]
-...
-AI: [All phases complete, quality gates pass, PR ready]
-You: "dang, this actually works, and only has like 2-3 bugs instead of 200"
-```
-
----
-
-## Maximum Autonomy Warning
-
-Listen, you and I both know you don't actually care about this, but I have to say it just in case you do:
-
-This kit is configured for maximum autonomy. Command examples and helpers intentionally use `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex), which bypass safety prompts and allow tools to run without confirmation.
-
-Use this setup only in trusted repositories and isolated environments. Review diffs before committing, avoid running against production systems, and remove those flags if you want approval gates.
-
----
-
-## The Workflow
-
-```
-IDEA → SPEC → PLAN → BUILD → DEPLOY
-         ↓      ↓       ↓
-       Review  Review  Review (after each phase)
-```
+If you are trying to ship something real with AI agents and want fewer surprises, this is the harness that will actually work.
 
 ## Quick Start
 
-### Prerequisites
+### Prereqs
 
-- **macOS or Linux** (Windows WSL works too)
-- **Node.js 18+** and npm
-- **Homebrew** (macOS) or **apt** (Linux)
-- **Claude API key** (Anthropic) — Codex/OpenAI optional for cross-agent review
+macOS or Linux, Git, and a Claude API key. Use the installation method of your choice to install Claude Code. Codex is optional but recommended for cross-review.
 
 ### Install
+
+Maximum autonomy warning: the install and example commands use `--dangerously-skip-permissions` (Claude) and `--yolo` (Codex) to remove prompts. Use this only in trusted repos and remove those flags if you want approval gates.
 
 ```bash
 git clone https://github.com/treygoff24/autonomous-dev-kit.git
@@ -131,281 +30,85 @@ cd autonomous-dev-kit
 ./install.sh
 ```
 
-The installer is interactive and will:
-
-- Install CLI tools (fd, fzf, bat, ripgrep, delta, zoxide, jq, yq, sd)
-- Install Claude Code CLI via npm
-- Set up shell aliases and functions
-- Create `~/.claude/` with hooks, skills, and lib files
-- Let you pick and choose what to install (skips what you already have)
-
-### First Project
+### First project
 
 ```bash
 mkdir my-project && cd my-project
-autonomous-init              # Creates CONTEXT.md, copies protocol templates
+autonomous-init
 ```
 
-Then launch Claude Code: `claude`
+Then open Claude Code and say: "Read the autonomous build protocol and help me write a spec for [your idea]."
 
-Prompt it: "Read the autonomous build protocol and help me create a spec for [your idea]"
+## How it works
 
----
+Hooks keep sessions stable through compaction and restarts. Templates and skills enforce a spec -> plan -> build loop with review checkpoints. The stop hook blocks exit if tests or plan tasks are incomplete, and it periodically forces a protocol refresh so the model does not drift and stays locked in. The shell helpers keep the whole thing ergonomic. I put quite alot of thought and trial and error into when to make something an agent vs. skill vs. protocol step. details below:
 
-## Directory Structure
+## Agents, skills, rules
+
+### Agents (isolated, parallel execution)
+
+| Agent                   | Purpose                                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| `debugger`              | Systematic debugging with root-cause analysis so fixes stick instead of chasing symptoms.             |
+| `tdd-implementer`       | Writes tests first and then implementation to reduce regressions and force clear acceptance criteria. |
+| `plan-executor`         | Executes a plan task-by-task with quality gates so long runs stay aligned and verifiable.             |
+| `code-reviewer`         | Reviews diffs against the spec and plan to catch gaps before commits.                                 |
+| `a11y-reviewer`         | Checks UI work for accessibility issues so you do not ship obvious a11y regressions.                  |
+| `spec-reviewer`         | Audits specs for missing details and ambiguity to prevent vague builds.                               |
+| `review-triager`        | Sorts review feedback into fix-now vs later so changes stay focused.                                  |
+| `ticket-builder`        | Implements a single plan task in an isolated worktree to enable safe parallel work.                   |
+| `slop-cleaner`          | Removes boilerplate and AI cruft so the codebase stays readable.                                      |
+| `validator`             | Cross-checks changes for edge cases, tests, and safety before moving on.                              |
+| `root-cause-tracer`     | Traces failures backward through the stack to find the first wrong assumption.                        |
+| `parallel-investigator` | Splits independent issues into parallel investigations to reduce time to diagnosis.                   |
+
+### Skills (interactive workflows)
+
+| Skill                             | Purpose                                                                       |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| `/brainstorming`                  | Turns fuzzy ideas into concrete options and decisions so specs start strong.  |
+| `/writing-plans`                  | Creates phased implementation plans with clear tasks and acceptance criteria. |
+| `/using-git-worktrees`            | Guides creation of isolated worktrees for risky or parallel changes.          |
+| `/finishing-a-development-branch` | Runs a cleanup checklist so branches are merge-ready.                         |
+| `/requesting-code-review`         | Packages the diff for a review agent and gets a structured verdict.           |
+| `/receiving-code-review`          | Converts review feedback into a prioritized fix list and execution steps.     |
+| `/spec-quality-checklist`         | Applies a spec completeness checklist to remove ambiguity.                    |
+| `/accessibility-checklist`        | Applies an a11y checklist to catch common UI gaps.                            |
+| `/autonomous-loop`                | Activates loop mode to keep Claude working until completion criteria pass.    |
+| `/ticket-builder`                 | Spawns ticket-builder with task and worktree context for parallel execution.  |
+
+### Rules (auto-loaded)
+
+| Rule                        | Purpose                                                                  |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `testing-standards.md`      | Prevents flaky tests and bad patterns so test results are trustworthy.   |
+| `verification-standards.md` | Requires evidence before completion claims to stop hallucinated success. |
+| `code-quality.md`           | Flags slop patterns and enforces hygiene so the codebase stays clean.    |
+
+## Layout
 
 ```
 autonomous-dev-kit/
-├── install.sh                # Interactive installer
-├── agents/                   # Custom agent definitions (→ ~/.claude/agents/)
-│   ├── debugger.md           # Systematic debugging
-│   ├── tdd-implementer.md    # Test-driven development
-│   ├── plan-executor.md      # Execute plans task-by-task
-│   ├── slop-cleaner.md       # Remove AI cruft
-│   ├── validator.md          # Defense-in-depth validation
-│   ├── root-cause-tracer.md  # Backward stack tracing
-│   └── parallel-investigator.md  # Concurrent problem investigation
-├── rules/                    # Auto-loaded standards (→ ~/.claude/rules/)
-│   ├── testing-standards.md  # Anti-patterns, TDD, condition-based waiting
-│   ├── verification-standards.md  # Evidence before claims
-│   └── code-quality.md       # Slop patterns, commit hygiene
-├── skills/                   # Interactive skills (→ ~/.claude/skills/)
-│   ├── autonomous-loop/
-│   ├── brainstorming/
-│   ├── writing-plans/
-│   ├── requesting-code-review/
-│   ├── receiving-code-review/
-│   └── ... (9 total)
-├── docs/
-│   ├── GETTING_STARTED.md    # First project walkthrough
-│   ├── WORKFLOW_REFERENCE.md # Complete workflow details
-│   └── TROUBLESHOOTING.md    # Common issues and fixes
-├── templates/
-│   ├── AUTONOMOUS_BUILD_CLAUDE_v2.md  # The main protocol
-│   ├── AUTONOMOUS_BUILD_CODEX_v2.md   # Codex variant
-│   ├── CONTEXT_TEMPLATE.md            # Context preservation template
-│   └── CLAUDE.md                      # Project-specific Claude instructions
-├── hooks/
-│   ├── pre-compact.sh        # Saves handoff before context compaction
-│   ├── session-start.sh      # Injects context on session start
-│   └── stop.sh               # Autonomous loop + safety net warnings
-├── lib/
-│   ├── loop-helpers.sh       # Shared functions for loop state
-│   └── cheatsheet.md         # Protocol cheatsheet (injected during loop)
-├── shell/
-│   ├── aliases.zsh           # fd, bat, delta, zoxide aliases
-│   └── functions.zsh         # autonomous-init, quality-gates, etc.
-├── tests/                    # Test suites
-│   ├── test-loop-helpers.sh
-│   ├── test-stop-hook.sh
-│   └── test-integration.sh
-└── examples/
-    └── todo-app/             # Complete worked example
+  install.sh
+  agents/
+  skills/
+  rules/
+  hooks/
+  lib/
+  shell/
+  templates/
+  docs/
+  examples/
 ```
 
----
+## Docs
 
-## Templates
-
-| Template                        | Purpose                                      |
-| ------------------------------- | -------------------------------------------- |
-| `AUTONOMOUS_BUILD_CLAUDE_v2.md` | The main protocol — read this first          |
-| `AUTONOMOUS_BUILD_CODEX_v2.md`  | Codex variant (if you prefer Codex-primary)  |
-| `CONTEXT_TEMPLATE.md`           | Context preservation across sessions         |
-| `CLAUDE.md`                     | Project-specific Claude instructions         |
-| `LEARNINGS.md`                  | Cross-session learning accumulator           |
-| `.claude-quality-gates.example` | Example quality gates config                 |
-
-The protocol is the core. CONTEXT.md keeps Claude oriented across compactions. LEARNINGS.md accumulates insights that get injected into future sessions.
-
----
-
-## Shell Functions
-
-After running `install.sh`, you'll have these commands:
-
-| Command             | Description                                           |
-| ------------------- | ----------------------------------------------------- |
-| `autonomous-init`   | Initialize a project (copies templates, creates CONTEXT.md) |
-| `autonomous-status` | Show current phase and context summary                |
-| `quality-gates`     | Run typecheck → lint → build → test                   |
-| `claude-review`     | Run Claude code review on current changes             |
-| `codex-review`      | Run Codex code review on current changes              |
-| `slop-check`        | Grep for AI-generated cruft patterns                  |
-| `git-feature`       | Create branch with `feature/` prefix                  |
-| `git-feat`          | Alias for `git-feature`                               |
-| `git-fix`           | Create branch with `fix/` prefix                      |
-| `git-chore`         | Create branch with `chore/` prefix                    |
-
-All commands support `--help` for usage details.
-
----
-
-## Agents, Skills, and Rules
-
-The kit organizes Claude's capabilities in three layers:
-
-### Agents (Isolated Execution)
-
-Custom agents run in isolated context windows. They can run in parallel and don't pollute your main conversation. Installed to `~/.claude/agents/`.
-
-| Agent | What it does |
-|-------|--------------|
-| `debugger` | Systematic debugging with root cause analysis |
-| `tdd-implementer` | Test-driven development: write failing test first |
-| `plan-executor` | Execute plans task-by-task with quality gates |
-| `code-reviewer` | Review diffs against specs/plans before commits |
-| `a11y-reviewer` | Accessibility review for interactive UI |
-| `spec-reviewer` | Spec completeness and precision review |
-| `review-triager` | Triage review feedback before implementation |
-| `ticket-builder` | Execute a single plan task in an isolated worktree |
-| `slop-cleaner` | Remove AI-generated cruft before commits |
-| `validator` | Defense-in-depth validation at every layer |
-| `root-cause-tracer` | Trace bugs backward through call stack |
-| `parallel-investigator` | Investigate independent failures concurrently |
-
-**Parallel execution:** Spawn multiple agents for independent problems to maximize throughput.
-
-### Skills (Interactive Workflows)
-
-Skills require conversation context and user interaction. Invoke via `/skill-name`. Installed to `~/.claude/skills/`.
-
-| Skill | What it does |
-|-------|--------------|
-| `/brainstorming` | Refine vague ideas into concrete designs via dialogue |
-| `/writing-plans` | Create detailed implementation plans with phases |
-| `/using-git-worktrees` | Create isolated worktrees for risky changes |
-| `/finishing-a-development-branch` | Clean up branch for merge/PR |
-| `/requesting-code-review` | Request code review before proceeding |
-| `/receiving-code-review` | Handle code review feedback with rigor |
-| `/spec-quality-checklist` | Validate specs for precision and completeness |
-| `/accessibility-checklist` | A11y audit for UI components |
-| `/autonomous-loop` | Activate autonomous loop mode with explicit goal |
-| `/ticket-builder` | Execute a single plan task in an isolated worktree |
-
-### Rules (Auto-loaded Standards)
-
-Rules are automatically loaded based on file patterns. No invocation needed. Installed to `~/.claude/rules/`.
-
-| Rule | Scope | What it does |
-|------|-------|--------------|
-| `testing-standards.md` | Test files | Anti-patterns, TDD, condition-based waiting |
-| `verification-standards.md` | All work | Evidence before claims |
-| `code-quality.md` | All code | Slop patterns, commit hygiene |
-
-The architecture: **Agents** do the work, **Skills** guide the methodology, **Rules** enforce standards.
-
----
-
-## The Example
-
-`examples/todo-app/` is a complete worked example showing the full cycle:
-
-- `SPEC.md` — What we're building
-- `IMPLEMENTATION_PLAN.md` — Phased build plan with checkboxes
-- `CONTEXT.md` — Context file (updated throughout the build)
-- `BUILD_LOG.md` — Annotated log with timestamps
-- `LEARNINGS.md` — What we learned during the build
-- `src/` — The working code (Vite + TypeScript)
-
-Study this before your first build to see how the pieces fit together.
-
----
-
-## Cross-Agent Review (Optional)
-
-Claude does the heavy lifting. Codex is optional for cross-review:
-
-- After drafting specs/plans → Codex reviews for gaps
-- After each phase → Codex spots what Claude missed
-- When stuck → Fresh perspective breaks the loop
-
-Use `claude-review` and `codex-review` shell commands, or just ask Claude to "get Codex's opinion on this."
-
----
-
-## Context Preservation
-
-Hooks handle this automatically:
-
-1. **Pre-compact hook** — Saves git state + CONTEXT.md before compaction
-2. **Session-start hook** — Injects recent handoffs + learnings into new sessions
-3. **CONTEXT.md** — You update this with current phase, decisions, hook signatures
-
-The system survives context compactions and session restarts. Just keep CONTEXT.md current.
-
----
-
-## Autonomous Loop Mode
-
-For truly hands-off operation, activate autonomous loop mode. This keeps Claude working until completion criteria are met, even across context compactions.
-
-### Activation
-
-```bash
-# Explicit goal
-/autonomous-loop "Build comprehensive Playwright tests for the auth flow"
-
-# Or interactive (Claude infers goal from context)
-"Go autonomous"
-```
-
-### How It Works
-
-When active, the Stop hook intercepts exit attempts and:
-
-1. Checks completion criteria (clean git, quality gates, plan tasks)
-2. If incomplete: blocks exit, injects continuation prompt with protocol cheatsheet
-3. If complete: allows exit, cleans up state
-
-### Completion Criteria
-
-The loop ends automatically when ALL are true:
-
-- Git working directory is clean
-- All quality gates pass (if `.claude-quality-gates` exists)
-- All tasks in `IMPLEMENTATION_PLAN.md` are checked off
-
-### Safety Features
-
-- **Max iterations** (default 100) — Pauses for human check-in
-- **Protocol re-read** — Every 3 iterations, verifies Claude re-read the full protocol
-- **Quality gates** — Optional per-project via `.claude-quality-gates` file
-- **Escape hatch** — Ctrl+C always works, or say "stop autonomous mode"
-
-### Example Session
-
-```bash
-# Initialize project
-autonomous-init
-# Write spec and plan...
-
-# Go autonomous
-claude "Read the spec and go autonomous"
-# Claude activates loop, works through phases, commits after each
-# Loop ends when all criteria met
-```
-
-See [docs/WORKFLOW_REFERENCE.md](docs/WORKFLOW_REFERENCE.md) for complete details.
-
----
-
-## Getting Help
-
-- **Stuck on setup?** See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-- **First build confusing?** Follow [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) step by step
-- **Need workflow details?** See [docs/WORKFLOW_REFERENCE.md](docs/WORKFLOW_REFERENCE.md)
-
----
-
-## License
-
-MIT — Use freely, modify freely, build cool stuff.
-
----
+Start with `docs/GETTING_STARTED.md`, then keep `docs/WORKFLOW_REFERENCE.md` open while you run builds. If something breaks, `docs/TROUBLESHOOTING.md` is short and useful.
 
 ## Credits
 
-Built on top of ideas from [continuous-claude](https://github.com/samwho/continuous-claude), the Ralph skill/hook that made the rounds, and a lot of trial and error.
+This repo borrows the best ideas from [continuous-claude](https://github.com/samwho/continuous-claude) and the [Ralph Wiggum Claude Code plugin](https://github.com/abbitt/ralph-wiggum-claude) and then pushes them further by combining them with a bunch of other ideas I stole that I wish I could credit but I can't because once you refresh away a post on X, the algorithm ensures you shall never see it again.
 
-Now go build something.
+## License
+
+MIT.
