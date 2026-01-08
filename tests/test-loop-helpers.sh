@@ -232,8 +232,20 @@ test_initialize_loop_state() {
     local verification_attempts=$(echo "$state" | jq -r '.verification_attempts')
     assert_equals "0" "$verification_attempts" "verification_attempts starts at 0"
 
+    local expected_verification_code=$(echo "$state" | jq -r '.expected_verification_code // ""')
+    assert_equals "" "$expected_verification_code" "expected_verification_code defaults to empty"
+
     local last_verified_iteration=$(echo "$state" | jq -r '.last_verified_iteration')
     assert_equals "0" "$last_verified_iteration" "last_verified_iteration starts at 0"
+
+    local stuck_count=$(echo "$state" | jq -r '.stuck_count')
+    assert_equals "0" "$stuck_count" "stuck_count starts at 0"
+
+    local last_goal_hash=$(echo "$state" | jq -r '.last_goal_hash // ""')
+    assert_equals "" "$last_goal_hash" "last_goal_hash defaults to empty"
+
+    local last_progress_hash=$(echo "$state" | jq -r '.last_progress_hash // ""')
+    assert_equals "" "$last_progress_hash" "last_progress_hash defaults to empty"
 
     delete_state_file "$test_project"
 }

@@ -1,5 +1,7 @@
 # Autonomous Build Protocol — Claude Edition
 
+> Note: `autonomous-init` copies this template to `AUTONOMOUS_BUILD_CLAUDE.md` in your project.
+
 > For building complete applications from scratch OR adding features to existing codebases. Claude drives, Codex + Gemini advise. Execute with precision.
 
 ---
@@ -171,6 +173,17 @@ If context feels stale or you suspect information was lost:
 2. Re-read this protocol (`AUTONOMOUS_BUILD_CLAUDE_v2.md`) for methodology
 3. Check `IMPLEMENTATION_PLAN.md` for current phase
 4. Check `thoughts/handoffs/` for recent auto-handoffs
+
+### Protocol Re-Read Checkpoints (Autonomous Loop)
+
+When autonomous loop mode is active, the Stop hook enforces periodic protocol
+re-reads to prevent drift. Every 3 iterations it will:
+
+1. Set `expected_verification_code` in `.claude/autonomous-loop.json`
+2. Prompt you to re-read `AUTONOMOUS_BUILD_CLAUDE.md` and respond with
+   `<verified code="####"/>` (or `<verified>####</verified>`) using that code
+
+Complete the re-read and include the code-tag before continuing work.
 
 ### Learning Loop
 

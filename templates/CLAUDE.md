@@ -34,6 +34,13 @@ CONTEXT.md (updated every phase, survives in working directory)
 AUTONOMOUS_BUILD_CLAUDE_v2.md (full protocol, re-read on demand)
 ```
 
+### Autonomous Protocol Anchors
+
+When autonomous loop mode is active, expect protocol reminders and verification
+checkpoints from hooks. Every 3 iterations, re-read `AUTONOMOUS_BUILD_CLAUDE.md`
+and reply with `<verified code="####"/>` using `expected_verification_code`
+from `.claude/autonomous-loop.json`.
+
 ---
 
 ## General Preferences

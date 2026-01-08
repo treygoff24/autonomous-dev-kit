@@ -90,7 +90,7 @@ rg --version
 autonomous-init --help
 ```
 
-If anything is missing, run `./install.sh` again or install manually via `brew install <tool>`.
+If anything is missing or you want the latest hooks/templates, run `./install.sh` again and choose "Update to latest" (recommended). To skip the mode prompt, use `./install.sh --mode=update` (you will still be prompted before overwriting files). You can also install tools manually via `brew install <tool>`.
 
 **Note:** The installer sets `respectGitignore: true` in `~/.claude/settings.json` by default. Set it to `false` if you want to @-mention ignored paths like `.claude/`.
 
@@ -358,13 +358,13 @@ claude "Read the spec and implementation plan, then go autonomous"
 The autonomous loop will:
 - Block exit attempts until all criteria are met
 - Inject protocol reminders every iteration
-- Re-verify protocol understanding every 3 iterations
+- Re-verify protocol understanding every 3 iterations with a code from `.claude/autonomous-loop.json`
 - Pause at 100 iterations for human check-in
 
 **Option B: Manual Prompting**
 
 ```bash
-claude "Read AUTONOMOUS_BUILD_CLAUDE_v2.md and the spec at SPEC.md. Build autonomously. Do not stop until complete."
+claude "Read AUTONOMOUS_BUILD_CLAUDE.md and the spec at SPEC.md. Build autonomously. Do not stop until complete."
 ```
 
 Or if you have the protocol locally:
@@ -435,7 +435,7 @@ After the build, add to `LEARNINGS.md`:
 When using `/autonomous-loop`:
 - **Duration:** Same as manual, but truly hands-off
 - **Check-ins:** Automatic pause every 100 iterations
-- **Protocol drift:** Prevented via periodic re-read verification
+- **Protocol drift:** Prevented via periodic re-read verification with a code from `.claude/autonomous-loop.json`
 - **Exit behavior:** Claude can't accidentally stop mid-build
 
 To stop early: Press Escape/Ctrl+C or say "stop autonomous mode"

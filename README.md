@@ -30,6 +30,8 @@ cd autonomous-dev-kit
 ./install.sh
 ```
 
+Re-run `./install.sh` any time to pull in updates. Use `./install.sh --mode=update` to skip the mode prompt (you will still be prompted before overwriting files).
+
 ### First project
 
 ```bash

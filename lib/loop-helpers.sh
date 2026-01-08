@@ -128,8 +128,12 @@ initialize_loop_state() {
         --argjson max "$max_iterations" \
         --arg paused "false" \
         --arg verification_pending "false" \
+        --argjson expected_code null \
         --argjson verification_attempts 0 \
         --argjson last_verified 0 \
+        --argjson stuck_count 0 \
+        --arg last_goal_hash "" \
+        --arg last_progress_hash "" \
         '{
             active: ($active == "true"),
             session_token: $token,
@@ -140,8 +144,12 @@ initialize_loop_state() {
             max_iterations: $max,
             paused: ($paused == "true"),
             verification_pending: ($verification_pending == "true"),
+            expected_verification_code: $expected_code,
             verification_attempts: $verification_attempts,
-            last_verified_iteration: $last_verified
+            last_verified_iteration: $last_verified,
+            stuck_count: $stuck_count,
+            last_goal_hash: $last_goal_hash,
+            last_progress_hash: $last_progress_hash
         }')
 
     write_state_file "$project_path" "$state"

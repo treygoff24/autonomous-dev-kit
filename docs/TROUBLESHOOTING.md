@@ -169,6 +169,15 @@ If you want the global Stop hook back (legacy behavior), reinstall with:
 CLAUDE_CODE_LEGACY_STOP_HOOK=1 ./install.sh
 ```
 
+### "Protocol verification keeps failing"
+
+**Fix:**
+
+1. Re-read `AUTONOMOUS_BUILD_CLAUDE.md`
+2. Open `.claude/autonomous-loop.json` and copy `expected_verification_code`
+3. Reply with `<verified code="####"/>` using that code (or `<verified>####</verified>`)
+4. If it still repeats, confirm the tag format and that the code matches the state file
+
 ### "Build failing mysteriously"
 
 **Quick fixes:**
@@ -244,7 +253,7 @@ npm run test -- --reporter=verbose
 
 4. **Re-read the protocol:**
    ```bash
-   cat AUTONOMOUS_BUILD_CLAUDE_v2.md
+   cat AUTONOMOUS_BUILD_CLAUDE.md
    ```
 
 ### "Lost track of what phase I'm on"

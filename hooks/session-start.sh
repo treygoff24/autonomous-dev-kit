@@ -9,6 +9,14 @@
 
 set -euo pipefail
 
+# Source helper library (optional)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$HOME/.claude/lib/loop-helpers.sh" ]]; then
+    source "$HOME/.claude/lib/loop-helpers.sh"
+elif [[ -f "$SCRIPT_DIR/../lib/loop-helpers.sh" ]]; then
+    source "$SCRIPT_DIR/../lib/loop-helpers.sh"
+fi
+
 # Read input from stdin
 INPUT=$(cat)
 
@@ -22,6 +30,16 @@ else
 fi
 
 GLOBAL_LEARNINGS="$HOME/.claude/learnings/LEARNINGS.md"
+
+# Optional protocol reminder (when loop is active)
+get_protocol_reminder() {
+    local cheatsheet_path="$HOME/.claude/lib/cheatsheet.md"
+    if [[ -f "$cheatsheet_path" ]]; then
+        cat "$cheatsheet_path"
+    elif [[ -f "$SCRIPT_DIR/../lib/cheatsheet.md" ]]; then
+        cat "$SCRIPT_DIR/../lib/cheatsheet.md"
+    fi
+}
 
 # Build context string
 CONTEXT=""
@@ -88,7 +106,25 @@ $LEARNINGS
 "
 fi
 
-# 3. Add session resume reminder
+# 3. If autonomous loop is active, inject protocol reminder
+if declare -f is_loop_active > /dev/null 2>&1; then
+    if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]] && [[ -d "$CLAUDE_PROJECT_DIR" ]]; then
+        if is_loop_active "$CLAUDE_PROJECT_DIR"; then
+            PROTOCOL_REMINDER=$(get_protocol_reminder)
+            if [[ -n "$PROTOCOL_REMINDER" ]]; then
+                CONTEXT="${CONTEXT}## Autonomous Loop Protocol Reminder
+
+$PROTOCOL_REMINDER
+
+---
+
+"
+            fi
+        fi
+    fi
+fi
+
+# 4. Add session resume reminder
 CONTEXT="${CONTEXT}## Session Resumed
 
 Context was restored automatically. If anything feels stale:

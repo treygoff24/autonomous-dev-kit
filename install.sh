@@ -21,8 +21,9 @@ SHELL_CONFIG=""
 OS=""
 BACKUP_SUFFIX="$(date +%Y%m%d%H%M%S)"
 
-# Install mode: full, additive, tools_only
+# Install mode: full, additive, update, tools_only
 INSTALL_MODE=""
+INSTALL_MODE_SOURCE=""
 
 # Detection results (populated by detect_* functions)
 declare -a MISSING_TOOLS=()
@@ -31,6 +32,7 @@ declare -a MISSING_ALIASES=()
 declare -a EXISTING_ALIASES=()
 declare -a MISSING_FILES=()
 declare -a EXISTING_FILES=()
+declare -a OUTDATED_ITEMS=()
 MISSING_HOOKS=0
 EXISTING_HOOKS=0
 
@@ -87,6 +89,22 @@ prompt_overwrite() {
             *) echo "Please answer yes or no." ;;
         esac
     done
+}
+
+normalize_install_mode() {
+    local raw="$1"
+    case "$raw" in
+        update|full|additive)
+            echo "$raw"
+            ;;
+        tools-only|tools_only|tools)
+            echo "tools_only"
+            ;;
+        *)
+            echo ""
+            return 1
+            ;;
+    esac
 }
 
 # -----------------------------------------------------------------------------
@@ -158,6 +176,7 @@ detect_claude_files() {
         "$HOME/.claude/shell/aliases.zsh"
         "$HOME/.claude/hooks/pre-compact.sh"
         "$HOME/.claude/hooks/session-start.sh"
+        "$HOME/.claude/hooks/user-prompt-submit.sh"
         "$HOME/.claude/hooks/stop.sh"
         "$HOME/.claude/lib/loop-helpers.sh"
         "$HOME/.claude/lib/cheatsheet.md"
@@ -177,6 +196,63 @@ detect_claude_files() {
             MISSING_FILES+=("$file_path")
         fi
     done
+}
+
+files_differ() {
+    local src="$1"
+    local dest="$2"
+    if [ ! -f "$src" ] || [ ! -f "$dest" ]; then
+        return 1
+    fi
+    ! diff -q "$src" "$dest" > /dev/null 2>&1
+}
+
+dirs_differ() {
+    local src="$1"
+    local dest="$2"
+    if [ ! -d "$src" ] || [ ! -d "$dest" ]; then
+        return 1
+    fi
+    ! diff -qr "$src" "$dest" > /dev/null 2>&1
+}
+
+record_outdated_item() {
+    local kind="$1"
+    local label="$2"
+    local src="$3"
+    local dest="$4"
+    OUTDATED_ITEMS+=("$kind|$label|$src|$dest")
+}
+
+detect_updates() {
+    OUTDATED_ITEMS=()
+
+    local claude_dir="$HOME/.claude"
+    local kit_dir="$claude_dir/autonomous-dev-kit"
+
+    local -a file_items=(
+        "global CLAUDE.md|$SCRIPT_DIR/templates/CLAUDE.md|$claude_dir/CLAUDE.md"
+        "shell functions|$SCRIPT_DIR/shell/functions.zsh|$claude_dir/shell/functions.zsh"
+        "shell aliases|$SCRIPT_DIR/shell/aliases.zsh|$claude_dir/shell/aliases.zsh"
+        "pre-compact hook|$SCRIPT_DIR/hooks/pre-compact.sh|$claude_dir/hooks/pre-compact.sh"
+        "session-start hook|$SCRIPT_DIR/hooks/session-start.sh|$claude_dir/hooks/session-start.sh"
+        "user-prompt-submit hook|$SCRIPT_DIR/hooks/user-prompt-submit.sh|$claude_dir/hooks/user-prompt-submit.sh"
+        "stop hook|$SCRIPT_DIR/hooks/stop.sh|$claude_dir/hooks/stop.sh"
+        "loop helpers library|$SCRIPT_DIR/lib/loop-helpers.sh|$claude_dir/lib/loop-helpers.sh"
+        "autonomous loop cheatsheet|$SCRIPT_DIR/lib/cheatsheet.md|$claude_dir/lib/cheatsheet.md"
+    )
+
+    for item in "${file_items[@]}"; do
+        local label src dest
+        IFS='|' read -r label src dest <<< "$item"
+        if [ -f "$dest" ] && files_differ "$src" "$dest"; then
+            record_outdated_item "file" "$label" "$src" "$dest"
+        fi
+    done
+
+    if [ -d "$kit_dir/templates" ] && dirs_differ "$SCRIPT_DIR/templates" "$kit_dir/templates"; then
+        record_outdated_item "dir" "templates" "$SCRIPT_DIR/templates" "$kit_dir/templates"
+    fi
 }
 
 claude_version() {
@@ -222,15 +298,16 @@ detect_hooks() {
     local settings_file="$HOME/.claude/settings.json"
     local hook_precompact="$HOME/.claude/hooks/pre-compact.sh"
     local hook_sessionstart="$HOME/.claude/hooks/session-start.sh"
+    local hook_userprompt="$HOME/.claude/hooks/user-prompt-submit.sh"
     local hook_stop="$HOME/.claude/hooks/stop.sh"
     local require_stop_hook=true
 
     if ! use_legacy_stop_hook; then
         require_stop_hook=false
     fi
-    local required_hooks=2
+    local required_hooks=3
     if $require_stop_hook; then
-        required_hooks=3
+        required_hooks=4
     fi
 
     MISSING_HOOKS=0
@@ -250,6 +327,12 @@ detect_hooks() {
         fi
 
         if grep -Fq "$hook_sessionstart" "$settings_file" 2>/dev/null; then
+            EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
+        else
+            MISSING_HOOKS=$((MISSING_HOOKS + 1))
+        fi
+
+        if grep -Fq "$hook_userprompt" "$settings_file" 2>/dev/null; then
             EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
         else
             MISSING_HOOKS=$((MISSING_HOOKS + 1))
@@ -293,6 +376,17 @@ detect_hooks() {
         MISSING_HOOKS=$((MISSING_HOOKS + 1))
     fi
 
+    # Check for UserPromptSubmit hook (handle both single-object and array formats)
+    if jq -e --arg cmd "$hook_userprompt" '
+        (.hooks.UserPromptSubmit // []) |
+        if type == "array" then . else [.] end |
+        .[].hooks[]? | select(.command == $cmd)
+    ' "$settings_file" > /dev/null 2>&1; then
+        EXISTING_HOOKS=$((EXISTING_HOOKS + 1))
+    else
+        MISSING_HOOKS=$((MISSING_HOOKS + 1))
+    fi
+
     if $require_stop_hook; then
         # Check for Stop hook (handle both single-object and array formats)
         if jq -e --arg cmd "$hook_stop" '
@@ -316,6 +410,7 @@ run_detection() {
     detect_aliases
     detect_claude_files
     detect_hooks
+    detect_updates
 }
 
 display_detection_summary() {
@@ -361,15 +456,58 @@ display_detection_summary() {
     else
         echo -e "  Hooks:        ${EXISTING_HOOKS}/${total_hooks} configured ${YELLOW}(missing: ${MISSING_HOOKS})${NC}"
     fi
+
+    # Updates line
+    if [ ${#OUTDATED_ITEMS[@]} -eq 0 ]; then
+        echo -e "  Updates:      ${GREEN}none${NC}"
+    else
+        local outdated_labels=()
+        for item in "${OUTDATED_ITEMS[@]}"; do
+            local label
+            IFS='|' read -r _ label _ _ <<< "$item"
+            outdated_labels+=("$label")
+        done
+        local preview=""
+        local max_preview=4
+        local count=0
+        for label in "${outdated_labels[@]}"; do
+            if [ $count -ge $max_preview ]; then
+                preview="$preview, ..."
+                break
+            fi
+            if [ -n "$preview" ]; then
+                preview="$preview, $label"
+            else
+                preview="$label"
+            fi
+            count=$((count + 1))
+        done
+        echo -e "  Updates:      ${YELLOW}${#OUTDATED_ITEMS[@]} available (${preview})${NC}"
+    fi
     
     echo ""
 }
 
 prompt_install_mode() {
+    if [[ "$INSTALL_MODE_SOURCE" == "cli" ]]; then
+        case "$INSTALL_MODE" in
+            update) info "Selected: Update to latest (from CLI)" ;;
+            full) info "Selected: Full install (from CLI)" ;;
+            additive) info "Selected: Add missing only (from CLI)" ;;
+            tools_only) info "Selected: Tools only (from CLI)" ;;
+            *)
+                warn "Unknown install mode from CLI (defaulting to additive)"
+                INSTALL_MODE="additive"
+                ;;
+        esac
+        return
+    fi
+
     # If everything is already installed, just inform and use additive (no-op)
     if [ ${#MISSING_TOOLS[@]} -eq 0 ] && [ ${#MISSING_ALIASES[@]} -eq 0 ] && \
-       [ ${#MISSING_FILES[@]} -eq 0 ] && [ $MISSING_HOOKS -eq 0 ]; then
-        success "Everything is already installed!"
+       [ ${#MISSING_FILES[@]} -eq 0 ] && [ $MISSING_HOOKS -eq 0 ] && \
+       [ ${#OUTDATED_ITEMS[@]} -eq 0 ]; then
+        success "Everything is already installed and up to date!"
         INSTALL_MODE="additive"
         return
     fi
@@ -382,29 +520,67 @@ prompt_install_mode() {
     
     echo "How would you like to proceed?"
     echo ""
-    echo -e "  ${CYAN}[1]${NC} Full install"
+    local option_num=1
+    local opt_update=""
+    local opt_full=""
+    local opt_additive=""
+    local opt_tools=""
+
+    if [ ${#OUTDATED_ITEMS[@]} -gt 0 ]; then
+        opt_update=$option_num
+        echo -e "  ${CYAN}[$opt_update]${NC} Update to latest  ${GREEN}(recommended)${NC}"
+        echo "      Apply updates to existing files; you'll be prompted before overwrite"
+        echo ""
+        option_num=$((option_num + 1))
+    fi
+
+    opt_full=$option_num
+    echo -e "  ${CYAN}[$opt_full]${NC} Full install"
     echo "      Backup existing configs, install everything fresh"
     echo ""
-    echo -e "  ${CYAN}[2]${NC} Add missing only  ${GREEN}(recommended)${NC}"
+    option_num=$((option_num + 1))
+
+    opt_additive=$option_num
+    echo -e "  ${CYAN}[$opt_additive]${NC} Add missing only"
     echo "      Install missing tools/aliases, preserve your customizations"
     echo ""
-    echo -e "  ${CYAN}[3]${NC} Tools only"
+    option_num=$((option_num + 1))
+
+    opt_tools=$option_num
+    echo -e "  ${CYAN}[$opt_tools]${NC} Tools only"
     echo "      Install CLI tools via Homebrew, skip all shell/config changes"
     echo ""
-    
+
+    local choices=""
+    if [ -n "$opt_update" ]; then
+        choices+="$opt_update/"
+    fi
+    choices+="$opt_full/$opt_additive/$opt_tools"
+    choices="${choices%/}"
+
     local response=""
     while true; do
-        read -r -p "Choice [1/2/3]: " response
+        read -r -p "Choice [$choices]: " response
+        if [[ -z "$response" ]]; then
+            if [ -n "$opt_update" ]; then
+                INSTALL_MODE="update"
+            else
+                INSTALL_MODE="additive"
+            fi
+            break
+        fi
         case "$response" in
-            1) INSTALL_MODE="full"; break ;;
-            2) INSTALL_MODE="additive"; break ;;
-            3) INSTALL_MODE="tools_only"; break ;;
-            *) echo "Please enter 1, 2, or 3." ;;
+            $opt_update) INSTALL_MODE="update"; break ;;
+            $opt_full) INSTALL_MODE="full"; break ;;
+            $opt_additive) INSTALL_MODE="additive"; break ;;
+            $opt_tools) INSTALL_MODE="tools_only"; break ;;
+            *) echo "Please enter one of: $choices." ;;
         esac
     done
     
     echo ""
     case "$INSTALL_MODE" in
+        update) info "Selected: Update to latest" ;;
         full) info "Selected: Full install" ;;
         additive) info "Selected: Add missing only" ;;
         tools_only) info "Selected: Tools only" ;;
@@ -888,6 +1064,7 @@ setup_claude_directory_full() {
     # Install hooks
     install_file_with_prompt "$SCRIPT_DIR/hooks/pre-compact.sh" "$claude_dir/hooks/pre-compact.sh" "pre-compact hook"
     install_file_with_prompt "$SCRIPT_DIR/hooks/session-start.sh" "$claude_dir/hooks/session-start.sh" "session-start hook"
+    install_file_with_prompt "$SCRIPT_DIR/hooks/user-prompt-submit.sh" "$claude_dir/hooks/user-prompt-submit.sh" "user-prompt-submit hook"
     install_file_with_prompt "$SCRIPT_DIR/hooks/stop.sh" "$claude_dir/hooks/stop.sh" "stop hook"
 
     # Install lib files for autonomous loop
@@ -900,6 +1077,9 @@ setup_claude_directory_full() {
     fi
     if [ -f "$claude_dir/hooks/session-start.sh" ]; then
         run chmod +x "$claude_dir/hooks/session-start.sh"
+    fi
+    if [ -f "$claude_dir/hooks/user-prompt-submit.sh" ]; then
+        run chmod +x "$claude_dir/hooks/user-prompt-submit.sh"
     fi
     if [ -f "$claude_dir/hooks/stop.sh" ]; then
         run chmod +x "$claude_dir/hooks/stop.sh"
@@ -1170,72 +1350,101 @@ setup_claude_directory_additive() {
 
     if [ ${#MISSING_FILES[@]} -eq 0 ]; then
         success "All ~/.claude files already exist"
+        if [ "$INSTALL_MODE" != "update" ]; then
+            return
+        fi
+    else
+        info "Installing ${#MISSING_FILES[@]} missing files (additive mode)..."
+
+        # Only install files that don't exist
+        for file_path in "${MISSING_FILES[@]}"; do
+            case "$file_path" in
+                *"/CLAUDE.md")
+                    if [ -f "$SCRIPT_DIR/templates/CLAUDE.md" ]; then
+                        run cp "$SCRIPT_DIR/templates/CLAUDE.md" "$claude_dir/CLAUDE.md"
+                        success "Installed global CLAUDE.md"
+                    fi
+                    ;;
+                *"/functions.zsh")
+                    if [ -f "$SCRIPT_DIR/shell/functions.zsh" ]; then
+                        run cp "$SCRIPT_DIR/shell/functions.zsh" "$claude_dir/shell/functions.zsh"
+                        success "Installed shell functions"
+                    fi
+                    ;;
+                *"/aliases.zsh")
+                    if [ -f "$SCRIPT_DIR/shell/aliases.zsh" ]; then
+                        run cp "$SCRIPT_DIR/shell/aliases.zsh" "$claude_dir/shell/aliases.zsh"
+                        success "Installed shell aliases"
+                    fi
+                    ;;
+                *"/pre-compact.sh")
+                    if [ -f "$SCRIPT_DIR/hooks/pre-compact.sh" ]; then
+                        run cp "$SCRIPT_DIR/hooks/pre-compact.sh" "$claude_dir/hooks/pre-compact.sh"
+                        run chmod +x "$claude_dir/hooks/pre-compact.sh"
+                        success "Installed pre-compact hook"
+                    fi
+                    ;;
+                *"/session-start.sh")
+                    if [ -f "$SCRIPT_DIR/hooks/session-start.sh" ]; then
+                        run cp "$SCRIPT_DIR/hooks/session-start.sh" "$claude_dir/hooks/session-start.sh"
+                        run chmod +x "$claude_dir/hooks/session-start.sh"
+                        success "Installed session-start hook"
+                    fi
+                    ;;
+                *"/user-prompt-submit.sh")
+                    if [ -f "$SCRIPT_DIR/hooks/user-prompt-submit.sh" ]; then
+                        run cp "$SCRIPT_DIR/hooks/user-prompt-submit.sh" "$claude_dir/hooks/user-prompt-submit.sh"
+                        run chmod +x "$claude_dir/hooks/user-prompt-submit.sh"
+                        success "Installed user-prompt-submit hook"
+                    fi
+                    ;;
+                *"/stop.sh")
+                    if [ -f "$SCRIPT_DIR/hooks/stop.sh" ]; then
+                        run cp "$SCRIPT_DIR/hooks/stop.sh" "$claude_dir/hooks/stop.sh"
+                        run chmod +x "$claude_dir/hooks/stop.sh"
+                        success "Installed stop hook"
+                    fi
+                    ;;
+                *"/loop-helpers.sh")
+                    if [ -f "$SCRIPT_DIR/lib/loop-helpers.sh" ]; then
+                        run cp "$SCRIPT_DIR/lib/loop-helpers.sh" "$claude_dir/lib/loop-helpers.sh"
+                        success "Installed loop helpers library"
+                    fi
+                    ;;
+                *"/cheatsheet.md")
+                    if [ -f "$SCRIPT_DIR/lib/cheatsheet.md" ]; then
+                        run cp "$SCRIPT_DIR/lib/cheatsheet.md" "$claude_dir/lib/cheatsheet.md"
+                        success "Installed autonomous loop cheatsheet"
+                    fi
+                    ;;
+                *"/templates")
+                    if [ -d "$templates_src" ]; then
+                        run cp -R "$templates_src" "$templates_dest"
+                        success "Installed templates"
+                    fi
+                    ;;
+            esac
+        done
+    fi
+
+    if [ "$INSTALL_MODE" != "update" ]; then
         return
     fi
 
-    info "Installing ${#MISSING_FILES[@]} missing files (additive mode)..."
+    if [ ${#OUTDATED_ITEMS[@]} -eq 0 ]; then
+        success "All managed files already up to date"
+        return
+    fi
 
-    # Only install files that don't exist
-    for file_path in "${MISSING_FILES[@]}"; do
-        case "$file_path" in
-            *"/CLAUDE.md")
-                if [ -f "$SCRIPT_DIR/templates/CLAUDE.md" ]; then
-                    run cp "$SCRIPT_DIR/templates/CLAUDE.md" "$claude_dir/CLAUDE.md"
-                    success "Installed global CLAUDE.md"
-                fi
-                ;;
-            *"/functions.zsh")
-                if [ -f "$SCRIPT_DIR/shell/functions.zsh" ]; then
-                    run cp "$SCRIPT_DIR/shell/functions.zsh" "$claude_dir/shell/functions.zsh"
-                    success "Installed shell functions"
-                fi
-                ;;
-            *"/aliases.zsh")
-                if [ -f "$SCRIPT_DIR/shell/aliases.zsh" ]; then
-                    run cp "$SCRIPT_DIR/shell/aliases.zsh" "$claude_dir/shell/aliases.zsh"
-                    success "Installed shell aliases"
-                fi
-                ;;
-            *"/pre-compact.sh")
-                if [ -f "$SCRIPT_DIR/hooks/pre-compact.sh" ]; then
-                    run cp "$SCRIPT_DIR/hooks/pre-compact.sh" "$claude_dir/hooks/pre-compact.sh"
-                    run chmod +x "$claude_dir/hooks/pre-compact.sh"
-                    success "Installed pre-compact hook"
-                fi
-                ;;
-            *"/session-start.sh")
-                if [ -f "$SCRIPT_DIR/hooks/session-start.sh" ]; then
-                    run cp "$SCRIPT_DIR/hooks/session-start.sh" "$claude_dir/hooks/session-start.sh"
-                    run chmod +x "$claude_dir/hooks/session-start.sh"
-                    success "Installed session-start hook"
-                fi
-                ;;
-            *"/stop.sh")
-                if [ -f "$SCRIPT_DIR/hooks/stop.sh" ]; then
-                    run cp "$SCRIPT_DIR/hooks/stop.sh" "$claude_dir/hooks/stop.sh"
-                    run chmod +x "$claude_dir/hooks/stop.sh"
-                    success "Installed stop hook"
-                fi
-                ;;
-            *"/loop-helpers.sh")
-                if [ -f "$SCRIPT_DIR/lib/loop-helpers.sh" ]; then
-                    run cp "$SCRIPT_DIR/lib/loop-helpers.sh" "$claude_dir/lib/loop-helpers.sh"
-                    success "Installed loop helpers library"
-                fi
-                ;;
-            *"/cheatsheet.md")
-                if [ -f "$SCRIPT_DIR/lib/cheatsheet.md" ]; then
-                    run cp "$SCRIPT_DIR/lib/cheatsheet.md" "$claude_dir/lib/cheatsheet.md"
-                    success "Installed autonomous loop cheatsheet"
-                fi
-                ;;
-            *"/templates")
-                if [ -d "$templates_src" ]; then
-                    run cp -R "$templates_src" "$templates_dest"
-                    success "Installed templates"
-                fi
-                ;;
-        esac
+    info "Updating ${#OUTDATED_ITEMS[@]} existing files (update mode)..."
+    for item in "${OUTDATED_ITEMS[@]}"; do
+        local kind label src dest
+        IFS='|' read -r kind label src dest <<< "$item"
+        if [ "$kind" = "dir" ]; then
+            install_dir_with_prompt "$src" "$dest" "$label"
+        else
+            install_file_with_prompt "$src" "$dest" "$label"
+        fi
     done
 }
 
@@ -1255,6 +1464,7 @@ configure_hooks() {
     # Use $HOME expanded path (not ~) for reliable execution
     local hook_path_precompact="$HOME/.claude/hooks/pre-compact.sh"
     local hook_path_sessionstart="$HOME/.claude/hooks/session-start.sh"
+    local hook_path_userprompt="$HOME/.claude/hooks/user-prompt-submit.sh"
     local hook_path_stop="$HOME/.claude/hooks/stop.sh"
     local configure_stop_hook=true
 
@@ -1268,9 +1478,9 @@ configure_hooks() {
     fi
 
     if [ "$INSTALL_MODE" = "full" ]; then
-        configure_hooks_full "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart" "$hook_path_stop" "$configure_stop_hook"
+        configure_hooks_full "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart" "$hook_path_userprompt" "$hook_path_stop" "$configure_stop_hook"
     else
-        configure_hooks_additive "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart" "$hook_path_stop" "$configure_stop_hook"
+        configure_hooks_additive "$settings_file" "$hook_path_precompact" "$hook_path_sessionstart" "$hook_path_userprompt" "$hook_path_stop" "$configure_stop_hook"
     fi
 }
 
@@ -1278,8 +1488,9 @@ configure_hooks_full() {
     local settings_file="$1"
     local hook_path_precompact="$2"
     local hook_path_sessionstart="$3"
-    local hook_path_stop="$4"
-    local configure_stop_hook="$5"
+    local hook_path_userprompt="$4"
+    local hook_path_stop="$5"
+    local configure_stop_hook="$6"
 
     info "Configuring hooks (full mode)..."
 
@@ -1293,17 +1504,19 @@ configure_hooks_full() {
             backup_file "$settings_file"
             # Replace the hooks section entirely while preserving other settings
             if $configure_stop_hook; then
-                jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '
+                jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg user "$hook_path_userprompt" --arg stop "$hook_path_stop" '
                     .respectGitignore = (if .respectGitignore == null then true else .respectGitignore end) |
                     .hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}] |
                     .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}] |
+                    .hooks.UserPromptSubmit = [{"matcher": "", "hooks": [{"type": "command", "command": $user}]}] |
                     .hooks.Stop = [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
                 ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
             else
-                jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '
+                jq --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg user "$hook_path_userprompt" '
                     .respectGitignore = (if .respectGitignore == null then true else .respectGitignore end) |
                     .hooks.PreCompact = [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}] |
                     .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}] |
+                    .hooks.UserPromptSubmit = [{"matcher": "", "hooks": [{"type": "command", "command": $user}]}] |
                     del(.hooks.Stop)
                 ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
             fi
@@ -1314,20 +1527,22 @@ configure_hooks_full() {
 
     # Create new settings file
     if $configure_stop_hook; then
-        jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '{
+        jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg user "$hook_path_userprompt" --arg stop "$hook_path_stop" '{
             "respectGitignore": true,
             "hooks": {
                 "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
                 "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
+                "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": $user}]}],
                 "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
             }
         }' > "$settings_file"
     else
-        jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
+        jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg user "$hook_path_userprompt" '{
             "respectGitignore": true,
             "hooks": {
                 "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
-                "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
+                "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
+                "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": $user}]}]
             }
         }' > "$settings_file"
     fi
@@ -1338,8 +1553,9 @@ configure_hooks_additive() {
     local settings_file="$1"
     local hook_path_precompact="$2"
     local hook_path_sessionstart="$3"
-    local hook_path_stop="$4"
-    local configure_stop_hook="$5"
+    local hook_path_userprompt="$4"
+    local hook_path_stop="$5"
+    local configure_stop_hook="$6"
     local needs_respect_gitignore=false
 
     # Check if settings file exists and is valid JSON
@@ -1388,6 +1604,7 @@ configure_hooks_additive() {
         # Check which specific hooks need to be added (handle both single-object and array formats)
         local needs_precompact=true
         local needs_sessionstart=true
+        local needs_userprompt=true
         local needs_stop=true
         if ! $configure_stop_hook; then
             needs_stop=false
@@ -1407,6 +1624,13 @@ configure_hooks_additive() {
         ' "$settings_file" > /dev/null 2>&1; then
             needs_sessionstart=false
         fi
+        if jq -e --arg cmd "$hook_path_userprompt" '
+            (.hooks.UserPromptSubmit // []) |
+            if type == "array" then . else [.] end |
+            .[].hooks[]? | select(.command == $cmd)
+        ' "$settings_file" > /dev/null 2>&1; then
+            needs_userprompt=false
+        fi
         if $configure_stop_hook; then
             if jq -e --arg cmd "$hook_path_stop" '
                 (.hooks.Stop // []) |
@@ -1417,7 +1641,7 @@ configure_hooks_additive() {
             fi
         fi
 
-        if ! $needs_precompact && ! $needs_sessionstart && ! $needs_stop; then
+        if ! $needs_precompact && ! $needs_sessionstart && ! $needs_userprompt && ! $needs_stop; then
             success "Our hooks already configured in settings.json"
             return
         fi
@@ -1454,6 +1678,20 @@ configure_hooks_additive() {
             success "Added SessionStart hook"
         fi
 
+        if $needs_userprompt; then
+            # Normalize to array if single object, then append
+            jq --arg cmd "$hook_path_userprompt" '
+                .respectGitignore = (if .respectGitignore == null then true else .respectGitignore end) |
+                .hooks.UserPromptSubmit = (
+                    if .hooks.UserPromptSubmit == null then []
+                    elif (.hooks.UserPromptSubmit | type) == "array" then .hooks.UserPromptSubmit
+                    else [.hooks.UserPromptSubmit]
+                    end
+                ) + [{"matcher": "", "hooks": [{"type": "command", "command": $cmd}]}]
+            ' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+            success "Added UserPromptSubmit hook"
+        fi
+
         if $needs_stop; then
             # Normalize to array if single object, then append
             jq --arg cmd "$hook_path_stop" '
@@ -1470,20 +1708,22 @@ configure_hooks_additive() {
     else
         # Create new settings file with hooks
         if $configure_stop_hook; then
-            jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg stop "$hook_path_stop" '{
+            jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg user "$hook_path_userprompt" --arg stop "$hook_path_stop" '{
                 "respectGitignore": true,
                 "hooks": {
                     "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
                     "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
+                    "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": $user}]}],
                     "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": $stop}]}]
                 }
             }' > "$settings_file"
         else
-            jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" '{
+            jq -n --arg pre "$hook_path_precompact" --arg sess "$hook_path_sessionstart" --arg user "$hook_path_userprompt" '{
                 "respectGitignore": true,
                 "hooks": {
                     "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": $pre}]}],
-                    "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}]
+                    "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": $sess}]}],
+                    "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": $user}]}]
                 }
             }' > "$settings_file"
         fi
@@ -1619,12 +1859,14 @@ Usage: ./install.sh [OPTIONS]
 Install CLI tools and configure the autonomous development environment.
 
 Options:
+    --mode MODE  Install mode: update, full, additive, tools-only
     --dry-run    Preview changes without applying them
     --help       Show this help message
 
 Examples:
     ./install.sh              # Run full installation
     ./install.sh --dry-run    # Preview what would be done
+    ./install.sh --mode=update
 
 EOF
 }
@@ -1641,6 +1883,37 @@ main() {
             --help|-h)
                 usage
                 exit 0
+                ;;
+            --mode)
+                shift
+                if [[ $# -eq 0 ]]; then
+                    error "Missing value for --mode"
+                    usage
+                    exit 1
+                fi
+                local normalized
+                normalized=$(normalize_install_mode "$1" || true)
+                if [[ -z "$normalized" ]]; then
+                    error "Unknown install mode: $1"
+                    usage
+                    exit 1
+                fi
+                INSTALL_MODE="$normalized"
+                INSTALL_MODE_SOURCE="cli"
+                shift
+                ;;
+            --mode=*)
+                local raw="${1#--mode=}"
+                local normalized
+                normalized=$(normalize_install_mode "$raw" || true)
+                if [[ -z "$normalized" ]]; then
+                    error "Unknown install mode: $raw"
+                    usage
+                    exit 1
+                fi
+                INSTALL_MODE="$normalized"
+                INSTALL_MODE_SOURCE="cli"
+                shift
                 ;;
             *)
                 error "Unknown option: $1"
@@ -1718,7 +1991,11 @@ main() {
         echo "  4. Follow docs/GETTING_STARTED.md"
     fi
     echo ""
-    success "Happy building!"
+success "Happy building!"
 }
+
+if [[ "${INSTALL_LIB_ONLY:-}" == "1" ]]; then
+    return 0 2>/dev/null || exit 0
+fi
 
 main "$@"

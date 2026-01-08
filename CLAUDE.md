@@ -51,10 +51,12 @@ Uses `set -euo pipefail` and supports `--dry-run` mode.
 
 ## Hooks
 
-The installer sets up two Claude Code hooks for session continuity:
+The installer sets up Claude Code hooks for continuity and autonomous loop behavior:
 
 - **pre-compact.sh** — Runs before context compaction, saves handoff with git state and CONTEXT.md
 - **session-start.sh** — Runs after compaction or `/clear`, injects latest handoff + learnings into context
+- **user-prompt-submit.sh** — Injects a short protocol anchor when autonomous loop mode is active
+- **stop.sh** — Blocks exit during autonomous loop and injects the continuation prompt
 
 Handoffs are saved to:
 - `$PROJECT/thoughts/handoffs/` when in a project

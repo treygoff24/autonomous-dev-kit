@@ -1,7 +1,7 @@
 ## AUTONOMOUS BUILD MODE ACTIVE
 
 You are in an autonomous build session. This cheat sheet summarizes
-AUTONOMOUS_BUILD_CLAUDE_v2.md — re-read the full protocol if anything is unclear.
+AUTONOMOUS_BUILD_CLAUDE.md — re-read the full protocol if anything is unclear.
 
 DO NOT STOP until completion criteria are met. Execute with precision.
 
@@ -47,6 +47,11 @@ git diff | gemini -p "<PROMPT>" --output-format text
 **Context Hygiene:**
 - Update CONTEXT.md 2x per phase minimum
 - Update IMPLEMENTATION_PLAN.md after each phase
+
+**Protocol Verification (every 3 iterations):**
+- Re-read AUTONOMOUS_BUILD_CLAUDE.md end-to-end
+- Check `.claude/autonomous-loop.json` for `expected_verification_code`
+- Respond with `<verified code="####"/>` using that code
 
 **Completion Criteria:**
 All phases complete + all quality gates pass + Codex + Gemini final verdict "ship it"

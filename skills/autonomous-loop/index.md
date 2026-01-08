@@ -49,7 +49,11 @@ This creates a state file at `.claude/autonomous-loop.json` (project-local) with
 - `max_iterations: 100`
 - `iteration: 0`
 - `verification_pending: false`
+- `expected_verification_code: null`
 - `last_verified_iteration: 0`
+- `stuck_count: 0`
+- `last_goal_hash: ""`
+- `last_progress_hash: ""`
 
 ### Step 3: Confirm Activation
 
@@ -62,7 +66,7 @@ Autonomous loop activated:
 
 I'll keep working until all completion criteria are met:
 - All quality gates pass (if .claude-quality-gates exists)
-- All phases in IMPLEMENTATION_PLAN.md complete
+- All scoped tasks in IMPLEMENTATION_PLAN.md complete (phase/module if the goal names one)
 - Clean git state (excluding .claude/ directory)
 
 To pause: press Escape and say "stop autonomous mode"
@@ -84,23 +88,25 @@ The loop automatically ends when ALL of these are true:
 2. All quality gates pass (if `.claude-quality-gates` exists)
 3. All tasks in IMPLEMENTATION_PLAN.md are checked off (if file exists, no `- [ ]` boxes)
 
+If the goal mentions a phase or module and a matching section exists, only that section is
+checked. If the scoped section is missing, the plan check is skipped.
+
 ## Protocol Verification
 
-Every 5 iterations, the Stop hook requests protocol verification to ensure Claude stays aligned with the autonomous build protocol.
+Every 3 iterations, the Stop hook requests protocol verification to ensure Claude stays aligned with the autonomous build protocol.
 
 **How it works:**
-1. At iteration 5, 10, 15, etc., the hook sets `verification_pending: true`
-2. The `systemMessage` includes: "Re-read AUTONOMOUS_BUILD_CLAUDE.md then output `<verified/>` to confirm"
-3. Claude should re-read the protocol and include `<verified/>` in its response
-4. The hook reads the transcript and looks for the `<verified/>` tag
+1. At iteration 3, 6, 9, etc., the hook sets `verification_pending: true`
+2. The hook writes `expected_verification_code` to `.claude/autonomous-loop.json`
+3. The continuation prompt instructs Claude to re-read AUTONOMOUS_BUILD_CLAUDE.md and reply with `<verified code="####"/>` (or `<verified>####</verified>`) using that code
+4. The hook reads the transcript and looks for the tag containing the expected code
 5. If found, verification passes and `last_verified_iteration` is updated
 
 **Soft fail (prevents infinite loops):**
-- If Claude doesn't output `<verified/>` after 3 attempts, the hook gives up and continues
-- This prevents the verification system from causing infinite loops
-- A warning is logged: "Verification not received after 3 attempts, continuing anyway"
+- If the tag isn't received after 3 attempts, the hook clears verification and continues
+- This prevents the verification system from causing infinite loops if transcript parsing fails
 
-**To pass verification:** Simply output `<verified/>` anywhere in your response after re-reading the protocol.
+**To pass verification:** Output `<verified code="####"/>` using `expected_verification_code` from `.claude/autonomous-loop.json`.
 
 ## Deactivation
 
@@ -129,6 +135,11 @@ Options:
 
 To resume: update max_iterations in state file and set paused=false, or user says "resume" / "continue".
 
+## Stuck Detection
+
+If the goal and git progress stay unchanged for 5 consecutive iterations, the loop
+pauses and asks for updated direction to avoid infinite loops.
+
 ## Arguments
 
 - **goal** (optional): The task to work on. If not provided, inferred from context.
@@ -156,7 +167,11 @@ Location: `.claude/autonomous-loop.json` (project-local)
   "max_iterations": 100,
   "paused": false,
   "verification_pending": false,
+  "expected_verification_code": null,
   "verification_attempts": 0,
-  "last_verified_iteration": 0
+  "last_verified_iteration": 0,
+  "stuck_count": 0,
+  "last_goal_hash": "",
+  "last_progress_hash": ""
 }
 ```

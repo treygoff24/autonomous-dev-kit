@@ -209,9 +209,9 @@ For hands-off operation, activate autonomous loop mode. The Stop hook will keep 
 
 ### How It Works
 
-1. **Initialize state** — Creates `~/.claude/autonomous-loop/<project-hash>.json`
+1. **Initialize state** — Creates `.claude/autonomous-loop.json` in the project root
 2. **Block exits** — Stop hook intercepts exit attempts
-3. **Check completion** — Clean git + quality gates + plan complete
+3. **Check completion** — Clean git + quality gates + plan scope complete
 4. **Continue or exit** — If incomplete, injects continuation prompt; if complete, allows exit
 
 ### Completion Criteria
@@ -220,6 +220,9 @@ Loop ends when ALL are true:
 - Git working directory is clean (no uncommitted changes)
 - All quality gates pass (if `.claude-quality-gates` file exists)
 - All tasks in `IMPLEMENTATION_PLAN.md` are checked `[x]`
+
+If the goal mentions a phase or module and a matching section exists, only that
+section is checked. If the scoped section is missing, the plan check is skipped.
 
 ### Quality Gates File (Optional)
 
@@ -240,15 +243,20 @@ If this file exists, all commands must pass for the loop to complete.
 | Feature | Behavior |
 |---------|----------|
 | Max iterations | Pauses at 100 (configurable) for human check-in |
-| Protocol re-read | Every 3 iterations, verifies Claude re-read full protocol |
+| Protocol re-read | Every 3 iterations, re-read full protocol and verify with code from `.claude/autonomous-loop.json` |
+| Stuck detection | Pauses after 5 consecutive iterations with no goal or git progress change |
 | Escape hatch | Ctrl+C always works, "stop autonomous mode" clears state |
 | State isolation | Per-project state files prevent cross-contamination |
+
+If verification is requested, re-read `AUTONOMOUS_BUILD_CLAUDE.md` and respond
+with `<verified code="####"/>` using `expected_verification_code` from
+`.claude/autonomous-loop.json`.
 
 ### Commands During Loop
 
 | Action | Command |
 |--------|---------|
-| Check status | `cat ~/.claude/autonomous-loop/*.json \| jq` |
+| Check status | `cat .claude/autonomous-loop.json \| jq` |
 | Pause loop | Say "pause autonomous mode" |
 | Resume loop | Say "resume" or "continue" |
 | Stop permanently | Say "stop autonomous mode" |
@@ -497,7 +505,7 @@ Check for:
 3. Update `CONTEXT.md` with current state
 4. Continue
 
-**Note:** Autonomous loop mode handles this automatically — the Stop hook injects the protocol cheatsheet on every iteration and forces full protocol re-read every 3 iterations.
+**Note:** Autonomous loop mode handles this automatically — the Stop hook injects the protocol cheatsheet into the continuation prompt on every iteration and requires a code-based verification every 3 iterations.
 
 ### Autonomous Loop Issues
 
@@ -508,12 +516,12 @@ Check for:
 
 **Loop paused unexpectedly:**
 - Max iterations reached — say "continue for 50 more" to extend
-- Check state file: `cat ~/.claude/autonomous-loop/*.json | jq`
+- Check state file: `cat .claude/autonomous-loop.json | jq`
 
 **Need to escape:**
 - Ctrl+C always works
 - Say "stop autonomous mode" to clear state
-- Delete state file manually: `rm ~/.claude/autonomous-loop/*.json`
+- Delete state file manually: `rm .claude/autonomous-loop.json`
 
 ### Flaky Tests
 

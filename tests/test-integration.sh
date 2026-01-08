@@ -26,7 +26,8 @@ create_test_repo() {
 # Helper to run hook
 run_hook() {
     local project_dir="$1"
-    echo '{}' | CLAUDE_PROJECT_DIR="$project_dir" "$SCRIPT_DIR/../hooks/stop.sh"
+    local input="${2:-{}}"
+    printf '%s' "$input" | CLAUDE_PROJECT_DIR="$project_dir" "$SCRIPT_DIR/../hooks/stop.sh"
 }
 
 # Helpers to tolerate approve paths with empty stdout.
@@ -199,7 +200,7 @@ test_hook_chain_integration() {
 
     # Verify all hooks exist and are executable
     local hooks_ok=true
-    for hook in pre-compact.sh session-start.sh stop.sh; do
+    for hook in pre-compact.sh session-start.sh user-prompt-submit.sh stop.sh; do
         if [[ ! -x "$SCRIPT_DIR/../hooks/$hook" ]]; then
             echo "  Missing or not executable: $hook"
             hooks_ok=false
@@ -248,11 +249,11 @@ test_continuation_prompt_format() {
         checks_passed=false
     fi
 
-    # Check reason IS the goal (not cheatsheet, not status)
-    if [[ "$reason" == "Test goal" ]]; then
-        echo "  Reason equals goal ✓"
+    # Check reason includes the continuation prompt + goal
+    if [[ "$reason" == *"AUTONOMOUS BUILD MODE ACTIVE"* && "$reason" == *"Goal: Test goal"* ]]; then
+        echo "  Reason includes continuation prompt ✓"
     else
-        echo "  Reason equals goal ✗ (got: $reason)"
+        echo "  Reason includes continuation prompt ✗ (got: $reason)"
         checks_passed=false
     fi
 
@@ -272,8 +273,8 @@ test_continuation_prompt_format() {
     rm -rf "$test_dir"
 }
 
-test_verification_disabled_at_iteration_3() {
-    echo "Testing iteration 3 does not trigger verification..."
+test_verification_triggered_at_iteration_3() {
+    echo "Testing verification triggers at iteration 3..."
     TESTS_RUN=$((TESTS_RUN + 1))
 
     local test_dir=$(create_test_repo)
@@ -296,8 +297,12 @@ PLAN
     local decision=$(json_field "$output" '.decision // ""')
     local reason=$(json_field "$output" '.reason // ""')
 
-    if [[ "$decision" == "block" && "$reason" == *"Test goal"* && "$reason" != *"Protocol Re-Read Required"* ]]; then
-        echo "  ✓ Iteration 3 behaves like normal loop block"
+    local state=$(read_state_file "$test_dir")
+    local pending=$(echo "$state" | jq -r '.verification_pending')
+    local code=$(echo "$state" | jq -r '.expected_verification_code // ""')
+
+    if [[ "$decision" == "block" && "$reason" == *"Protocol Re-Read Required"* && "$pending" == "true" && -n "$code" ]]; then
+        echo "  ✓ Verification requested at iteration 3"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
         echo "  ✗ Unexpected verification behavior"
@@ -316,7 +321,7 @@ test_max_iterations_pause
 test_quality_gates_integration
 test_hook_chain_integration
 test_continuation_prompt_format
-test_verification_disabled_at_iteration_3
+test_verification_triggered_at_iteration_3
 
 # Summary
 echo ""
