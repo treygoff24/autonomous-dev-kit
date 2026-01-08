@@ -49,6 +49,10 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ```markdown
 ### Task N: [Component Name]
 
+**Parallel:** yes | no
+**Blocked by:** [Task IDs or none]
+**Owned files:** `path/to/file.ts`, `path/to/test.ts`
+
 **Files:**
 - Create: `exact/path/to/file.py`
 - Modify: `exact/path/to/existing.py:123-145`
@@ -85,6 +89,9 @@ Expected: PASS
 git add tests/path/test.py src/path/file.py
 git commit -m "feat: add specific feature"
 ```
+
+**If Parallel: yes** (ticket-builder):
+- Replace commit step with: "Return diff summary for orchestrator review (no commit)"
 ```
 
 ## Remember
@@ -92,7 +99,41 @@ git commit -m "feat: add specific feature"
 - Complete code in plan (not "add validation")
 - Exact commands with expected output
 - Reference relevant skills with @ syntax
+- Include **Parallel**, **Blocked by**, and **Owned files** for every task
+- Validate **Owned files** do not overlap across parallel tasks (use a quick table or script to check for duplicates)
 - DRY, YAGNI, TDD, frequent commits
+
+## Owned Files Validation
+
+Use a quick duplicate check before running parallel tasks (portable across macOS/Linux):
+
+```bash
+rg '\*\*Owned files:\*\*' IMPLEMENTATION_PLAN.md \
+  | sed 's/.*\*\*Owned files:\*\* *//' \
+  | tr ',' '\n' \
+  | sed 's/`//g' \
+  | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+  | grep -v '^$' \
+  | sort \
+  | uniq -d
+```
+
+If this outputs any paths, fix overlaps before parallelizing.
+
+## Example Parallel Task
+
+```markdown
+### Task 3.2: Add User Authentication
+
+**Parallel:** yes
+**Blocked by:** Task 3.1
+**Owned files:** `src/auth/auth.ts`, `src/auth/auth.test.ts`, `src/middleware/auth-middleware.ts`
+
+**Files:**
+- Create: `src/auth/auth.ts`
+- Modify: `src/middleware/auth-middleware.ts:12-48`
+- Test: `src/auth/auth.test.ts`
+```
 
 ## Execution Handoff
 
@@ -104,6 +145,8 @@ After saving the plan, offer execution choice:
 
 **2. Parallel Session (separate)** - Open new session in worktree, spawn `plan-executor` agent, batch execution with checkpoints
 
+**3. Parallel Tickets** - Mark tasks with Parallel/Blocked by/Owned files, create worktrees, run `/ticket-builder` per task, review diffs before merge
+
 **Which approach?"**
 
 **If Execute Now chosen:**
@@ -114,3 +157,11 @@ After saving the plan, offer execution choice:
 **If Parallel Session chosen:**
 - Guide them to open new session in worktree
 - Spawn `plan-executor` agent with the plan path
+
+**If Parallel Tickets chosen:**
+- Validate plan tasks include Parallel/Blocked by/Owned files
+- Run the Owned Files Validation script to check for overlaps
+- Create one worktree per parallel task
+- Run `/ticket-builder` for each worktree
+- Review diffs + tests in worktrees before merging
+- Prefer `plan-executor` when tasks share files or require shared context

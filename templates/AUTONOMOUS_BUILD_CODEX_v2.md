@@ -140,6 +140,12 @@ Before writing any code:
 
 ---
 
+## Parallel Tickets (Optional)
+
+If the implementation plan marks tasks as `Parallel: yes` with `Blocked by:` satisfied and non-overlapping `Owned files:`, you can run `/ticket-builder` in isolated worktrees to parallelize execution. Always review diffs in each worktree before merging back.
+
+---
+
 ## The Implementation Loop
 
 For each phase:

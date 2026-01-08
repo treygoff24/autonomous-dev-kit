@@ -258,6 +258,7 @@ Custom agents run in isolated context windows. They can run in parallel and don'
 | `a11y-reviewer` | Accessibility review for interactive UI |
 | `spec-reviewer` | Spec completeness and precision review |
 | `review-triager` | Triage review feedback before implementation |
+| `ticket-builder` | Execute a single plan task in an isolated worktree |
 | `slop-cleaner` | Remove AI-generated cruft before commits |
 | `validator` | Defense-in-depth validation at every layer |
 | `root-cause-tracer` | Trace bugs backward through call stack |
@@ -280,6 +281,7 @@ Skills require conversation context and user interaction. Invoke via `/skill-nam
 | `/spec-quality-checklist` | Validate specs for precision and completeness |
 | `/accessibility-checklist` | A11y audit for UI components |
 | `/autonomous-loop` | Activate autonomous loop mode with explicit goal |
+| `/ticket-builder` | Execute a single plan task in an isolated worktree |
 
 ### Rules (Auto-loaded Standards)
 

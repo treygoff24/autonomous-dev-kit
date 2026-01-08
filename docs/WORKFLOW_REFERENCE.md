@@ -151,6 +151,35 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 
 ---
 
+## Parallel Ticket Builder
+
+Use `/ticket-builder` to execute parallel-safe plan tasks in isolated worktrees.
+
+**Prereqs in `IMPLEMENTATION_PLAN.md`:**
+- `Parallel: yes`
+- `Blocked by: none` (or all blockers complete)
+- `Owned files:` list with no overlaps across parallel tasks
+
+**Workflow:**
+1. Create a worktree per parallel task
+2. Run `/ticket-builder` with the task ID and worktree path
+3. In the worktree, run tests + `git diff`, then `/requesting-code-review`
+4. Merge/cherry-pick only after review approval
+
+**Example:**
+```bash
+git worktree add ../project-task-3-2 feature/task-3-2
+cd ../project-task-3-2
+/ticket-builder
+# Provide: Task 3.2, worktree path, owned files
+git status -sb
+git diff --stat
+npm test
+/requesting-code-review
+```
+
+---
+
 ## Autonomous Loop Mode
 
 For hands-off operation, activate autonomous loop mode. The Stop hook will keep Claude working until completion criteria are met.

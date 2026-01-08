@@ -917,7 +917,9 @@ setup_claude_directory_additive() {
     # Always install missing skills, even if other files exist
     local skills_installed=0
     local skills_updated=0
+    local skills_skipped=0
     if [ -d "$skills_src" ]; then
+        local updated_skills=()
         for skill_dir in "$skills_src"/*/; do
             if [ -d "$skill_dir" ]; then
                 local skill_name=$(basename "$skill_dir")
@@ -932,11 +934,7 @@ setup_claude_directory_additive() {
                     else
                         local diff_status=$?
                         if [ $diff_status -eq 1 ]; then
-                            backup_dir "$dest_dir"
-                            run rm -rf "$dest_dir"
-                            run cp -R "$skill_dir" "$dest_dir"
-                            success "Updated skill: $skill_name"
-                            skills_updated=$((skills_updated + 1))
+                            updated_skills+=("$skill_name")
                         else
                             warn "Failed to compare skill: $skill_name"
                         fi
@@ -944,6 +942,64 @@ setup_claude_directory_additive() {
                 fi
             fi
         done
+
+        if [ ${#updated_skills[@]} -gt 0 ]; then
+            info "Skills with updates available:"
+            for skill_name in "${updated_skills[@]}"; do
+                echo "  - $skill_name"
+            done
+            local update_choice=""
+            if $DRY_RUN; then
+                info "DRY-RUN: would prompt to update ${#updated_skills[@]} skills"
+                update_choice="none"
+            elif [ ! -t 0 ] || [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+                info "Non-interactive mode: skipping skill updates"
+                update_choice="none"
+            else
+                local response=""
+                while true; do
+                    read -r -p "Update all skills? [Y/n/i for individual] " response
+                    case "$response" in
+                        ""|[yY]|[yY][eE][sS]) update_choice="all"; break ;;
+                        [nN]|[nN][oO]) update_choice="none"; break ;;
+                        [iI]|[iI][nN][dD][iI][vV][iI][dD][uU][aA][lL]) update_choice="individual"; break ;;
+                        *) echo "Please answer yes, no, or individual." ;;
+                    esac
+                done
+            fi
+
+            if [ "$update_choice" = "none" ]; then
+                for skill_name in "${updated_skills[@]}"; do
+                    success "Keeping existing skill: $skill_name"
+                    skills_skipped=$((skills_skipped + 1))
+                done
+            elif [ "$update_choice" = "all" ]; then
+                for skill_name in "${updated_skills[@]}"; do
+                    local dest_dir="$skills_dest/$skill_name"
+                    local src_dir="$skills_src/$skill_name"
+                    backup_dir "$dest_dir"
+                    run rm -rf "$dest_dir"
+                    run cp -R "$src_dir" "$dest_dir"
+                    success "Updated skill: $skill_name"
+                    skills_updated=$((skills_updated + 1))
+                done
+            else
+                for skill_name in "${updated_skills[@]}"; do
+                    local dest_dir="$skills_dest/$skill_name"
+                    local src_dir="$skills_src/$skill_name"
+                    if prompt_overwrite "skill: $skill_name" "$dest_dir"; then
+                        backup_dir "$dest_dir"
+                        run rm -rf "$dest_dir"
+                        run cp -R "$src_dir" "$dest_dir"
+                        success "Updated skill: $skill_name"
+                        skills_updated=$((skills_updated + 1))
+                    else
+                        success "Keeping existing skill: $skill_name"
+                        skills_skipped=$((skills_skipped + 1))
+                    fi
+                done
+            fi
+        fi
         # Clean up legacy single-file skill format (backup first)
         if [ -f "$skills_dest/autonomous-loop.md" ]; then
             backup_file "$skills_dest/autonomous-loop.md"
@@ -973,7 +1029,7 @@ setup_claude_directory_additive() {
             fi
         done
 
-        if [ $skills_installed -eq 0 ] && [ $skills_updated -eq 0 ]; then
+        if [ $skills_installed -eq 0 ] && [ $skills_updated -eq 0 ] && [ $skills_skipped -eq 0 ]; then
             success "All skills already installed"
         else
             if [ $skills_installed -gt 0 ]; then
@@ -981,6 +1037,9 @@ setup_claude_directory_additive() {
             fi
             if [ $skills_updated -gt 0 ]; then
                 success "Updated $skills_updated skills"
+            fi
+            if [ $skills_skipped -gt 0 ]; then
+                success "Skipped $skills_skipped skills"
             fi
         fi
     fi
@@ -990,7 +1049,9 @@ setup_claude_directory_additive() {
     local agents_dest="$claude_dir/agents"
     local agents_installed=0
     local agents_updated=0
+    local agents_skipped=0
     if [ -d "$agents_src" ]; then
+        local updated_agents=()
         for agent_file in "$agents_src"/*.md; do
             if [ -f "$agent_file" ]; then
                 local agent_name=$(basename "$agent_file")
@@ -1005,10 +1066,7 @@ setup_claude_directory_additive() {
                     else
                         local diff_status=$?
                         if [ $diff_status -eq 1 ]; then
-                            backup_file "$dest_file"
-                            run cp "$agent_file" "$dest_file"
-                            success "Updated agent: $agent_name"
-                            agents_updated=$((agents_updated + 1))
+                            updated_agents+=("$agent_name")
                         else
                             warn "Failed to compare agent: $agent_name"
                         fi
@@ -1016,7 +1074,64 @@ setup_claude_directory_additive() {
                 fi
             fi
         done
-        if [ $agents_installed -eq 0 ] && [ $agents_updated -eq 0 ]; then
+
+        if [ ${#updated_agents[@]} -gt 0 ]; then
+            info "Agents with updates available:"
+            for agent_name in "${updated_agents[@]}"; do
+                echo "  - $agent_name"
+            done
+            local update_choice=""
+            if $DRY_RUN; then
+                info "DRY-RUN: would prompt to update ${#updated_agents[@]} agents"
+                update_choice="none"
+            elif [ ! -t 0 ] || [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+                info "Non-interactive mode: skipping agent updates"
+                update_choice="none"
+            else
+                local response=""
+                while true; do
+                    read -r -p "Update all agents? [Y/n/i for individual] " response
+                    case "$response" in
+                        ""|[yY]|[yY][eE][sS]) update_choice="all"; break ;;
+                        [nN]|[nN][oO]) update_choice="none"; break ;;
+                        [iI]|[iI][nN][dD][iI][vV][iI][dD][uU][aA][lL]) update_choice="individual"; break ;;
+                        *) echo "Please answer yes, no, or individual." ;;
+                    esac
+                done
+            fi
+
+            if [ "$update_choice" = "none" ]; then
+                for agent_name in "${updated_agents[@]}"; do
+                    success "Keeping existing agent: $agent_name"
+                    agents_skipped=$((agents_skipped + 1))
+                done
+            elif [ "$update_choice" = "all" ]; then
+                for agent_name in "${updated_agents[@]}"; do
+                    local src_file="$agents_src/$agent_name"
+                    local dest_file="$agents_dest/$agent_name"
+                    backup_file "$dest_file"
+                    run cp "$src_file" "$dest_file"
+                    success "Updated agent: $agent_name"
+                    agents_updated=$((agents_updated + 1))
+                done
+            else
+                for agent_name in "${updated_agents[@]}"; do
+                    local src_file="$agents_src/$agent_name"
+                    local dest_file="$agents_dest/$agent_name"
+                    if prompt_overwrite "agent: $agent_name" "$dest_file"; then
+                        backup_file "$dest_file"
+                        run cp "$src_file" "$dest_file"
+                        success "Updated agent: $agent_name"
+                        agents_updated=$((agents_updated + 1))
+                    else
+                        success "Keeping existing agent: $agent_name"
+                        agents_skipped=$((agents_skipped + 1))
+                    fi
+                done
+            fi
+        fi
+
+        if [ $agents_installed -eq 0 ] && [ $agents_updated -eq 0 ] && [ $agents_skipped -eq 0 ]; then
             success "All agents already installed"
         else
             if [ $agents_installed -gt 0 ]; then
@@ -1024,6 +1139,9 @@ setup_claude_directory_additive() {
             fi
             if [ $agents_updated -gt 0 ]; then
                 success "Updated $agents_updated agents"
+            fi
+            if [ $agents_skipped -gt 0 ]; then
+                success "Skipped $agents_skipped agents"
             fi
         fi
     fi

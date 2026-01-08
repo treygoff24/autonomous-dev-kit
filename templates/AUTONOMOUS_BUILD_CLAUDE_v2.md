@@ -72,6 +72,7 @@ Skills require conversation context and user interaction. Use for collaborative 
 | `receiving-code-review` | Handle review feedback with rigor |
 | `spec-quality-checklist` | Validate specs for precision |
 | `accessibility-checklist` | WCAG compliance for UI |
+| `ticket-builder` | Execute a single plan task in an isolated worktree |
 | `autonomous-loop` | Activate autonomous loop mode with explicit goal |
 
 ### Rules (Auto-loaded)
@@ -92,6 +93,7 @@ Rules at `~/.claude/rules/` are automatically loaded based on file patterns. No 
 | Bug with reproduction | spawn `tdd-implementer` → spawn `debugger` if stuck |
 | Flaky tests | spawn `debugger` (testing-standards rule auto-loaded) |
 | Code review flow | `requesting-code-review` → `receiving-code-review` → spawn `slop-cleaner` |
+| Parallel plan tasks | `writing-plans` (add Parallel/Blocked by/Owned files) → `/ticket-builder` per task → `requesting-code-review` → merge |
 | Multiple failures | spawn multiple `parallel-investigator` agents concurrently |
 | Before commit | spawn `slop-cleaner` agent |
 
