@@ -9,6 +9,8 @@ agent: ticket-builder
 
 Use this skill to execute one implementation plan task in a fresh, isolated agent context.
 
+The ticket builder runs without Bash permissions; the orchestrator handles git diffs and test commands in the worktree.
+
 ## When to Use
 
 - The plan task is marked **Parallel: yes**
@@ -30,15 +32,15 @@ This agent must NOT commit, merge, or push. All changes must be reviewed by the 
 1. Run `/requesting-code-review` against the ticket diff
 2. Merge or cherry-pick only after review approval
 
-Run `/requesting-code-review` from the worktree so the diff includes the ticket changes.
+Run `/requesting-code-review` from the worktree so the diff includes the ticket changes. The orchestrator should run tests and diff commands inside the worktree.
 
 ## Output Expectations
 
 The agent will return:
 - Task status
 - Files changed
-- Tests run
-- `git status -sb` and `git diff --stat`
+- Tests to run (not executed unless authorized)
+- Reminder to run `git status -sb` and `git diff --stat` in the worktree
 - Review-required confirmation
 
 ## Example Workflow
@@ -53,6 +55,9 @@ git worktree add ../project-task-3-2 feature/task-3-2
 
 # 3. Review the diff
 cd ../project-task-3-2
+git status -sb
+git diff --stat
+npm test
 /requesting-code-review
 
 # 4. If approved, merge back

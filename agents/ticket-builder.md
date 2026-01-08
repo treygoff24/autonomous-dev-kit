@@ -1,8 +1,7 @@
 ---
 name: ticket-builder
-description: Implement a single plan task in an isolated worktree and return a diff for review. Do not commit or merge.
-tools: Read, Edit, Grep, Glob, Bash
-model: opus
+description: Implement a single plan task in an isolated worktree and return a diff for review. Do not commit, merge, or push.
+tools: Read, Edit, Grep, Glob
 ---
 
 # Ticket Builder Agent
@@ -41,8 +40,8 @@ Action Required: Create worktree before invoking this agent
 1. Read `IMPLEMENTATION_PLAN.md` and locate the task
 2. Verify `Parallel: yes` and check `Blocked by:` is empty or complete. If the Parallel field is missing, ask the orchestrator before proceeding
 3. Implement the task in the worktree
-4. Run only the task-specific tests listed in the plan. If failures are due to incomplete dependencies, mark the ticket blocked and report
-5. Prepare a review-ready diff and summary
+4. List the task-specific tests from the plan. Only run tests if explicitly authorized by the orchestrator
+5. Prepare a review-ready summary for the orchestrator to diff and test in the worktree
 
 ## Output Format
 ```
@@ -50,11 +49,11 @@ Ticket: [phase/task]
 Status: complete | blocked | needs-clarification
 Files Changed:
 - path/to/file
-Tests Run:
-- command (result)
+Tests:
+- [commands to run] (not run unless authorized)
 Diff Summary:
-- git status -sb
-- git diff --stat
+- orchestrator runs: git status -sb
+- orchestrator runs: git diff --stat
 Review Required: yes
 Notes:
 - [risks/assumptions]

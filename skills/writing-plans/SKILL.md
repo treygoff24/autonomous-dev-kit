@@ -89,6 +89,9 @@ Expected: PASS
 git add tests/path/test.py src/path/file.py
 git commit -m "feat: add specific feature"
 ```
+
+**If Parallel: yes** (ticket-builder):
+- Replace commit step with: "Return diff summary for orchestrator review (no commit)"
 ```
 
 ## Remember
@@ -125,6 +128,8 @@ After saving the plan, offer execution choice:
 
 **2. Parallel Session (separate)** - Open new session in worktree, spawn `plan-executor` agent, batch execution with checkpoints
 
+**3. Parallel Tickets** - Mark tasks with Parallel/Blocked by/Owned files, create worktrees, run `/ticket-builder` per task, review diffs before merge
+
 **Which approach?"**
 
 **If Execute Now chosen:**
@@ -135,3 +140,9 @@ After saving the plan, offer execution choice:
 **If Parallel Session chosen:**
 - Guide them to open new session in worktree
 - Spawn `plan-executor` agent with the plan path
+
+**If Parallel Tickets chosen:**
+- Ensure plan tasks include Parallel/Blocked by/Owned files
+- Create one worktree per parallel task
+- Run `/ticket-builder` for each worktree
+- Review diffs + tests in worktrees before merging
