@@ -1,6 +1,11 @@
 # autonomous-dev-kit shell functions
 # Source this file in your .zshrc or .bashrc
 
+if [[ -n "${AUTONOMOUS_DEV_KIT_FUNCTIONS_LOADED:-}" ]]; then
+    return 0
+fi
+AUTONOMOUS_DEV_KIT_FUNCTIONS_LOADED=1
+
 # =============================================================================
 # Autonomous Development Functions
 # =============================================================================
@@ -368,6 +373,61 @@ Options:
     fi
 }
 
+# Review helpers
+__adk_repo_root() {
+    if ! command -v git >/dev/null 2>&1; then
+        echo "Error: git is not available on PATH." >&2
+        return 1
+    fi
+
+    local repo_root
+    repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
+    if [[ -z "$repo_root" ]]; then
+        return 1
+    fi
+
+    printf '%s\n' "$repo_root"
+}
+
+__adk_review_diff() {
+    local repo_root="$1"
+    local diff_output=""
+
+    if git -C "$repo_root" rev-parse --verify HEAD >/dev/null 2>&1; then
+        diff_output="$(git -C "$repo_root" diff HEAD)"
+    else
+        diff_output="$(git -C "$repo_root" diff)"
+    fi
+
+    if [[ -z "$diff_output" ]]; then
+        return 1
+    fi
+
+    printf '%s' "$diff_output"
+}
+
+__adk_review_context() {
+    local repo_root="$1"
+    local diff_output="$2"
+
+    echo "=== SPEC ==="
+    if [[ -f "$repo_root/SPEC.md" ]]; then
+        cat "$repo_root/SPEC.md"
+    else
+        echo "(missing SPEC.md)"
+    fi
+    echo ""
+    echo "=== IMPLEMENTATION PLAN ==="
+    if [[ -f "$repo_root/IMPLEMENTATION_PLAN.md" ]]; then
+        cat "$repo_root/IMPLEMENTATION_PLAN.md"
+    else
+        echo "(missing IMPLEMENTATION_PLAN.md)"
+    fi
+    echo ""
+    echo "=== DIFF ==="
+    printf '%s\n' "$diff_output"
+}
+
 # Quick Claude code review
 claude-review() {
     local help_text="
@@ -387,12 +447,29 @@ Example:
         return 0
     fi
 
+    if ! command -v claude >/dev/null 2>&1; then
+        echo "Error: claude CLI not found. Install it before running claude-review."
+        return 1
+    fi
+
+    local repo_root
+    if ! repo_root="$(__adk_repo_root)"; then
+        echo "Error: claude-review must be run inside a git repository." >&2
+        return 1
+    fi
+
+    local diff_output
+    if ! diff_output="$(__adk_review_diff "$repo_root")"; then
+        echo "Warning: git diff is empty. Nothing to review." >&2
+        return 1
+    fi
+
     local phase_name="${1:-Current changes}"
 
     echo "Requesting Claude code review for: $phase_name"
     echo ""
 
-    claude -p --model opus --dangerously-skip-permissions --output-format text \
+    __adk_review_context "$repo_root" "$diff_output" | claude -p --model opus --dangerously-skip-permissions --output-format text \
         "Review the current branch diff for '$phase_name'. Check for: security issues, edge cases, test coverage gaps, performance concerns, code quality. If SPEC.md exists, verify against it. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise)."
 }
 
@@ -415,17 +492,41 @@ Example:
         return 0
     fi
 
+    if ! command -v codex >/dev/null 2>&1; then
+        echo "Error: codex CLI not found. Install it before running codex-review."
+        return 1
+    fi
+
+    local repo_root
+    if ! repo_root="$(__adk_repo_root)"; then
+        echo "Error: codex-review must be run inside a git repository." >&2
+        return 1
+    fi
+
+    local diff_output
+    if ! diff_output="$(__adk_review_diff "$repo_root")"; then
+        echo "Warning: git diff is empty. Nothing to review." >&2
+        return 1
+    fi
+
     local phase_name="${1:-Current changes}"
 
     echo "Requesting Codex code review for: $phase_name"
     echo ""
 
-    # Note: Adjust the codex command based on actual CLI syntax
-    codex exec \
+    {
+        echo "Review the current branch diff for '$phase_name'."
+        echo "Check for: security issues, edge cases, test coverage gaps, performance concerns, code quality."
+        echo "If SPEC.md exists, verify against it."
+        echo "Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise)."
+        echo ""
+        __adk_review_context "$repo_root" "$diff_output"
+    } | command codex exec \
         --model gpt-5.2-codex \
         --config model_reasoning_effort="xhigh" \
         --yolo \
-        "Review the current branch diff for '$phase_name'. Check for: security issues, edge cases, test coverage gaps, performance concerns, code quality. If SPEC.md exists, verify against it. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise)."
+        --cd "$repo_root" \
+        -
 }
 
 # Quick Gemini code review
@@ -452,36 +553,24 @@ Example:
         return 1
     fi
 
+    local repo_root
+    if ! repo_root="$(__adk_repo_root)"; then
+        echo "Error: gemini-review must be run inside a git repository." >&2
+        return 1
+    fi
+
+    local diff_output
+    if ! diff_output="$(__adk_review_diff "$repo_root")"; then
+        echo "Warning: git diff is empty. Nothing to review." >&2
+        return 1
+    fi
+
     local phase_name="${1:-Current changes}"
 
     echo "Requesting Gemini code review for: $phase_name"
     echo ""
 
-    local diff_output
-    diff_output="$(git diff HEAD)"
-    if [[ -z "$diff_output" ]]; then
-        echo "Warning: git diff HEAD is empty. Nothing to review." >&2
-        return 1
-    fi
-
-    {
-        echo "=== SPEC ==="
-        if [[ -f "SPEC.md" ]]; then
-            cat "SPEC.md"
-        else
-            echo "(missing SPEC.md)"
-        fi
-        echo ""
-        echo "=== IMPLEMENTATION PLAN ==="
-        if [[ -f "IMPLEMENTATION_PLAN.md" ]]; then
-            cat "IMPLEMENTATION_PLAN.md"
-        else
-            echo "(missing IMPLEMENTATION_PLAN.md)"
-        fi
-        echo ""
-        echo "=== DIFF ==="
-        printf '%s\n' "$diff_output"
-    } | gemini -p "Review the current branch diff for '$phase_name'. Check for: security issues, edge cases, test coverage gaps, performance concerns, code quality. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise)." \
+    __adk_review_context "$repo_root" "$diff_output" | gemini -p "Review the current branch diff for '$phase_name'. Check for: security issues, edge cases, test coverage gaps, performance concerns, code quality. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise)." \
         --output-format text
 }
 
