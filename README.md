@@ -1,10 +1,10 @@
 # autonomous-dev-kit
 
-A practical harness for long-running, autonomous AI development. I stole all the good parts of continuous claude v2, ralph riggum claude code plugin, and misc. other open source stuff the cursed X algorithnm gives me, threw in a few simple pieces of my own, and combined them all here. It is built around Claude Code and Codex and actually works for the use case everyone is promising of "chat with an AI Agent, let it work for hours, return to a completed working finished product". As far as I can tell, this harness is the only one capable of doing that so far (before anyone tries this and yells at me, do note I am not saying "bug free", I am just saying "it will actually work and be about 90% of what you intended, with zero work from you").
+A practical harness for long-running, autonomous AI development. I stole all the good parts of continuous claude v2, ralph riggum claude code plugin, and misc. other open source stuff the cursed X algorithm gives me, threw in a few simple pieces of my own, and combined them all here. It is built around Claude Code and Codex and actually works for the use case everyone is promising of "chat with an AI Agent, let it work for hours, return to a completed working finished product". As far as I can tell, this harness is the only one capable of doing that so far (before anyone tries this and yells at me, do note I am not saying "bug free", I am just saying "it will actually work and be about 90% of what you intended, with zero work from you").
 
 Most agent setups break down once the task lasts more than a few minutes. Context gets shredded by compaction, prompts drift, tests are skipped, and the model starts guessing. This kit exists because I got tired of cleaning up after that.
 
-The core idea is boring on purpose: specs, plans, checkpoints, and hard quality gates. The hooks keep context hydrated, the skills keep the protocol tight, and the stop hook refuses to let a run declare victory without the proof. Claude Code 2.1+ features like skill-scoped hooks and hot reload are incorporated thoughtfully as well.
+The core idea is boring on purpose: specs, plans, checkpoints, and hard quality gates. The hooks keep context hydrated, the skills keep the protocol tight, and **prompt-based Stop hooks use Sonnet to intelligently evaluate whether work is truly complete**—not brittle shell scripts, but actual model judgment. Claude Code 2.1.x features like skill-scoped hooks, hot reload, and agent-type awareness are incorporated thoughtfully.
 
 I also wanted a harness that treats model choice as a tool, not a religion. Claude does the building, Codex and Gemini do cross-review, and they keep each other honest.
 
@@ -43,7 +43,17 @@ Then open Claude Code and say: "Read the autonomous build protocol and help me w
 
 ## How it works
 
-Hooks keep sessions stable through compaction and restarts. Templates and skills enforce a spec -> plan -> build loop with review checkpoints. The stop hook blocks exit if tests or plan tasks are incomplete, and it periodically forces a protocol refresh so the model does not drift and stays locked in. The shell helpers keep the whole thing ergonomic. I put quite alot of thought and trial and error into when to make something an agent vs. skill vs. protocol step. details below:
+Hooks keep sessions stable through compaction and restarts. Templates and skills enforce a spec -> plan -> build loop with review checkpoints.
+
+**Prompt-based Stop hooks** (Claude Code 2.1.x) are the key enforcement mechanism. Instead of brittle shell scripts checking git status, Sonnet evaluates whether work is truly complete:
+- **autonomous-loop skill** — Verifies git clean, quality gates pass, plan tasks complete, no half-done work
+- **tdd-implementer agent** — Verifies TDD discipline (RED-GREEN-REFACTOR), tests pass
+- **debugger agent** — Verifies root cause identified with evidence, fix verified
+- **plan-executor agent** — Verifies all tasks complete, quality gates between tasks, code review done
+
+The bar is: "Would you ship this to production right now?" If not, exit is blocked and work continues.
+
+I put quite a lot of thought and trial and error into when to make something an agent vs. skill vs. protocol step. Details below:
 
 ## Agents, skills, rules
 
@@ -86,6 +96,22 @@ Hooks keep sessions stable through compaction and restarts. Templates and skills
 | `testing-standards.md`      | Prevents flaky tests and bad patterns so test results are trustworthy.   |
 | `verification-standards.md` | Requires evidence before completion claims to stop hallucinated success. |
 | `code-quality.md`           | Flags slop patterns and enforces hygiene so the codebase stays clean.    |
+
+## Claude Code 2.1.x Features
+
+This kit leverages Claude Code 2.1.0 through 2.1.2 features:
+
+| Feature | How We Use It |
+|---------|---------------|
+| **Prompt-based Stop hooks** | Sonnet evaluates completion instead of shell scripts. Checks git, quality gates, plan completion, code review. |
+| **Agent-scoped hooks** | tdd-implementer, debugger, plan-executor each have Stop hooks verifying their specific discipline was followed. |
+| **Skills auto-loading** | Skills declare dependencies (e.g., writing-plans loads brainstorming) for reference without manual invocation. |
+| **Skill hot-reload** | Edit skills in `~/.claude/skills/` and changes apply immediately without restart. |
+| **Wildcard bash permissions** | Configure `Bash(npm *)`, `Bash(git *)` patterns for flexible command allowlists. |
+| **agent_type in SessionStart** | session-start.sh injects agent-specific context based on which agent is starting. |
+| **Ctrl+B backgrounding** | Background any running task (agents or commands) to continue working on other things. |
+
+Requires Claude Code 2.1.0+. Users on older versions have reduced autonomous loop enforcement.
 
 ## Layout
 
