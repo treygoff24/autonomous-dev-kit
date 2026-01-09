@@ -1,8 +1,13 @@
 ---
 name: parallel-investigator
 description: Investigate independent failures concurrently. Use when facing 3+ independent problems that can be investigated without shared state.
-tools: Read, Edit, Grep, Glob, Bash
 model: sonnet
+tools:
+  - Read
+  - Edit
+  - Grep
+  - Glob
+  - Bash
 ---
 
 # Parallel Investigator Agent

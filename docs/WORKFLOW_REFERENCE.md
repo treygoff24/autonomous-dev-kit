@@ -543,9 +543,9 @@ Check for:
 
 ---
 
-## Claude Code 2.1.0 Features
+## Claude Code 2.1.x Features
 
-This toolkit leverages features from Claude Code 2.1.0. Here's what's available:
+This toolkit leverages features from Claude Code 2.1.0 through 2.1.2. Here's what's available:
 
 ### Skill Hot-Reload
 
@@ -575,26 +575,80 @@ No configuration needed — works automatically when LSP servers are available.
 
 ### Wildcard Bash Permissions
 
-Configure flexible bash permissions in `settings.json`:
+Configure flexible bash permissions in `settings.json` using `*` at any position:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm *)",        // All npm commands
+      "Bash(npx *)",        // All npx commands
+      "Bash(pnpm *)",       // All pnpm commands
+      "Bash(git *)",        // All git commands
+      "Bash(claude *)",     // All claude commands
+      "Bash(* --help)",     // Any command with --help
+      "Bash(git * main)",   // Git commands ending with main
+      "Bash(npm run *)"     // All npm scripts
+    ]
+  }
+}
+```
+
+**Pattern matching rules:**
+- `*` matches any sequence of characters at that position
+- `Bash(npm *)` matches `npm install`, `npm run test`, `npm publish`, etc.
+- `Bash(git * main)` matches `git checkout main`, `git merge main`, `git rebase main`
+- `Bash(* install)` matches `npm install`, `pnpm install`, `brew install`
+
+**Recommended permissions for autonomous builds:**
 
 ```json
 {
   "permissions": {
     "allow": [
       "Bash(npm *)",
-      "Bash(git * main)",
-      "Bash(* --help)"
+      "Bash(npx *)",
+      "Bash(git *)",
+      "Bash(claude *)",
+      "Bash(codex *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(pwd)",
+      "Bash(echo *)"
     ]
   }
 }
 ```
 
-### Background Agents
+### Backgrounding with Ctrl+B
 
-Long-running tasks can run in the background while you continue working:
-- Press `Ctrl+B` to background running tasks
-- Agents notify when complete
-- Check status with `/tasks`
+Press `Ctrl+B` to background **any running task** — bash commands OR agents:
+
+**What you can background:**
+- Long-running bash commands (dev servers, tailing logs, builds)
+- Agents working on complex tasks
+- Test suites running in the background
+- Any foreground task you want to continue in background
+
+**Workflow:**
+1. Start a task (command or agent)
+2. Realize it's taking a while
+3. Press `Ctrl+B` to background it
+4. Continue working on other things
+5. Get notified when the background task completes
+
+**Useful with autonomous-loop:**
+- Background the loop to check files or run manual tests
+- Queue up additional messages while agents work
+- Pause without exiting the loop
+
+**Commands:**
+```bash
+/tasks                    # List all background tasks
+# Background tasks show completion notifications automatically
+```
+
+**Note:** Background tasks continue running and you'll see a notification when they complete. You don't need to poll or check — Claude Code tells you.
 
 ### Forked Context (`context: fork`)
 
@@ -637,9 +691,9 @@ skills:
 
 When `brainstorming` runs, its subagents automatically have access to the listed skills.
 
-### Hooks in Skills
+### Hooks in Skills and Agents
 
-Skills can define hooks that fire during execution:
+Skills and agents can define hooks that fire during their lifecycle:
 
 ```yaml
 ---
@@ -648,16 +702,93 @@ hooks:
   Stop:
     - type: prompt
       prompt: "Verify the output file was saved"
-      once: true    # Only fires once
+      once: true    # Only fires once per session
   PreToolUse:
     - type: command
       command: ./validate.sh
+      matcher: "Bash"   # Only for Bash tool
 ---
 ```
 
-Hook types:
-- `prompt` — Runs a prompt-based check
+**Hook events:**
+- `Stop` — Fires when agent/skill is about to exit
+- `PreToolUse` — Fires before a tool is used
+- `PostToolUse` — Fires after a tool completes
+- `SessionStart` — Fires when session begins (global hooks only)
+
+**Hook types:**
+- `prompt` — Runs a prompt-based check (Claude evaluates the prompt)
 - `command` — Runs a shell command
+
+**The `once: true` option:**
+
+Hooks with `once: true` only fire once per session, even if the skill/agent runs multiple times:
+
+```yaml
+hooks:
+  Stop:
+    - type: prompt
+      prompt: "Did you save the design document?"
+      once: true  # Won't keep asking every time
+```
+
+**Use cases for `once: true`:**
+- Session initialization (only need to inject context once)
+- One-time verification prompts
+- Preventing duplicate notifications
+
+**Agent-scoped hooks (2.1.0+):**
+
+Agents can now have their own hooks in frontmatter:
+
+```yaml
+---
+name: tdd-implementer
+hooks:
+  Stop:
+    - type: prompt
+      prompt: "Did you verify RED then GREEN for each test?"
+      once: true
+---
+```
+
+This ensures the TDD workflow is followed — the hook fires when the agent exits.
+
+### Agent Type in Session Hooks (2.1.2+)
+
+SessionStart hooks now receive `agent_type` when Claude is started with `--agent`:
+
+```bash
+claude --agent plan-executor  # agent_type = "plan-executor"
+```
+
+This allows hooks to customize context injection per agent. The `session-start.sh` hook in this kit uses this to inject agent-specific reminders:
+
+- `plan-executor` → Quality gates reminder
+- `debugger` → Root cause investigation reminder
+- `tdd-implementer` → RED-GREEN-REFACTOR reminder
+
+**Custom hook usage:**
+
+```bash
+# In your hook script
+AGENT_TYPE=$(echo "$INPUT" | jq -r '.agent_type // empty')
+case "$AGENT_TYPE" in
+    "my-agent")
+        echo "## Custom Context for my-agent"
+        ;;
+esac
+```
+
+### Large Output Handling (2.1.2+)
+
+When bash commands produce large output (>30K chars), Claude Code saves the full output to a file and provides a reference path. This is crucial for debugging:
+
+- Test output with many failures
+- Build logs with stack traces
+- Long diff outputs
+
+The `debugger` agent knows to read these files. Always use the Read tool to access full content when you see a file reference.
 
 ### Plan Mode Shortcut
 

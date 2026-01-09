@@ -20,6 +20,13 @@ fi
 # Read input from stdin
 INPUT=$(cat)
 
+# Extract agent_type from input (Claude Code 2.1.2+)
+# When --agent is specified, this field is populated
+AGENT_TYPE=""
+if command -v jq &> /dev/null && [[ -n "$INPUT" ]]; then
+    AGENT_TYPE=$(echo "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null || echo "")
+fi
+
 # Determine locations
 if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]] && [[ -d "$CLAUDE_PROJECT_DIR" ]]; then
     HANDOFF_DIR="$CLAUDE_PROJECT_DIR/thoughts/handoffs"
@@ -124,7 +131,62 @@ $PROTOCOL_REMINDER
     fi
 fi
 
-# 4. Add session resume reminder
+# 4. Add agent-specific context (Claude Code 2.1.2+)
+if [[ -n "$AGENT_TYPE" ]]; then
+    case "$AGENT_TYPE" in
+        "plan-executor")
+            CONTEXT="${CONTEXT}## Agent Context: Plan Executor
+
+You are running as the plan-executor agent. Remember:
+- Quality gates MUST pass between each task
+- Fresh context per task, code review between tasks
+- Use ticket-builder for parallel-safe tasks
+- Use requesting-code-review before completion
+
+---
+
+"
+            ;;
+        "debugger")
+            CONTEXT="${CONTEXT}## Agent Context: Debugger
+
+You are running as the debugger agent. Remember:
+- NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
+- Complete Phase 1 (investigation) before proposing fixes
+- Trace data flow to find the source of invalid data
+- One hypothesis at a time, smallest possible change to test
+
+---
+
+"
+            ;;
+        "tdd-implementer")
+            CONTEXT="${CONTEXT}## Agent Context: TDD Implementer
+
+You are running as the tdd-implementer agent. Remember:
+- NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
+- RED (write failing test) → GREEN (minimal code to pass) → REFACTOR
+- Watch each test fail for the expected reason before implementing
+- One behavior per test, clear names describing behavior
+
+---
+
+"
+            ;;
+        *)
+            # Other agents get generic reminder
+            CONTEXT="${CONTEXT}## Agent Context: $AGENT_TYPE
+
+Running as specialized agent. Follow agent-specific instructions.
+
+---
+
+"
+            ;;
+    esac
+fi
+
+# 5. Add session resume reminder
 CONTEXT="${CONTEXT}## Session Resumed
 
 Context was restored automatically. If anything feels stale:

@@ -1,8 +1,12 @@
 ---
 name: slop-cleaner
 description: Remove AI-generated low-quality artifacts from code. Use PROACTIVELY after implementation phases, before commits. Fast and focused cleanup.
-tools: Read, Edit, Grep, Glob
 model: haiku
+tools:
+  - Read
+  - Edit
+  - Grep
+  - Glob
 ---
 
 # Slop Cleaner Agent

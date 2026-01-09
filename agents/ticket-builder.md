@@ -1,7 +1,11 @@
 ---
 name: ticket-builder
 description: Implement a single plan task in an isolated worktree and return a diff for review. Do not commit, merge, or push.
-tools: Read, Edit, Grep, Glob
+tools:
+  - Read
+  - Edit
+  - Grep
+  - Glob
 ---
 
 # Ticket Builder Agent

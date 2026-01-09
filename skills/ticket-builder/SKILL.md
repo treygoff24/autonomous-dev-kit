@@ -3,6 +3,9 @@ name: ticket-builder
 description: Build a single implementation-plan task in a forked ticket-builder agent. Use for parallel-safe tasks only.
 context: fork
 agent: ticket-builder
+skills:
+  - requesting-code-review
+  - using-git-worktrees
 ---
 
 # Ticket Builder

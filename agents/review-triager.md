@@ -1,8 +1,11 @@
 ---
 name: review-triager
 description: Triage code review feedback, verify technical correctness, and decide accept/pushback. Read-only.
-tools: Read, Grep, Glob
 model: sonnet
+tools:
+  - Read
+  - Grep
+  - Glob
 ---
 
 # Review Triager Agent

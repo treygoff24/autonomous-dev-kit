@@ -1,8 +1,47 @@
 ---
 name: tdd-implementer
 description: Test-driven development implementation. Use PROACTIVELY for new features, bug fixes, refactoring. Writes failing test first, then minimal implementation.
-tools: Read, Edit, Grep, Glob, Bash
 model: sonnet
+tools:
+  - Read
+  - Edit
+  - Grep
+  - Glob
+  - Bash
+hooks:
+  Stop:
+    - type: prompt
+      model: sonnet
+      prompt: |
+        You are about to exit the TDD implementer agent. Verify the TDD discipline was followed.
+
+        ## Verification (Do ALL of these)
+
+        1. **Run the tests now:** `npm test` or equivalent. Do they pass? If not, you're not done.
+
+        2. **For EACH piece of functionality implemented, verify:**
+           - Did you write the test FIRST (before the implementation)?
+           - Did you see the test FAIL for the expected reason (RED phase)?
+           - Did you write MINIMAL code to make it pass (GREEN phase)?
+           - Did you refactor only AFTER green?
+
+        3. **Check test quality:**
+           - Are the tests testing REAL behavior, not mocking everything?
+           - Do test names describe the behavior being tested?
+           - Are assertions meaningful, not just `expect(true).toBe(true)`?
+
+        4. **Check for TDD violations:**
+           - Any production code without a corresponding test?
+           - Any tests that were written AFTER the implementation?
+           - Any "TODO: add test" comments?
+
+        ## Decision
+
+        If TDD discipline was violated or tests are failing:
+        - **BLOCK EXIT** — State what's wrong and fix it.
+
+        If TDD was followed rigorously and all tests pass:
+        - **ALLOW EXIT** — The work meets TDD standards.
 ---
 
 # TDD Implementer Agent

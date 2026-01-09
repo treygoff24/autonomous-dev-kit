@@ -56,13 +56,24 @@ The installer sets up Claude Code hooks for continuity and autonomous loop behav
 - **pre-compact.sh** — Runs before context compaction, saves handoff with git state and CONTEXT.md
 - **session-start.sh** — Runs after compaction or `/clear`, injects latest handoff + learnings into context
 - **user-prompt-submit.sh** — Injects a short protocol anchor when autonomous loop mode is active
-- **stop.sh** — Blocks exit during autonomous loop and injects the continuation prompt
+- **stop.sh** — Legacy stub for Claude Code <2.1 (see Stop Hooks below)
 
 Handoffs are saved to:
 - `$PROJECT/thoughts/handoffs/` when in a project
 - `~/.claude/handoffs/` globally
 
 Only handoffs < 48 hours old are auto-injected to prevent stale context.
+
+### Stop Hooks (Claude Code 2.1+)
+
+For Claude Code 2.1+, completion enforcement uses **prompt-based Stop hooks** in skill/agent frontmatter instead of shell scripts. This lets a Sonnet model intelligently evaluate whether work is truly complete.
+
+- **autonomous-loop skill** — Stop hook verifies: git clean, quality gates pass, plan tasks complete, no half-done work
+- **tdd-implementer agent** — Stop hook verifies: TDD discipline followed, tests pass, no violations
+- **debugger agent** — Stop hook verifies: root cause identified with evidence, fix verified
+- **plan-executor agent** — Stop hook verifies: all tasks complete, quality gates between tasks, code review done
+
+**Note:** Claude Code <2.1 does not support prompt-based hooks. Users on older versions will have reduced autonomous loop enforcement. Upgrade to Claude Code 2.1+ for full completion verification.
 
 ## Agents, Skills, and Rules
 

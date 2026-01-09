@@ -1,8 +1,12 @@
 ---
 name: root-cause-tracer
 description: Trace bugs backward through call stack to find original trigger. Use when errors occur deep in execution and you need to find the source of invalid data.
-tools: Read, Grep, Glob, Bash
 model: sonnet
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
 ---
 
 # Root Cause Tracer Agent

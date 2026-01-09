@@ -3,9 +3,50 @@ name: autonomous-loop
 description: Activate autonomous loop mode for persistent development sessions. Use when user says "go autonomous" or wants unattended iteration until completion.
 hooks:
   Stop:
-    - type: command
-      command: ~/.claude/hooks/stop.sh
-      once: true
+    - type: prompt
+      model: sonnet
+      prompt: |
+        You are about to exit autonomous loop mode. Verify the work is ACTUALLY COMPLETE.
+
+        ## Verification Steps (Do ALL of these)
+
+        1. **Run `git status`** — Are there uncommitted changes (excluding `.claude/` directory)?
+           If yes, you're not done.
+
+        2. **Run quality gates:**
+           - FIRST check if `.claude-quality-gates` exists — if so, run each command in that file
+           - ONLY if no `.claude-quality-gates`: check package.json for npm scripts (typecheck, lint, build, test)
+           - Any failures = you're not done.
+
+        3. **Check IMPLEMENTATION_PLAN.md** (if it exists):
+           - Read the current goal from `.claude/autonomous-loop.json` (the `goal` field)
+           - If the goal mentions a specific phase or module (e.g., "Phase 2", "auth module"),
+             only check that section of the plan for unchecked `[ ]` boxes
+           - If no specific scope, check the entire plan
+           - Were any tasks skipped or marked "TODO later"? If yes, you're not done.
+
+        4. **Review what was requested vs what was delivered:**
+           - Did you implement the FULL feature, not a skeleton?
+           - Did you write REAL tests, not placeholder assertions?
+           - Did you run code review and address the feedback?
+           - Did you handle edge cases and error states?
+
+        5. **Check for half-done work:**
+           - Are there TODO comments you added and didn't resolve?
+           - Are there console.log/debug statements to remove?
+           - Did you skip any "nice to have" items that were actually requested?
+
+        ## Decision
+
+        If ANY of the above reveals incomplete work:
+        - **BLOCK EXIT** — Respond with what's still needed and continue working.
+
+        If ALL checks pass and the work is genuinely complete:
+        - **Clear loop state:** Run `rm -f .claude/autonomous-loop.json` to clean up
+        - **ALLOW EXIT** — The work is done.
+
+        Be rigorous. "Almost done" is not done. "Works but needs cleanup" is not done.
+        The bar is: would you ship this to production right now?
 ---
 
 # Autonomous Loop Activation

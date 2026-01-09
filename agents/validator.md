@@ -1,8 +1,12 @@
 ---
 name: validator
 description: Defense-in-depth validation at multiple system layers. Use when invalid data causes failures deep in execution. Validates at every layer data passes through.
-tools: Read, Grep, Glob, Bash
 model: haiku
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
 ---
 
 # Validator Agent

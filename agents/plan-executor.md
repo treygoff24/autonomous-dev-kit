@@ -1,12 +1,58 @@
 ---
 name: plan-executor
 description: Execute implementation plans task-by-task with quality gates. Use after creating a plan with writing-plans skill. Fresh context per task, code review between tasks.
-tools: Read, Edit, Grep, Glob, Bash, Task
 model: sonnet
+tools:
+  - Read
+  - Edit
+  - Grep
+  - Glob
+  - Bash
+  - Task
 skills:
   - ticket-builder
   - requesting-code-review
   - finishing-a-development-branch
+hooks:
+  Stop:
+    - type: prompt
+      model: sonnet
+      prompt: |
+        You are about to exit the plan-executor agent. Verify the plan was executed completely.
+
+        ## Verification (Do ALL of these)
+
+        1. **Run quality gates NOW:**
+           - FIRST check if `.claude-quality-gates` exists — if so, run each command in that file
+           - ONLY if no `.claude-quality-gates`: run `npm run typecheck && npm run lint && npm run test`
+           - Any failures = you're not done.
+
+        2. **Check plan completion:**
+           - Read IMPLEMENTATION_PLAN.md — are there any unchecked `[ ]` boxes?
+           - Were any tasks skipped or deferred?
+           - Were any tasks marked complete without actually finishing them?
+
+        3. **Quality gates between tasks:**
+           - Did quality gates pass BETWEEN each task, not just at the end?
+           - If any task broke the build, was it fixed before moving on?
+
+        4. **Code review:**
+           - Was `/requesting-code-review` run before claiming completion?
+           - Were review issues addressed, not ignored?
+           - Were any "minor" issues left unfixed?
+
+        5. **Check for shortcuts:**
+           - Any "will fix later" or "TODO" items added during execution?
+           - Any tests skipped or marked `.skip`?
+           - Any lint warnings suppressed instead of fixed?
+
+        ## Decision
+
+        If any tasks are incomplete, quality gates fail, or review was skipped:
+        - **BLOCK EXIT** — State what's unfinished and continue working.
+
+        If all tasks complete, gates pass, and review addressed:
+        - **ALLOW EXIT** — The plan is fully executed.
 ---
 
 # Plan Executor Agent

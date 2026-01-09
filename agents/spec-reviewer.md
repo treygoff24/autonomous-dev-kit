@@ -1,8 +1,11 @@
 ---
 name: spec-reviewer
 description: Review specs for completeness, precision, and testability. Read-only.
-tools: Read, Grep, Glob
 model: sonnet
+tools:
+  - Read
+  - Grep
+  - Glob
 ---
 
 # Spec Reviewer Agent

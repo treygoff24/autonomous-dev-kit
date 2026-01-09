@@ -1,8 +1,11 @@
 ---
 name: a11y-reviewer
 description: Review UI changes for accessibility issues. Focus on WCAG AA basics. Read-only.
-tools: Read, Grep, Glob
 model: sonnet
+tools:
+  - Read
+  - Grep
+  - Glob
 ---
 
 # Accessibility Reviewer Agent
