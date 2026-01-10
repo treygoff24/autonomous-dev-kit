@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK_PATH="$SCRIPT_DIR/../hooks/stop.sh"
 
 # Source helpers for test setup
-source "$SCRIPT_DIR/../lib/loop-helpers.sh"
+source "$SCRIPT_DIR/../hooks/lib/loop-helpers.sh"
 # Source stop hook helpers (skip main execution)
 STOP_HOOK_LIB_ONLY=1 source "$HOOK_PATH"
 

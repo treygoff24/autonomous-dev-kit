@@ -10,8 +10,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "$HOME/.claude/lib/loop-helpers.sh" ]]; then
     source "$HOME/.claude/lib/loop-helpers.sh"
-elif [[ -f "$SCRIPT_DIR/../lib/loop-helpers.sh" ]]; then
-    source "$SCRIPT_DIR/../lib/loop-helpers.sh"
+elif [[ -f "$SCRIPT_DIR/lib/loop-helpers.sh" ]]; then
+    source "$SCRIPT_DIR/lib/loop-helpers.sh"
 fi
 
 # Read input from stdin (unused, but consumed)

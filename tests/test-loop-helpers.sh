@@ -6,7 +6,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../lib/loop-helpers.sh"
+source "$SCRIPT_DIR/../hooks/lib/loop-helpers.sh"
 
 # Test counter
 TESTS_RUN=0

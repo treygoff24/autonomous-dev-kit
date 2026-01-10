@@ -8,7 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK_PATH="$SCRIPT_DIR/../hooks/user-prompt-submit.sh"
 
-source "$SCRIPT_DIR/../lib/loop-helpers.sh"
+source "$SCRIPT_DIR/../hooks/lib/loop-helpers.sh"
 
 TESTS_RUN=0
 TESTS_PASSED=0

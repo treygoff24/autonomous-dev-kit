@@ -53,12 +53,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each line is a shell command that must exit 0
   - Example: `npm run typecheck`, `npm run lint`, `npm run test`
 
-- **Helper library** (`lib/loop-helpers.sh`)
+- **Helper library** (`hooks/lib/loop-helpers.sh`)
   - State file management functions
   - Verification code generation
   - Project hash calculation for state isolation
 
-- **Protocol cheatsheet** (`lib/cheatsheet.md`)
+- **Protocol cheatsheet** (`hooks/lib/cheatsheet.md`)
   - Condensed protocol summary injected on each iteration
   - Covers implementation loop, checkpoints, subagents, skills
 
