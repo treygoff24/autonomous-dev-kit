@@ -2,6 +2,13 @@
 #
 # Integration tests for autonomous loop system
 #
+# Note: As of Claude Code 2.1+, completion enforcement is handled by prompt-based
+# Stop hooks in skill/agent frontmatter, not by stop.sh. These tests verify:
+# - File structure is correct
+# - Hooks are executable
+# - Loop helper functions work together
+# - Session hooks produce expected output
+#
 
 set -euo pipefail
 
@@ -23,249 +30,154 @@ create_test_repo() {
     echo "$dir"
 }
 
-# Helper to run hook
-run_hook() {
-    local project_dir="$1"
-    local input="${2:-{}}"
-    printf '%s' "$input" | CLAUDE_PROJECT_DIR="$project_dir" "$SCRIPT_DIR/../hooks/stop.sh"
-}
-
-# Helpers to tolerate approve paths with empty stdout.
-is_empty_output() {
-    local output="$1"
-    [[ -z "${output//[[:space:]]/}" ]]
-}
-
-json_field() {
-    local output="$1"
-    local filter="$2"
-    if is_empty_output "$output"; then
-        echo ""
-        return 0
-    fi
-    echo "$output" | jq -r "$filter"
-}
-
 # --- Integration Tests ---
 
-test_full_loop_lifecycle() {
-    echo "Testing full loop lifecycle..."
+test_file_structure() {
+    echo "Testing file structure..."
     TESTS_RUN=$((TESTS_RUN + 1))
 
-    local test_dir=$(create_test_repo)
-    local all_steps_passed=true
-
-    # Create implementation plan with incomplete task
-    cat > "$test_dir/IMPLEMENTATION_PLAN.md" << 'PLAN'
-# Test Plan
-- [ ] Task 1
-PLAN
-    git -C "$test_dir" add .
-    git -C "$test_dir" commit -q -m "add plan"
-
-    # Initialize loop
-    initialize_loop_state "$test_dir" "Complete the test plan" 10
-
-    # Step 1: Loop should block incomplete work
-    local exit_code=0
-    local output=$(run_hook "$test_dir" 2>/dev/null) || exit_code=$?
-    local decision=$(json_field "$output" '.decision // ""')
-    if [[ $exit_code -eq 0 && "$decision" == "block" ]]; then
-        echo "  Step 1: Loop blocks incomplete work ✓"
-    else
-        echo "  Step 1: Loop should block (exit $exit_code, decision=$decision) ✗"
-        all_steps_passed=false
-    fi
-
-    # Step 2: Verify iteration was incremented
-    local state=$(read_state_file "$test_dir")
-    local iteration=$(echo "$state" | jq -r '.iteration')
-    if [[ "$iteration" == "1" ]]; then
-        echo "  Step 2: Iteration incremented ✓"
-    else
-        echo "  Step 2: Expected iteration 1, got $iteration ✗"
-        all_steps_passed=false
-    fi
-
-    # Step 3: Mark task complete
-    cat > "$test_dir/IMPLEMENTATION_PLAN.md" << 'PLAN'
-# Test Plan
-- [x] Task 1
-**Status: COMPLETE**
-PLAN
-    git -C "$test_dir" add .
-    git -C "$test_dir" commit -q -m "complete plan"
-
-    # Step 4: Loop should allow exit when complete
-    local output_complete=$(run_hook "$test_dir" 2>/dev/null)
-    local decision_complete=$(json_field "$output_complete" '.decision // ""')
-    local output_complete_empty=false
-    if is_empty_output "$output_complete"; then
-        output_complete_empty=true
-    fi
-    if [[ "$decision_complete" == "approve" || $output_complete_empty == true ]]; then
-        echo "  Step 3: Loop allows exit when complete ✓"
-    else
-        echo "  Step 3: Loop should allow exit ✗"
-        all_steps_passed=false
-    fi
-
-    # Step 5: State file should be cleaned up after completion
-    if ! is_loop_active "$test_dir"; then
-        echo "  Step 4: State file cleaned up ✓"
-    else
-        echo "  Step 4: State file should be cleaned up ✗"
-        all_steps_passed=false
-    fi
-
-    if $all_steps_passed; then
-        TESTS_PASSED=$((TESTS_PASSED + 1))
-    fi
-
-    rm -rf "$test_dir"
-}
-
-test_max_iterations_pause() {
-    echo "Testing max iterations pause..."
-    TESTS_RUN=$((TESTS_RUN + 1))
-
-    local test_dir=$(create_test_repo)
-
-    # Create incomplete plan to keep loop going
-    cat > "$test_dir/IMPLEMENTATION_PLAN.md" << 'PLAN'
-# Test Plan
-- [ ] Incomplete task
-PLAN
-    git -C "$test_dir" add .
-    git -C "$test_dir" commit -q -m "add plan"
-
-    # Initialize with max_iterations=2
-    initialize_loop_state "$test_dir" "Test goal" 2
-
-    # Run hook twice to hit max
-    run_hook "$test_dir" > /dev/null 2>&1 || true  # iteration 1
-    # Prevent verification trigger
-    update_state_field "$test_dir" ".last_verified_iteration" "1"
-    local output=$(run_hook "$test_dir" 2>/dev/null || true)  # iteration 2 (max)
-    local decision=$(json_field "$output" '.decision // ""')
-    local reason=$(json_field "$output" '.reason // ""')
-
-    # Check paused flag
-    local state=$(read_state_file "$test_dir")
-    local paused=$(echo "$state" | jq -r '.paused')
-
-    if [[ "$paused" == "true" && "$decision" == "block" && "$reason" == *"Max Iterations Reached"* ]]; then
-        echo "  ✓ Loop paused at max iterations"
-        TESTS_PASSED=$((TESTS_PASSED + 1))
-    else
-        echo "  ✗ Expected paused=true, got $paused"
-    fi
-
-    delete_state_file "$test_dir"
-    rm -rf "$test_dir"
-}
-
-test_quality_gates_integration() {
-    echo "Testing quality gates integration..."
-    TESTS_RUN=$((TESTS_RUN + 1))
-
-    local test_dir=$(create_test_repo)
-
-    # Create quality gates file with passing command
-    echo "true" > "$test_dir/.claude-quality-gates"
-    git -C "$test_dir" add .
-    git -C "$test_dir" commit -q -m "add passing gates"
-
-    # Should allow exit (clean git + passing gates)
-    local output=$(run_hook "$test_dir" 2>/dev/null)
-    local decision=$(json_field "$output" '.decision // ""')
-    local output_empty=false
-    if is_empty_output "$output"; then
-        output_empty=true
-    fi
-
-    if [[ "$decision" == "approve" || $output_empty == true ]]; then
-        echo "  ✓ Passing quality gates allow exit"
-        TESTS_PASSED=$((TESTS_PASSED + 1))
-    else
-        echo "  ✗ Passing quality gates should allow exit (decision=$decision)"
-    fi
-
-    rm -rf "$test_dir"
-}
-
-test_hook_chain_integration() {
-    echo "Testing hook chain integration..."
-    TESTS_RUN=$((TESTS_RUN + 1))
+    local all_ok=true
 
     # Verify all hooks exist and are executable
-    local hooks_ok=true
     for hook in pre-compact.sh session-start.sh user-prompt-submit.sh stop.sh; do
         if [[ ! -x "$SCRIPT_DIR/../hooks/$hook" ]]; then
-            echo "  Missing or not executable: $hook"
-            hooks_ok=false
+            echo "  ✗ Missing or not executable: hooks/$hook"
+            all_ok=false
         fi
     done
 
-    # Verify lib files exist
+    # Verify lib files exist (now in hooks/lib/)
     for lib in loop-helpers.sh cheatsheet.md; do
-        if [[ ! -f "$SCRIPT_DIR/../lib/$lib" ]]; then
-            echo "  Missing lib file: $lib"
-            hooks_ok=false
+        if [[ ! -f "$SCRIPT_DIR/../hooks/lib/$lib" ]]; then
+            echo "  ✗ Missing lib file: hooks/lib/$lib"
+            all_ok=false
         fi
     done
 
-    if $hooks_ok; then
+    if $all_ok; then
         echo "  ✓ All hooks and lib files present"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Hook chain incomplete"
+        echo "  ✗ File structure incomplete"
     fi
 }
 
-test_continuation_prompt_format() {
-    echo "Testing continuation prompt format..."
+test_loop_state_lifecycle() {
+    echo "Testing loop state lifecycle..."
     TESTS_RUN=$((TESTS_RUN + 1))
 
     local test_dir=$(create_test_repo)
-    echo "uncommitted" > "$test_dir/dirty.txt"  # Make dirty
+    local all_ok=true
 
-    # Initialize loop
-    initialize_loop_state "$test_dir" "Test goal" 100
-
-    # Capture output
-    local output=$(run_hook "$test_dir" 2>/dev/null || true)
-    local decision=$(json_field "$output" '.decision // ""')
-    local reason=$(json_field "$output" '.reason // ""')
-    local system_msg=$(json_field "$output" '.systemMessage // ""')
-
-    local checks_passed=true
-
-    # Check decision is block (work incomplete due to dirty git)
-    if [[ "$decision" == "block" ]]; then
-        echo "  Decision is block ✓"
+    # Step 1: No loop initially
+    if is_loop_active "$test_dir"; then
+        echo "  ✗ Loop should not be active initially"
+        all_ok=false
     else
-        echo "  Decision is block ✗"
-        checks_passed=false
+        echo "  ✓ No loop initially"
     fi
 
-    # Check reason includes the continuation prompt + goal
-    if [[ "$reason" == *"AUTONOMOUS BUILD MODE ACTIVE"* && "$reason" == *"Goal: Test goal"* ]]; then
-        echo "  Reason includes continuation prompt ✓"
+    # Step 2: Initialize loop
+    initialize_loop_state "$test_dir" "Test goal" 10
+    if is_loop_active "$test_dir"; then
+        echo "  ✓ Loop active after init"
     else
-        echo "  Reason includes continuation prompt ✗ (got: $reason)"
-        checks_passed=false
+        echo "  ✗ Loop should be active after init"
+        all_ok=false
     fi
 
-    # Check systemMessage contains iteration info
-    if [[ "$system_msg" == *"Iteration"* ]]; then
-        echo "  SystemMessage has iteration ✓"
+    # Step 3: Read state
+    local state=$(read_state_file "$test_dir")
+    local goal=$(echo "$state" | jq -r '.goal')
+    if [[ "$goal" == "Test goal" ]]; then
+        echo "  ✓ Goal stored correctly"
     else
-        echo "  SystemMessage has iteration ✗"
-        checks_passed=false
+        echo "  ✗ Goal not stored correctly (got: $goal)"
+        all_ok=false
     fi
 
-    if $checks_passed; then
+    # Step 4: Update iteration
+    update_state_field "$test_dir" ".iteration" "5"
+    state=$(read_state_file "$test_dir")
+    local iteration=$(echo "$state" | jq -r '.iteration')
+    if [[ "$iteration" == "5" ]]; then
+        echo "  ✓ Iteration updated"
+    else
+        echo "  ✗ Iteration not updated (got: $iteration)"
+        all_ok=false
+    fi
+
+    # Step 5: Delete state
+    delete_state_file "$test_dir"
+    if ! is_loop_active "$test_dir"; then
+        echo "  ✓ Loop inactive after delete"
+    else
+        echo "  ✗ Loop should be inactive after delete"
+        all_ok=false
+    fi
+
+    if $all_ok; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    fi
+
+    rm -rf "$test_dir"
+}
+
+test_session_start_hook() {
+    echo "Testing session-start hook..."
+    TESTS_RUN=$((TESTS_RUN + 1))
+
+    local test_dir=$(create_test_repo)
+
+    # Create a handoff file
+    mkdir -p "$test_dir/thoughts/handoffs"
+    cat > "$test_dir/thoughts/handoffs/auto-handoff-$(date +%Y%m%d-%H%M%S).md" << 'EOF'
+# Test Handoff
+This is a test handoff.
+EOF
+
+    # Run session-start hook
+    local output=$(echo '{}' | CLAUDE_PROJECT_DIR="$test_dir" "$SCRIPT_DIR/../hooks/session-start.sh" 2>/dev/null || true)
+
+    # Should produce some output (handoff injection)
+    if [[ -n "$output" ]]; then
+        echo "  ✓ Session-start produces output"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        echo "  ✗ Session-start should produce output with handoff present"
+    fi
+
+    rm -rf "$test_dir"
+}
+
+test_user_prompt_submit_hook() {
+    echo "Testing user-prompt-submit hook..."
+    TESTS_RUN=$((TESTS_RUN + 1))
+
+    local test_dir=$(create_test_repo)
+    local all_ok=true
+
+    # Test 1: No output when loop inactive
+    local output=$(echo '{}' | CLAUDE_PROJECT_DIR="$test_dir" "$SCRIPT_DIR/../hooks/user-prompt-submit.sh" 2>/dev/null || true)
+    if [[ -z "$output" ]]; then
+        echo "  ✓ No output when loop inactive"
+    else
+        echo "  ✗ Should have no output when loop inactive"
+        all_ok=false
+    fi
+
+    # Test 2: Output when loop active
+    initialize_loop_state "$test_dir" "Test goal" 10
+    output=$(echo '{}' | CLAUDE_PROJECT_DIR="$test_dir" "$SCRIPT_DIR/../hooks/user-prompt-submit.sh" 2>/dev/null || true)
+    # Output is JSON with hookSpecificOutput.additionalContext containing "Autonomous Loop Protocol Anchor"
+    if [[ "$output" == *"Autonomous Loop Protocol Anchor"* || "$output" == *"additionalContext"* ]]; then
+        echo "  ✓ Protocol anchor when loop active"
+    else
+        echo "  ✗ Should produce protocol anchor when loop active (got: $output)"
+        all_ok=false
+    fi
+
+    if $all_ok; then
         TESTS_PASSED=$((TESTS_PASSED + 1))
     fi
 
@@ -273,39 +185,44 @@ test_continuation_prompt_format() {
     rm -rf "$test_dir"
 }
 
-test_verification_triggered_at_iteration_3() {
-    echo "Testing verification triggers at iteration 3..."
+test_stop_hook_stub() {
+    echo "Testing stop hook stub behavior..."
+    TESTS_RUN=$((TESTS_RUN + 1))
+
+    # Stop hook should always approve (exit 0, no output)
+    local exit_code=0
+    local output=$(echo '{}' | "$SCRIPT_DIR/../hooks/stop.sh" 2>&1) || exit_code=$?
+
+    if [[ $exit_code -eq 0 && -z "$output" ]]; then
+        echo "  ✓ Stop hook approves (stub behavior for 2.1+)"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        echo "  ✗ Stop hook should approve with no output (exit=$exit_code)"
+    fi
+}
+
+test_verification_code_generation() {
+    echo "Testing verification code generation..."
     TESTS_RUN=$((TESTS_RUN + 1))
 
     local test_dir=$(create_test_repo)
 
-    # Create incomplete plan
-    cat > "$test_dir/IMPLEMENTATION_PLAN.md" << 'PLAN'
-# Test Plan
-- [ ] Incomplete task
-PLAN
-    git -C "$test_dir" add .
-    git -C "$test_dir" commit -q -m "add plan"
+    # Initialize loop and set up verification
+    initialize_loop_state "$test_dir" "Test goal" 10
+    update_state_field "$test_dir" ".verification_pending" "true"
 
-    # Initialize at iteration 2, last_verified at 0
-    initialize_loop_state "$test_dir" "Test goal" 100
-    update_state_field "$test_dir" ".iteration" "2"
-    update_state_field "$test_dir" ".last_verified_iteration" "0"
+    local code=$(generate_verification_code)
+    update_state_field "$test_dir" ".expected_verification_code" "\"$code\""
 
-    # Run hook (will increment to 3)
-    local output=$(run_hook "$test_dir" 2>/dev/null || true)
-    local decision=$(json_field "$output" '.decision // ""')
-    local reason=$(json_field "$output" '.reason // ""')
-
+    # Read back and verify
     local state=$(read_state_file "$test_dir")
-    local pending=$(echo "$state" | jq -r '.verification_pending')
-    local code=$(echo "$state" | jq -r '.expected_verification_code // ""')
+    local stored_code=$(echo "$state" | jq -r '.expected_verification_code')
 
-    if [[ "$decision" == "block" && "$reason" == *"Protocol Re-Read Required"* && "$pending" == "true" && -n "$code" ]]; then
-        echo "  ✓ Verification requested at iteration 3"
+    if [[ "$stored_code" == "$code" && ${#code} -eq 4 ]]; then
+        echo "  ✓ Verification code stored and retrievable"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo "  ✗ Unexpected verification behavior"
+        echo "  ✗ Verification code issue (code=$code, stored=$stored_code)"
     fi
 
     delete_state_file "$test_dir"
@@ -316,12 +233,12 @@ PLAN
 echo "=== Integration Tests ==="
 echo ""
 
-test_full_loop_lifecycle
-test_max_iterations_pause
-test_quality_gates_integration
-test_hook_chain_integration
-test_continuation_prompt_format
-test_verification_triggered_at_iteration_3
+test_file_structure
+test_loop_state_lifecycle
+test_session_start_hook
+test_user_prompt_submit_hook
+test_stop_hook_stub
+test_verification_code_generation
 
 # Summary
 echo ""
