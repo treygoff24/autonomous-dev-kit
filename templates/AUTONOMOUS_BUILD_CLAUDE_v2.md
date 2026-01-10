@@ -68,6 +68,8 @@ Skills require conversation context and user interaction. Use for collaborative 
 |-------|-------------|
 | `brainstorming` | Refine rough ideas into designs through dialogue |
 | `writing-plans` | Turn designs into executable implementation plans |
+| `codex` | Delegate to OpenAI Codex for reviews, debugging help, second opinions |
+| `gemini` | Delegate to Google Gemini for reviews, debugging help, second opinions |
 | `using-git-worktrees` | Isolated workspaces for risky changes |
 | `finishing-a-development-branch` | Clean up and package for merge/PR |
 | `requesting-code-review` | Request review (forked `code-reviewer` agent) |
@@ -103,7 +105,7 @@ Rules at `~/.claude/rules/` are automatically loaded based on file patterns. No 
 
 ## Cross-Agent Orchestration
 
-You are Claude. You have access to Codex and Gemini as external specialist advisors. You excel at architecture, multi-file coordination, complex refactors, and catching subtle issues. Codex excels at focused implementation, security analysis, and providing a different perspective when you're stuck. Gemini excels at independent critique and spotting spec/diff mismatches.
+You are Claude. You have access to Codex and Gemini as external specialist advisors via skills. You excel at architecture, multi-file coordination, complex refactors, and catching subtle issues. Codex excels at focused implementation, security analysis, and providing a different perspective when you're stuck. Gemini excels at independent critique and spotting spec/diff mismatches.
 
 **Call Codex + Gemini at these checkpoints (mandatory):**
 
@@ -117,32 +119,27 @@ You are Claude. You have access to Codex and Gemini as external specialist advis
 
 **How to call Codex:**
 
-```bash
-codex exec \
-  --model gpt-5.2-codex \
-  --config model_reasoning_effort="xhigh" \
-  --yolo \
-  "<YOUR_TASK_PROMPT>"
+Use the `/codex` skill. Invoke it with a clear, self-contained task description:
+
+```
+/codex Review the current branch diff for Phase [N]: [Phase Name]. The spec is at SPEC.md. Check for: security issues, edge cases, test coverage gaps, performance concerns, and adherence to the spec. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise).
 ```
 
-**Be patient.** Codex may take up to 30 minutes to respond, especially for complex reviews. Do not assume the call has failed just because it takes time. Wait for the complete response before proceeding.
+The skill runs Codex in background mode and returns results when complete. Codex has its own context window—it doesn't see our conversation, so provide all necessary context in the prompt.
 
-**Recursion guard:** Codex may call you back at most once per task. Neither agent may delegate the same task back to the other. If Codex's response includes a request for you to do something, do it directly—do not call Codex again for that sub-task.
+**Be patient.** Codex may take up to 30 minutes to respond. The skill handles background execution automatically.
 
 **How to call Gemini:**
 
-```bash
-gemini-review "Phase [N]: [Phase Name]"
+Use the `/gemini` skill. Invoke it with a clear, self-contained task description:
+
+```
+/gemini Review the current branch diff for Phase [N]: [Phase Name]. The spec is at SPEC.md. Check for: security issues, edge cases, test coverage gaps, performance concerns, and adherence to the spec. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise).
 ```
 
-If the shell helper isn't available, use:
-```bash
-git diff HEAD | gemini -p "Review the current branch diff for [PHASE]. The spec is at SPEC.md. Check for: security issues, edge cases, test coverage gaps, performance concerns, and adherence to the spec. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise)." --output-format text
-```
+The skill runs Gemini in background mode and returns results when complete. Gemini has its own context window—provide all necessary context in the prompt.
 
-**Be patient.** Gemini is usually fast, but wait for the complete response before proceeding.
-
-**Recursion guard:** Gemini may call you back at most once per task. Neither agent may delegate the same task back to the other. If Gemini's response includes a request for you to do something, do it directly—do not call Gemini again for that sub-task.
+**Recursion guard:** Neither Codex nor Gemini may delegate the same task back to you. If their response includes a request for you to do something, do it directly—do not call them again for that sub-task.
 
 ---
 
@@ -298,20 +295,14 @@ mypy src/            # Type checks pass (if configured)
 
 Fix any issues found, re-run quality gates.
 
-**Then call Codex for external review:**
+**Then call Codex + Gemini for external review:**
 
-```bash
-codex exec \
-  --model gpt-5.2-codex \
-  --config model_reasoning_effort="xhigh" \
-  --yolo \
-  "Review the current branch diff for Phase [N]: [Phase Name]. The spec is at SPEC.md. Check for: security issues, edge cases, test coverage gaps, performance concerns, and adherence to the spec. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise)."
+```
+/codex Review the current branch diff for Phase [N]: [Phase Name]. The spec is at SPEC.md. Check for: security issues, edge cases, test coverage gaps, performance concerns, and adherence to the spec. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise).
 ```
 
-**Then call Gemini for external review:**
-
-```bash
-gemini-review "Phase [N]: [Phase Name]"
+```
+/gemini Review the current branch diff for Phase [N]: [Phase Name]. The spec is at SPEC.md. Check for: security issues, edge cases, test coverage gaps, performance concerns, and adherence to the spec. Output format: Critical issues / Warnings / Suggestions / Verdict (approve or revise).
 ```
 
 Fix all issues, re-run quality gates, repeat until all reviews pass with zero critical issues.
@@ -349,16 +340,12 @@ Follow the verification-standards rule—no claims without evidence. Run the act
 
 ### Step 3: Codex + Gemini Final Cross-Check
 
-```bash
-codex exec \
-  --model gpt-5.2-codex \
-  --config model_reasoning_effort="xhigh" \
-  --yolo \
-  "Final cross-check. Read SPEC.md and IMPLEMENTATION_PLAN.md. Verify: all acceptance criteria met, all phases complete, no obvious gaps. Output: Verification results / Any gaps / Final verdict (ship it or fix issues)."
+```
+/codex Final cross-check. Read SPEC.md and IMPLEMENTATION_PLAN.md. Verify: all acceptance criteria met, all phases complete, no obvious gaps. Output: Verification results / Any gaps / Final verdict (ship it or fix issues).
 ```
 
-```bash
-cat SPEC.md IMPLEMENTATION_PLAN.md | gemini -p "Final cross-check. Verify: all acceptance criteria met, all phases complete, no obvious gaps. Output: Verification results / Any gaps / Final verdict (ship it or fix issues)." --output-format text
+```
+/gemini Final cross-check. Read SPEC.md and IMPLEMENTATION_PLAN.md. Verify: all acceptance criteria met, all phases complete, no obvious gaps. Output: Verification results / Any gaps / Final verdict (ship it or fix issues).
 ```
 
 ### Step 4: Manual Verification
@@ -405,16 +392,12 @@ This is how the system gets smarter over time.
 2. **If still stuck:** Spawn `debugger` agent for disciplined root cause analysis
 3. **If still stuck:** Call Codex or Gemini for external perspective:
 
-```bash
-codex exec \
-  --model gpt-5.2-codex \
-  --config model_reasoning_effort="xhigh" \
-  --yolo \
-  "I'm stuck in an error loop. Error: [ERROR]. Tried: [APPROACHES]. Files: [FILES]. What am I missing? Suggest a different approach."
+```
+/codex I'm stuck in an error loop. Error: [ERROR]. Tried: [APPROACHES]. Files: [FILES]. What am I missing? Suggest a different approach.
 ```
 
-```bash
-gemini -p "I'm stuck in an error loop. Error: [ERROR]. Tried: [APPROACHES]. Files: [FILES]. What am I missing? Suggest a different approach." --output-format text
+```
+/gemini I'm stuck in an error loop. Error: [ERROR]. Tried: [APPROACHES]. Files: [FILES]. What am I missing? Suggest a different approach.
 ```
 
 If still stuck after all three: log the blocker, skip to an unblocked phase, return later.
@@ -501,11 +484,11 @@ If context feels stale, re-read AUTONOMOUS_BUILD_CLAUDE.md for the full protocol
 
 | Phase | Tools |
 |-------|-------|
-| Spec creation | `brainstorming` skill → `spec-quality-checklist` skill |
-| Planning | `writing-plans` skill |
+| Spec creation | `brainstorming` skill → `spec-quality-checklist` skill → `/codex` + `/gemini` review |
+| Planning | `writing-plans` skill → `/codex` + `/gemini` review |
 | Implementation | `plan-executor` agent, `tdd-implementer` agent, `using-git-worktrees` skill |
-| Debugging | `debugger` agent, `root-cause-tracer` agent, `validator` agent |
-| Quality & Review | `requesting-code-review` (forked `code-reviewer`), verification-standards rule |
+| Debugging | `debugger` agent, `root-cause-tracer` agent, `validator` agent, `/codex` + `/gemini` for fresh perspective |
+| Quality & Review | `requesting-code-review` → `/codex` + `/gemini` review, verification-standards rule |
 | Cleanup & Completion | `slop-cleaner` agent, `finishing-a-development-branch` skill |
 
 ---

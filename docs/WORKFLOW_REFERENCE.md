@@ -129,6 +129,26 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 
 ## Cross-Agent Call Reference
 
+### Using Skills (Preferred in Claude Code)
+
+When working within a Claude Code session, use the `/codex` and `/gemini` skills instead of shell commands. The skills handle background execution automatically and integrate with Claude Code's task management.
+
+| Checkpoint | Skill Invocation |
+|------------|------------------|
+| Spec review | `/codex Review SPEC.md for completeness, edge cases, security gaps, and implementation feasibility. Output: Critical gaps / Ambiguities / Suggestions / Verdict.` |
+| Plan review | `/gemini Review IMPLEMENTATION_PLAN.md against SPEC.md. Check for sequencing risks and alternative approaches. Verdict: approve or revise.` |
+| Phase review | `/codex Review the current branch diff for Phase [N]. Check for security issues, edge cases, test coverage, performance. Verdict: approve or revise.` |
+| Final check | `/gemini Final cross-check. Read SPEC.md and IMPLEMENTATION_PLAN.md. Verify all criteria met. Verdict: ship it or fix issues.` |
+| Stuck | `/codex I'm stuck. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?` |
+
+**Why skills over shell commands:**
+- Skills run in background mode — no timeout issues
+- Automatic task management and notifications
+- Cleaner integration with Claude Code workflow
+- Self-contained prompts with all context
+
+The bash commands below are for reference when calling agents from outside Claude Code (e.g., Codex calling Claude, or direct terminal use).
+
 ### When to Call Claude (from Codex)
 
 | Checkpoint | Command |
@@ -814,15 +834,6 @@ autonomous-status
 # Run quality gates
 quality-gates
 
-# Review with Claude
-claude-review 'Phase 2 - Auth'
-
-# Review with Codex
-codex-review 'Phase 2 - Auth'
-
-# Review with Gemini
-gemini-review 'Phase 2 - Auth'
-
 # Check for slop
 slop-check src/
 
@@ -830,4 +841,19 @@ slop-check src/
 git-feature my-feature
 git-feat 'add login'
 git-fix 'resolve bug'
+```
+
+### Cross-Agent Reviews
+
+**Within Claude Code sessions (preferred):**
+```
+/codex Review the current branch diff for Phase 2 - Auth...
+/gemini Review the current branch diff for Phase 2 - Auth...
+```
+
+**From terminal (outside Claude Code):**
+```bash
+claude-review 'Phase 2 - Auth'
+codex-review 'Phase 2 - Auth'
+gemini-review 'Phase 2 - Auth'
 ```

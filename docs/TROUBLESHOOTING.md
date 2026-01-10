@@ -128,16 +128,21 @@ Either:
 
 **Fix:**
 
-1. **Call the other agent for fresh perspective:**
+1. **Call another agent for fresh perspective:**
+
+   **Within Claude Code (preferred):**
+   ```
+   /codex I'm stuck in an error loop. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?
+   ```
+   ```
+   /gemini I'm stuck in an error loop. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?
+   ```
+
+   **From terminal (outside Claude Code):**
    ```bash
-   # If using Claude, call Codex
    codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" \
      --dangerously-bypass-approvals-and-sandbox \
      "I'm stuck in an error loop. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?"
-
-   # If using Codex, call Claude
-   claude -p --model opus --dangerously-skip-permissions --output-format text \
-     "I'm stuck. Error: [ERROR]. Tried: [APPROACHES]. Suggest a different approach."
    ```
 
 2. **Log the blocker in CONTEXT.md:**
@@ -287,14 +292,15 @@ autonomous-status
 
 ### "Review taking too long"
 
-**Claude reviews:**
-- May take 30 seconds to several minutes
-- Wait at least 60 seconds before interrupting
-- If >5 minutes, check terminal isn't frozen
+**Using `/codex` and `/gemini` skills (recommended):**
+- Skills run in background mode automatically
+- No timeout issues — they run until complete
+- You'll get a notification when the review finishes
+- Continue working on other tasks while reviews run
 
-**Codex reviews:**
-- May take up to 30 minutes for complex reviews
-- Let it run; do something else
+**Using shell commands directly:**
+- Claude reviews: May take 30 seconds to several minutes
+- Codex reviews: May take up to 30 minutes for complex reviews
 - Only interrupt after 15+ minutes with no output
 
 ### "Agent keeps delegating back"
@@ -306,6 +312,18 @@ autonomous-status
 1. Interrupt the current call (Ctrl+C)
 2. Do the requested task directly instead of delegating
 3. Log the issue in LEARNINGS.md
+
+### Skills vs Shell Commands
+
+**Use `/codex` and `/gemini` skills when:**
+- Working within a Claude Code session
+- You want automatic background execution
+- You want integrated task management
+
+**Use shell commands (`codex-review`, `gemini-review`) when:**
+- Running from terminal outside Claude Code
+- Codex is calling Claude (Codex doesn't have skills)
+- You need direct control over command flags
 
 ---
 

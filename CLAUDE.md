@@ -92,6 +92,8 @@ The kit organizes Claude's capabilities in three layers:
 **Skills** (`skills/` → `~/.claude/skills/`): Require conversation context and user interaction.
 - `brainstorming` — Refine ideas into designs through dialogue
 - `writing-plans` — Create detailed implementation plans
+- `codex` — Delegate to OpenAI Codex for reviews, debugging help, second opinions
+- `gemini` — Delegate to Google Gemini for reviews, debugging help, second opinions
 - `ticket-builder` — Execute a single plan task in an isolated worktree
 - `using-git-worktrees` — Isolated workspaces for risky changes
 - `finishing-a-development-branch` — Clean up for merge/PR

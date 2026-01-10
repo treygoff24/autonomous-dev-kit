@@ -129,6 +129,8 @@ Skills at `~/.claude/skills/` require conversation context and user interaction.
 |-------|---------|
 | `/brainstorming` | Refine vague ideas into concrete designs |
 | `/writing-plans` | Create detailed implementation plans |
+| `/codex` | Delegate to OpenAI Codex for reviews, debugging, second opinions |
+| `/gemini` | Delegate to Google Gemini for reviews, debugging, second opinions |
 | `/using-git-worktrees` | Isolated workspaces for risky changes |
 | `/finishing-a-development-branch` | Clean up for merge/PR |
 | `/requesting-code-review` | Request review before proceeding |
@@ -244,20 +246,25 @@ Task:
 
 ### Step 4: Get the Spec Reviewed
 
+**Within Claude Code (preferred):**
+
+Use the `/codex` and `/gemini` skills for cross-agent reviews:
+
+```
+/codex Review SPEC.md for completeness, clarity, technical feasibility, edge cases, and testable acceptance criteria. Output: Critical gaps / Ambiguities / Suggestions / Verdict (approve or revise).
+```
+
+```
+/gemini Review SPEC.md for completeness, clarity, technical feasibility, edge cases, and testable acceptance criteria. Output: Critical gaps / Ambiguities / Suggestions / Verdict (approve or revise).
+```
+
+**From terminal (outside Claude Code):**
+
 ```bash
 claude-review 'SPEC.md review'
 ```
 
-Or manually:
-
-Note: The command below uses maximum autonomy flags. Remove them if you want confirmation prompts.
-
-```bash
-claude -p --model opus --dangerously-skip-permissions --output-format text \
-  "Review the specification at SPEC.md. Evaluate for: completeness, clarity, technical feasibility, edge cases, and testable acceptance criteria. Output: Critical gaps / Ambiguities / Suggestions / Verdict (approve or revise)."
-```
-
-Fix any issues Claude identifies, then repeat until approved.
+Fix any issues identified, then repeat until approved.
 
 ### Step 5: Create the Implementation Plan
 
@@ -330,11 +337,20 @@ Use `plan-executor` for sequential tasks or when multiple tasks touch the same f
 
 ### Step 6: Get the Plan Reviewed
 
-Note: The command below uses maximum autonomy flags. Remove them if you want confirmation prompts.
+**Within Claude Code (preferred):**
+
+```
+/codex Review IMPLEMENTATION_PLAN.md against SPEC.md. Check for: correct sequencing, completeness, phase sizing, and risk identification. Output: Issues / Suggestions / Verdict (approve or revise).
+```
+
+```
+/gemini Review IMPLEMENTATION_PLAN.md against SPEC.md. Check for: correct sequencing, completeness, phase sizing, and risk identification. Output: Issues / Suggestions / Verdict (approve or revise).
+```
+
+**From terminal (outside Claude Code):**
 
 ```bash
-claude -p --model opus --dangerously-skip-permissions --output-format text \
-  "Review IMPLEMENTATION_PLAN.md against SPEC.md. Check for: correct sequencing, completeness, phase sizing, and risk identification. Output: Issues / Suggestions / Verdict (approve or revise)."
+claude-review 'Implementation plan review'
 ```
 
 ### Step 7: Start the Autonomous Build
