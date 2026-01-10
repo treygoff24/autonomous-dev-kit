@@ -1,18 +1,13 @@
 #!/usr/bin/env bash
 #
-# Stop Hook: Legacy shell-based hook (DEPRECATED)
+# Stop Hook: Minimal stub (Claude Code 2.1+ required)
 #
-# As of Claude Code 2.1+, Stop hooks should be defined as prompt-based hooks
-# in skill/agent frontmatter. This shell script is kept only for backward
-# compatibility with Claude Code <2.1.
+# This script always approves exit. Completion enforcement is handled by
+# prompt-based Stop hooks in skill/agent frontmatter, which require Claude
+# Code 2.1+.
 #
-# For 2.1+ users:
-# - autonomous-loop skill has a prompt-based Stop hook that enforces completion
-# - Individual agents (tdd-implementer, debugger, plan-executor) have their own
-#   Stop hooks that verify discipline was followed
-#
-# This stub simply approves exit. The intelligent completion checking is done
-# by the Sonnet model in prompt-based hooks.
+# Users on Claude Code <2.1 will not have completion enforcement.
+# Upgrade to 2.1+ for full autonomous loop functionality.
 #
 
 set -euo pipefail
