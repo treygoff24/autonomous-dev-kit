@@ -8,15 +8,27 @@ Bootstrap repo for autonomous AI-assisted development. Contains install scripts,
 
 ## Repository Structure
 
-- `install.sh` — Main installer (Homebrew, CLI tools, Node.js, Claude Code CLI, shell config, hooks)
-- `agents/` — Custom agent definitions for isolated execution (→ `~/.claude/agents/`)
-- `rules/` — Auto-loaded standards based on file patterns (→ `~/.claude/rules/`)
-- `skills/` — Interactive workflows requiring conversation context (→ `~/.claude/skills/`)
-- `hooks/` — Claude Code hooks for session continuity (pre-compact.sh, session-start.sh, stop.sh)
-- `templates/` — Protocol documents (AUTONOMOUS_BUILD_CLAUDE_v2.md, CONTEXT_TEMPLATE.md, etc.)
-- `shell/` — Shell aliases and functions (functions.zsh, aliases.zsh)
-- `docs/` — User documentation (GETTING_STARTED.md, WORKFLOW_REFERENCE.md, TROUBLESHOOTING.md)
-- `examples/todo-app/` — Worked example with full build cycle
+```
+autonomous-dev-kit/
+├── install.sh          # Main installer
+├── agents/             # Agent definitions (→ ~/.claude/agents/)
+├── skills/             # Skill definitions (→ ~/.claude/skills/)
+├── rules/              # Auto-loaded rules (→ ~/.claude/rules/)
+├── hooks/              # Claude Code hooks
+│   └── lib/            # Hook helper scripts (cheatsheet, loop-helpers)
+├── shell/              # Shell aliases and functions
+├── templates/          # Protocol templates for user projects
+├── tests/              # Test scripts
+├── examples/           # Worked examples
+│   └── todo-app/
+├── docs/
+│   ├── GETTING_STARTED.md
+│   ├── WORKFLOW_REFERENCE.md
+│   ├── TROUBLESHOOTING.md
+│   └── archive/        # Historical plans and research
+└── thoughts/
+    └── handoffs/       # Auto-generated session handoffs
+```
 
 ## Key Commands
 

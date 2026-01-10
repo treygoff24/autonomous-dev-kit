@@ -330,8 +330,8 @@ detect_updates() {
         "session-start hook|$SCRIPT_DIR/hooks/session-start.sh|$claude_dir/hooks/session-start.sh"
         "user-prompt-submit hook|$SCRIPT_DIR/hooks/user-prompt-submit.sh|$claude_dir/hooks/user-prompt-submit.sh"
         "stop hook|$SCRIPT_DIR/hooks/stop.sh|$claude_dir/hooks/stop.sh"
-        "loop helpers library|$SCRIPT_DIR/lib/loop-helpers.sh|$claude_dir/lib/loop-helpers.sh"
-        "autonomous loop cheatsheet|$SCRIPT_DIR/lib/cheatsheet.md|$claude_dir/lib/cheatsheet.md"
+        "loop helpers library|$SCRIPT_DIR/hooks/lib/loop-helpers.sh|$claude_dir/lib/loop-helpers.sh"
+        "autonomous loop cheatsheet|$SCRIPT_DIR/hooks/lib/cheatsheet.md|$claude_dir/lib/cheatsheet.md"
     )
 
     for item in "${file_items[@]}"; do
@@ -1160,8 +1160,8 @@ setup_claude_directory_full() {
     install_file_with_prompt "$SCRIPT_DIR/hooks/stop.sh" "$claude_dir/hooks/stop.sh" "stop hook"
 
     # Install lib files for autonomous loop
-    install_file_with_prompt "$SCRIPT_DIR/lib/loop-helpers.sh" "$claude_dir/lib/loop-helpers.sh" "loop helpers library"
-    install_file_with_prompt "$SCRIPT_DIR/lib/cheatsheet.md" "$claude_dir/lib/cheatsheet.md" "autonomous loop cheatsheet"
+    install_file_with_prompt "$SCRIPT_DIR/hooks/lib/loop-helpers.sh" "$claude_dir/lib/loop-helpers.sh" "loop helpers library"
+    install_file_with_prompt "$SCRIPT_DIR/hooks/lib/cheatsheet.md" "$claude_dir/lib/cheatsheet.md" "autonomous loop cheatsheet"
 
     # Make hooks executable
     if [ -f "$claude_dir/hooks/pre-compact.sh" ]; then
@@ -1506,14 +1506,14 @@ setup_claude_directory_additive() {
                     fi
                     ;;
                 *"/loop-helpers.sh")
-                    if [ -f "$SCRIPT_DIR/lib/loop-helpers.sh" ]; then
-                        run cp "$SCRIPT_DIR/lib/loop-helpers.sh" "$claude_dir/lib/loop-helpers.sh"
+                    if [ -f "$SCRIPT_DIR/hooks/lib/loop-helpers.sh" ]; then
+                        run cp "$SCRIPT_DIR/hooks/lib/loop-helpers.sh" "$claude_dir/lib/loop-helpers.sh"
                         success "Installed loop helpers library"
                     fi
                     ;;
                 *"/cheatsheet.md")
-                    if [ -f "$SCRIPT_DIR/lib/cheatsheet.md" ]; then
-                        run cp "$SCRIPT_DIR/lib/cheatsheet.md" "$claude_dir/lib/cheatsheet.md"
+                    if [ -f "$SCRIPT_DIR/hooks/lib/cheatsheet.md" ]; then
+                        run cp "$SCRIPT_DIR/hooks/lib/cheatsheet.md" "$claude_dir/lib/cheatsheet.md"
                         success "Installed autonomous loop cheatsheet"
                     fi
                     ;;
