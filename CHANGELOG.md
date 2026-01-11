@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-01-11
+
+### Added
+
+- **Orchestrator framing** — Establishes Claude's identity as an orchestrator who delegates to skills and subagents
+  - New "Your Role: Orchestrator" section in `CLAUDE.md` with decision table
+  - New "Your Identity: Orchestrator" section in `AUTONOMOUS_BUILD_CLAUDE.md` with decision tree
+  - Skills-first guidance: "Before doing any work, check if there's a skill for it"
+  - Anti-patterns showing wrong (direct implementation) vs right (delegation) approaches
+
+### Changed
+
+- **Protocol file renames** — Removed `_v2` suffix for cleaner naming
+  - `AUTONOMOUS_BUILD_CLAUDE_v2.md` → `AUTONOMOUS_BUILD_CLAUDE.md`
+  - `AUTONOMOUS_BUILD_CODEX_v2.md` → `AUTONOMOUS_BUILD_CODEX.md`
+  - Updated all references in shell functions, hooks, and documentation
+
+- **Context continuity files** — Added orchestrator reminders
+  - `templates/CONTEXT_TEMPLATE.md` — Skills-first protocol reminder section
+  - `hooks/lib/cheatsheet.md` — Reorganized with skills as primary interface
+  - `hooks/session-start.sh` — Orchestrator reminder on session resume
+
+- **Documentation updates**
+  - Consistent "skills first, agents when you need fine control" messaging
+  - Decision trees showing when to use skills vs direct agent spawns
+
+---
+
 ## [1.2.1] - 2026-01-11
 
 ### Added
