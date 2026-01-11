@@ -291,6 +291,82 @@ Say any of:
 
 This clears the state file and allows normal exit behavior.
 
+### How This Compares to Ralph Wiggum
+
+[Ralph Wiggum](https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum) is Anthropic's official autonomous loop plugin for Claude Code. We took what works from Ralph and improved it in every way that matters for real production builds.
+
+**What Ralph Does**
+
+Ralph implements a simple loop: Claude works → tries to exit → Stop hook blocks exit (exit code 2) → re-feeds the same prompt → repeat. The genius insight is that Claude reads its own modified files and git history to understand what to improve next. The prompt never changes—context accumulates in the filesystem.
+
+```
+User: /ralph-loop "Build X" --completion-promise "DONE" --max-iterations 50
+                    ↓
+              Claude works
+                    ↓
+              Tries to exit
+                    ↓
+         Stop hook blocks (exit 2)
+                    ↓
+          Re-feeds same prompt
+                    ↓
+         (loop until "DONE" found)
+```
+
+**What We Improved**
+
+| Aspect | Ralph Wiggum | This Kit |
+|--------|--------------|----------|
+| **Completion detection** | Exact string match (`<promise>DONE</promise>`) | Sonnet evaluates "is this actually done?" |
+| **What gets checked** | Just the completion string | Git clean + quality gates + plan tasks + code review |
+| **Task scope** | Single-task loops | Multi-phase builds (Spec → Plan → Implement → Verify) |
+| **Context survival** | Filesystem only | Hooks inject handoffs + learnings after compaction |
+| **Protocol drift** | No protection | Verification codes + protocol re-reads every 3 iterations |
+| **Cross-agent review** | None | `/codex` and `/gemini` for independent verification |
+| **Stuck detection** | None | Pauses after 5 iterations with no progress |
+| **Quality gates** | None | Configurable `.claude-quality-gates` file |
+
+**The Core Difference: Intelligent Completion**
+
+Ralph uses exact string matching. If Claude outputs `<promise>DONE</promise>`, the loop ends—whether or not the work is actually done.
+
+We use **prompt-based Stop hooks** where Sonnet evaluates completion:
+
+```yaml
+hooks:
+  Stop:
+    - type: prompt
+      model: sonnet
+      prompt: |
+        You are about to exit. Verify the work is ACTUALLY COMPLETE.
+
+        1. Run `git status` — uncommitted changes = not done
+        2. Run quality gates — failures = not done
+        3. Check IMPLEMENTATION_PLAN.md — unchecked boxes = not done
+        4. Would you ship this to production right now?
+```
+
+This catches:
+- "Tests pass" claims when tests weren't run
+- "Complete" claims with uncommitted changes
+- Phase completions with unchecked plan tasks
+- Half-done work that looks finished
+
+**When to Use Ralph vs This Kit**
+
+| Use Ralph When | Use This Kit When |
+|----------------|-------------------|
+| Single well-defined task | Multi-phase feature builds |
+| Clear mechanical completion ("tests pass") | Complex completion criteria |
+| Quick iteration loops | Production-quality requirements |
+| You want minimal setup | You want quality enforcement |
+
+Ralph is a scalpel. This kit is an operating room.
+
+**Can They Work Together?**
+
+Yes. Ralph handles tight inner loops ("iterate until this test passes"), while this kit manages the outer structure (phases, reviews, cross-agent verification). The approaches are complementary—Ralph for tactical iteration, this kit for strategic builds.
+
 ---
 
 ## Quality Gates
