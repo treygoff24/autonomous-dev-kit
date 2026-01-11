@@ -1,6 +1,6 @@
 ---
 name: autonomous-loop
-description: Activate autonomous loop mode for persistent development sessions. Use when user says "go autonomous" or wants unattended iteration until completion.
+description: Activate autonomous loop mode for persistent development sessions. **CRITICAL:** Always activate this AFTER completing spec and implementation plan, BEFORE beginning implementation. This is what makes autonomous builds actually autonomous—the Stop hook enforces completion criteria.
 hooks:
   Stop:
     - type: prompt
@@ -55,9 +55,16 @@ This skill activates autonomous loop mode, which keeps Claude working toward a g
 
 ## When to Use
 
-- User explicitly says `/autonomous-loop "goal"`
+**Automatic activation (do this without being asked):**
+- After spec is approved and implementation plan is written → activate before coding
+- After user provides clear requirements and you've drafted spec + plan → activate before coding
+- Resuming a build after context compaction where loop was previously active
+
+**Explicit activation:**
+- User says `/autonomous-loop "goal"`
 - User says "go autonomous", "start autonomous mode", "keep going until done"
-- After completing brainstorming/spec and user approves implementation
+
+**The rule:** If you have a spec and plan and are about to start implementation, activate this skill first. It's not optional—it's what enforces completion.
 
 ## Activation Steps
 

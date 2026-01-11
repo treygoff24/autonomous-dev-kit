@@ -146,8 +146,8 @@ Example:
     if [[ -f "AUTONOMOUS_BUILD_CLAUDE.md" ]]; then
         echo "  AUTONOMOUS_BUILD_CLAUDE.md already exists, skipping"
     else
-        if [[ -f "$kit_dir/AUTONOMOUS_BUILD_CLAUDE_v2.md" ]]; then
-            if cp "$kit_dir/AUTONOMOUS_BUILD_CLAUDE_v2.md" AUTONOMOUS_BUILD_CLAUDE.md; then
+        if [[ -f "$kit_dir/AUTONOMOUS_BUILD_CLAUDE.md" ]]; then
+            if cp "$kit_dir/AUTONOMOUS_BUILD_CLAUDE.md" AUTONOMOUS_BUILD_CLAUDE.md; then
                 echo "  Created AUTONOMOUS_BUILD_CLAUDE.md"
             else
                 echo "  Warning: failed to create AUTONOMOUS_BUILD_CLAUDE.md"
@@ -158,8 +158,8 @@ Example:
     if [[ -f "AUTONOMOUS_BUILD_CODEX.md" ]]; then
         echo "  AUTONOMOUS_BUILD_CODEX.md already exists, skipping"
     else
-        if [[ -f "$kit_dir/AUTONOMOUS_BUILD_CODEX_v2.md" ]]; then
-            if cp "$kit_dir/AUTONOMOUS_BUILD_CODEX_v2.md" AUTONOMOUS_BUILD_CODEX.md; then
+        if [[ -f "$kit_dir/AUTONOMOUS_BUILD_CODEX.md" ]]; then
+            if cp "$kit_dir/AUTONOMOUS_BUILD_CODEX.md" AUTONOMOUS_BUILD_CODEX.md; then
                 echo "  Created AUTONOMOUS_BUILD_CODEX.md"
             else
                 echo "  Warning: failed to create AUTONOMOUS_BUILD_CODEX.md"

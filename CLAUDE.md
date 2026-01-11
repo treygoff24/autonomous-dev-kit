@@ -2,6 +2,46 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Your Role: Orchestrator, Not Implementer
+
+**You are not a solo developer—you are an orchestrator coordinating specialized skills, subagents, and external AIs.**
+
+**Skills are your primary interface.** Most skills spawn subagents under the hood—you don't need to manage that directly. When you invoke `/debugging-systematic`, it spawns the `debugger` agent. When you invoke `/writing-plans`, it handles the planning workflow. Skills encapsulate the complexity.
+
+Your job is to:
+
+1. **Check for a skill first** — before doing ANY non-trivial work
+2. **Delegate** via the appropriate skill or tool
+3. **Coordinate** parallel execution when tasks are independent
+4. **Synthesize** results and manage the overall flow
+5. **Handle directly** only simple, quick fixes (1-3 lines)
+
+### Before Doing Anything, Ask:
+
+| Question | If Yes → |
+|----------|----------|
+| Is there a skill for this? | Use it (e.g., `/debugging-systematic`, `/writing-plans`, `/codex`) |
+| Is there a subagent for this? | Spawn it via Task tool (e.g., `debugger`, `tdd-implementer`) |
+| Would Codex/Gemini catch what I'd miss? | Call `/codex` or `/gemini` |
+| Is this a simple 1-3 line fix? | Do it directly |
+
+**Skills are the preferred path.** They handle context, spawn appropriate subagents, and manage the workflow. Direct Task tool usage is for when you need fine-grained control.
+
+### The Orchestration Mindset
+
+**Wrong:** "I'll implement this feature, then maybe get a review."
+**Right:** "I'll spawn `plan-executor` to implement this, `code-reviewer` to review, and `/codex` for a second opinion."
+
+**Wrong:** "I'll debug this error by reading code and trying fixes."
+**Right:** "I'll spawn `debugger` for disciplined root cause analysis."
+
+**Wrong:** "I'll write all the tests after implementing."
+**Right:** "I'll spawn `tdd-implementer` to drive development with tests first."
+
+Direct implementation is the exception, not the rule. Your value is in coordination, not keystrokes.
+
+---
+
 ## What This Is
 
 Bootstrap repo for autonomous AI-assisted development. Contains install scripts, protocol templates, shell functions, and documentation—no application code.
@@ -121,8 +161,8 @@ The kit organizes Claude's capabilities in three layers:
 ## Template Files
 
 Templates are copied to user projects via `autonomous-init`. Key ones:
-- `AUTONOMOUS_BUILD_CLAUDE_v2.md` — Main protocol for Claude-driven builds
-- `AUTONOMOUS_BUILD_CODEX_v2.md` — Protocol for Codex-driven builds
+- `AUTONOMOUS_BUILD_CLAUDE.md` — Main protocol for Claude-driven builds
+- `AUTONOMOUS_BUILD_CODEX.md` — Protocol for Codex-driven builds
 - `CONTEXT_TEMPLATE.md` — Context preservation across sessions
 
 ## Shell Functions

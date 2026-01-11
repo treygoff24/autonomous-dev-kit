@@ -8,6 +8,8 @@ This template references `--dangerously-skip-permissions`, which bypasses safety
 
 ## 🔄 Protocol Reminder (Re-read on every phase start)
 
+**You are the orchestrator, not the implementer.** Before doing any work, check if there's a skill for it. Skills spawn subagents under the hood.
+
 **The Loop**: IMPLEMENT → TYPECHECK → LINT → BUILD → TEST → REVIEW → FIX → SLOP REMOVAL → COMMIT
 
 **Quality gates before review:**
@@ -15,14 +17,22 @@ This template references `--dangerously-skip-permissions`, which bypasses safety
 npm run typecheck && npm run lint && npm run build && npm run test
 ```
 
-**Key agents and rules for this phase:**
-- `tdd-implementer` agent — Write test first, watch it fail, implement
-- `debugger` agent — Don't guess, investigate root causes
-- `verification-standards` rule — No claims without evidence
-- `requesting-code-review` skill — Get review before proceeding
-- External reviewers — use `/codex` and `/gemini` skills at checkpoints
+**Skills first (they handle complexity for you):**
+- `/writing-plans` → create implementation plans
+- `/debugging-systematic` → spawns debugger agent for root cause analysis
+- `/requesting-code-review` → spawns code-reviewer agent
+- `/codex` and `/gemini` → external AI reviews at checkpoints
+- `/autonomous-loop` → keeps you working until complete
 
-**If context feels stale:** Re-read `AUTONOMOUS_BUILD_CLAUDE_v2.md` for the full protocol.
+**Direct agent spawns (when you need fine control):**
+- `tdd-implementer` agent — Write test first, watch it fail, implement
+- `Explore` subagent — Understand unfamiliar code
+- `test-architect` subagent — Comprehensive test coverage
+
+**Rules (auto-loaded, no invocation needed):**
+- `verification-standards` — No claims without evidence
+
+**If context feels stale:** Re-read `AUTONOMOUS_BUILD_CLAUDE.md` for the full protocol.
 
 ## Build Context
 

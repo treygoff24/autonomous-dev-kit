@@ -1,7 +1,8 @@
 ## AUTONOMOUS BUILD MODE ACTIVE
 
-You are in an autonomous build session. This cheat sheet summarizes
-AUTONOMOUS_BUILD_CLAUDE.md — re-read the full protocol if anything is unclear.
+**You are the orchestrator, not the implementer.** Before doing any work, check if there's a skill for it. Skills spawn subagents under the hood.
+
+Re-read AUTONOMOUS_BUILD_CLAUDE.md if anything is unclear.
 
 DO NOT STOP until completion criteria are met. Execute with precision.
 
@@ -10,39 +11,31 @@ DO NOT STOP until completion criteria are met. Execute with precision.
 **Implementation Loop (every phase):**
 IMPLEMENT → TYPECHECK → LINT → BUILD → TEST → REVIEW → SLOP REMOVAL → COMMIT
 
-**Codex = External AI Reviewer:**
-Codex is OpenAI's coding model. Call it for external review at checkpoints.
-May take up to 30 min to respond. Wait for the full response.
+**Skills first (they handle complexity for you):**
+- `/writing-plans` → create implementation plans
+- `/debugging-systematic` → spawns debugger agent for root cause analysis
+- `/requesting-code-review` → spawns code-reviewer agent
+- `/codex` → external AI review (may take 30 min, wait for response)
+- `/gemini` → third-party AI review
+- `/autonomous-loop` → keeps you working until complete
 
-Mandatory checkpoints:
+Mandatory external review checkpoints (`/codex` + `/gemini`):
 - After drafting spec
 - After drafting implementation plan
 - After completing each phase
 - Before declaring build complete
 - When stuck 3+ times on same error
 
-Syntax:
-codex exec --model gpt-5.2-codex --config model_reasoning_effort="xhigh" --yolo "<PROMPT>"
+**Direct agent spawns (when you need fine control):**
+- `tdd-implementer` agent → red-green-refactor TDD
+- `Explore` subagent → understand unfamiliar code
+- `bug-hunter` subagent → first step when hitting errors
+- `security-auditor` subagent → auth, inputs, sensitive changes
+- `accessibility-auditor` subagent → UI changes
+- `test-architect` subagent → comprehensive test coverage
 
-**Gemini = External AI Reviewer:**
-Gemini is the third-party reviewer. Pipe in the diff (and spec/plan if needed).
-
-Syntax:
-git diff | gemini -p "<PROMPT>" --output-format text
-
-**Subagents (spawn via Task tool):**
-- code-reviewer → after each phase (before Codex)
-- bug-hunter → first step when hitting errors
-- Explore → understand unfamiliar code
-- security-auditor → auth, inputs, sensitive changes
-- accessibility-auditor → UI changes
-- test-architect → comprehensive test coverage
-
-**Agents & Rules:**
-- Stuck in error loop → spawn `debugger` agent
-- Writing tests → spawn `tdd-implementer` agent (red-green-refactor)
-- Before claiming done → follow verification-standards rule
-- UI work → frontend-design skill + accessibility-checklist skill
+**Rules (auto-loaded):**
+- `verification-standards` — No claims without evidence
 
 **Context Hygiene:**
 - Update CONTEXT.md 2x per phase minimum
@@ -54,4 +47,4 @@ git diff | gemini -p "<PROMPT>" --output-format text
 - Respond with `<verified code="####"/>` using that code
 
 **Completion Criteria:**
-All phases complete + all quality gates pass + Codex + Gemini final verdict "ship it"
+All phases complete + all quality gates pass + `/codex` + `/gemini` final verdict "ship it"

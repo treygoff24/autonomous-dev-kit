@@ -189,6 +189,8 @@ fi
 # 5. Add session resume reminder
 CONTEXT="${CONTEXT}## Session Resumed
 
+**Remember: You are the orchestrator, not the implementer.** Before doing any work, check if there's a skill for it. Skills spawn subagents under the hood.
+
 Context was restored automatically. If anything feels stale:
 - Re-read CONTEXT.md for current state
 - Re-read AUTONOMOUS_BUILD_CLAUDE.md for the full protocol

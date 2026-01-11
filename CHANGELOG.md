@@ -115,8 +115,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dry-run mode for previewing changes
 
 - **Protocol templates**
-  - `AUTONOMOUS_BUILD_CLAUDE_v2.md` - Claude-primary autonomous build protocol
-  - `AUTONOMOUS_BUILD_CODEX_v2.md` - Codex-primary autonomous build protocol
+  - `AUTONOMOUS_BUILD_CLAUDE.md` - Claude-primary autonomous build protocol
+  - `AUTONOMOUS_BUILD_CODEX.md` - Codex-primary autonomous build protocol
   - `SPEC_WRITING.md` - Guide for writing specifications
   - `IMPLEMENTATION_PLAN_WRITING.md` - Guide for creating phased plans
   - `CONTEXT_TEMPLATE.md` - Template for context preservation
