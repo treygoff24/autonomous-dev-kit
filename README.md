@@ -80,6 +80,8 @@ I put quite a lot of thought and trial and error into when to make something an 
 | --------------------------------- | ----------------------------------------------------------------------------- |
 | `/brainstorming`                  | Turns fuzzy ideas into concrete options and decisions so specs start strong.  |
 | `/writing-plans`                  | Creates phased implementation plans with clear tasks and acceptance criteria. |
+| `/codex`                          | Delegates work to OpenAI Codex CLI for second opinions and cross-reviews.     |
+| `/gemini`                         | Delegates work to Google Gemini CLI for second opinions and cross-reviews.    |
 | `/using-git-worktrees`            | Guides creation of isolated worktrees for risky or parallel changes.          |
 | `/finishing-a-development-branch` | Runs a cleanup checklist so branches are merge-ready.                         |
 | `/requesting-code-review`         | Packages the diff for a review agent and gets a structured verdict.           |
