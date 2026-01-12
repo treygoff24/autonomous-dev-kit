@@ -1877,44 +1877,100 @@ verify_installation() {
         warn "$HOME/.claude directory not found"
     fi
 
-    # Check skills
+    # Check skills (only count kit skills, not plugins/other sources)
     local skills_dir="$HOME/.claude/skills"
-    if [ -d "$skills_dir" ]; then
-        local skill_count=$(find "$skills_dir" -maxdepth 1 -type d | wc -l)
-        skill_count=$((skill_count - 1))  # Subtract 1 for the directory itself
-        if [ $skill_count -gt 0 ]; then
-            success "$skill_count skills installed in $skills_dir"
+    local skills_src="$SCRIPT_DIR/skills"
+    if [ -d "$skills_dir" ] && [ -d "$skills_src" ]; then
+        local kit_skills_total=0
+        local kit_skills_installed=0
+        local missing_skills=()
+        for skill_dir in "$skills_src"/*/; do
+            if [ -d "$skill_dir" ]; then
+                kit_skills_total=$((kit_skills_total + 1))
+                local skill_name=$(basename "$skill_dir")
+                if [ -d "$skills_dir/$skill_name" ]; then
+                    kit_skills_installed=$((kit_skills_installed + 1))
+                else
+                    missing_skills+=("$skill_name")
+                fi
+            fi
+        done
+        if [ $kit_skills_installed -eq $kit_skills_total ]; then
+            success "$kit_skills_installed/$kit_skills_total kit skills installed"
         else
-            warn "No skills found in $skills_dir"
+            warn "$kit_skills_installed/$kit_skills_total kit skills installed"
+            for missing in "${missing_skills[@]}"; do
+                warn "  missing: $missing"
+            done
+            all_good=false
         fi
     else
         warn "Skills directory not found"
+        all_good=false
     fi
 
-    # Check agents
+    # Check agents (only count kit agents)
     local agents_dir="$HOME/.claude/agents"
-    if [ -d "$agents_dir" ]; then
-        local agent_count=$(find "$agents_dir" -maxdepth 1 -name "*.md" -type f | wc -l)
-        if [ $agent_count -gt 0 ]; then
-            success "$agent_count agents installed in $agents_dir"
+    local agents_src="$SCRIPT_DIR/agents"
+    if [ -d "$agents_dir" ] && [ -d "$agents_src" ]; then
+        local kit_agents_total=0
+        local kit_agents_installed=0
+        local missing_agents=()
+        for agent_file in "$agents_src"/*.md; do
+            if [ -f "$agent_file" ]; then
+                kit_agents_total=$((kit_agents_total + 1))
+                local agent_name=$(basename "$agent_file")
+                if [ -f "$agents_dir/$agent_name" ]; then
+                    kit_agents_installed=$((kit_agents_installed + 1))
+                else
+                    missing_agents+=("$agent_name")
+                fi
+            fi
+        done
+        if [ $kit_agents_installed -eq $kit_agents_total ]; then
+            success "$kit_agents_installed/$kit_agents_total kit agents installed"
         else
-            warn "No agents found in $agents_dir"
+            warn "$kit_agents_installed/$kit_agents_total kit agents installed"
+            for missing in "${missing_agents[@]}"; do
+                warn "  missing: $missing"
+            done
+            all_good=false
         fi
     else
         warn "Agents directory not found"
+        all_good=false
     fi
 
-    # Check rules
+    # Check rules (only count kit rules)
     local rules_dir="$HOME/.claude/rules"
-    if [ -d "$rules_dir" ]; then
-        local rule_count=$(find "$rules_dir" -maxdepth 1 -name "*.md" -type f | wc -l)
-        if [ $rule_count -gt 0 ]; then
-            success "$rule_count rules installed in $rules_dir"
+    local rules_src="$SCRIPT_DIR/rules"
+    if [ -d "$rules_dir" ] && [ -d "$rules_src" ]; then
+        local kit_rules_total=0
+        local kit_rules_installed=0
+        local missing_rules=()
+        for rule_file in "$rules_src"/*.md; do
+            if [ -f "$rule_file" ]; then
+                kit_rules_total=$((kit_rules_total + 1))
+                local rule_name=$(basename "$rule_file")
+                if [ -f "$rules_dir/$rule_name" ]; then
+                    kit_rules_installed=$((kit_rules_installed + 1))
+                else
+                    missing_rules+=("$rule_name")
+                fi
+            fi
+        done
+        if [ $kit_rules_installed -eq $kit_rules_total ]; then
+            success "$kit_rules_installed/$kit_rules_total kit rules installed"
         else
-            warn "No rules found in $rules_dir"
+            warn "$kit_rules_installed/$kit_rules_total kit rules installed"
+            for missing in "${missing_rules[@]}"; do
+                warn "  missing: $missing"
+            done
+            all_good=false
         fi
     else
         warn "Rules directory not found"
+        all_good=false
     fi
 
     echo ""
