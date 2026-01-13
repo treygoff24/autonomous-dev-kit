@@ -91,7 +91,7 @@ slop-check [path]        # Grep for AI cruft patterns
 The installer (`install.sh`) runs these steps in order:
 1. `detect_os` — macOS or Linux, sets SHELL_CONFIG path
 2. `install_homebrew` — Installs Homebrew if missing
-3. `install_cli_tools` — fd, fzf, bat, delta, zoxide, jq, yq, sd, ripgrep
+3. `install_cli_tools` — fd, fzf, bat, delta, jq, yq, sd, ripgrep
 4. `check_nodejs` — Installs Node.js via brew if missing, validates version 18+
 5. `install_claude_code` — `npm install -g @anthropic-ai/claude-code`
 6. `backup_shell_config` / `install_shell_config` — Adds aliases and sources functions.zsh

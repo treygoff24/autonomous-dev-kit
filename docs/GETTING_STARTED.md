@@ -59,7 +59,7 @@ cd autonomous-dev-kit
 ```
 
 The installer is interactive and will:
-- Install CLI tools (fd, fzf, bat, ripgrep, delta, zoxide, jq, yq, sd)
+- Install CLI tools (fd, fzf, bat, ripgrep, delta, jq, yq, sd)
 - Install Claude Code CLI
 - Set up shell aliases and functions
 - Create `~/.claude/` with hooks, agents, skills, rules, lib files, and templates

@@ -117,7 +117,6 @@ These CLI helpers improve workflow speed and consistency:
 | `fzf` | Fuzzy finder | Pair with `fd` or `rg` |
 | `bat` | Syntax-highlighted reader | `bat -n --paging=never file.tsx` |
 | `delta` | Git diff pager | Auto-configured as git pager |
-| `zoxide` | Smart directory jumper | `cd project` (replaces cd) |
 | `jq` / `yq` | JSON/YAML processing | `jq '.path' file.json` |
 | `sd` | Search/replace | `sd 'old' 'new' file.tsx` |
 | `rg` | Fast grep (ripgrep) | `rg 'pattern' src/` |

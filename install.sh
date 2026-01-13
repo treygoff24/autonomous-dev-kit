@@ -204,7 +204,7 @@ normalize_install_mode() {
 # -----------------------------------------------------------------------------
 
 detect_tools() {
-    local tools=("fd" "fzf" "bat" "delta" "zoxide" "jq" "yq" "sd" "rg" "entr" "mise" "direnv" "uv")
+    local tools=("fd" "fzf" "bat" "delta" "jq" "yq" "sd" "rg" "entr" "mise" "direnv" "uv")
 
     MISSING_TOOLS=()
     INSTALLED_TOOLS=()
@@ -728,7 +728,7 @@ install_homebrew() {
 }
 
 install_cli_tools() {
-    local tools=("fd" "fzf" "bat" "git-delta" "zoxide" "jq" "yq" "sd" "ripgrep" "entr" "mise" "direnv" "uv")
+    local tools=("fd" "fzf" "bat" "git-delta" "jq" "yq" "sd" "ripgrep" "entr" "mise" "direnv" "uv")
 
     info "Installing CLI tools..."
     for tool in "${tools[@]}"; do
@@ -872,15 +872,6 @@ alias gpl='git pull'
 alias cc='claude'
 alias ccr='claude --resume'
 
-# Zoxide (smart cd) - replaces cd command
-if command -v zoxide &> /dev/null; then
-    if [ -n "${ZSH_VERSION-}" ]; then
-        eval "$(zoxide init zsh --cmd cd)"
-    elif [ -n "${BASH_VERSION-}" ]; then
-        eval "$(zoxide init bash --cmd cd)"
-    fi
-fi
-
 # Direnv (auto-load .envrc)
 if command -v direnv &> /dev/null; then
     if [ -n "${ZSH_VERSION-}" ]; then
@@ -910,22 +901,17 @@ SHELL_CONFIG_EOF
 
 install_shell_config_additive() {
     local needs_aliases=false
-    local needs_zoxide=false
     local needs_functions=false
 
     if [ ${#MISSING_ALIASES[@]} -gt 0 ]; then
         needs_aliases=true
     fi
 
-    if ! grep -q "zoxide init" "$SHELL_CONFIG" 2>/dev/null; then
-        needs_zoxide=true
-    fi
-
     if ! grep -q "functions.zsh" "$SHELL_CONFIG" 2>/dev/null; then
         needs_functions=true
     fi
 
-    if ! $needs_aliases && ! $needs_zoxide && ! $needs_functions; then
+    if ! $needs_aliases && ! $needs_functions; then
         success "Shell configuration already up to date"
         return
     fi
@@ -949,18 +935,6 @@ install_shell_config_additive() {
                 additions+="$alias_line\n"
             fi
         done
-    fi
-    
-    # Add zoxide init if not already in config
-    if $needs_zoxide; then
-        additions+="\n# Zoxide (smart cd) - replaces cd command\n"
-        additions+='if command -v zoxide &> /dev/null; then\n'
-        additions+='    if [ -n "${ZSH_VERSION-}" ]; then\n'
-        additions+='        eval "$(zoxide init zsh --cmd cd)"\n'
-        additions+='    elif [ -n "${BASH_VERSION-}" ]; then\n'
-        additions+='        eval "$(zoxide init bash --cmd cd)"\n'
-        additions+='    fi\n'
-        additions+='fi\n'
     fi
 
     # Add direnv hook if not already in config
@@ -1860,7 +1834,7 @@ verify_installation() {
     local all_good=true
 
     # Check CLI tools
-    local tools=("fd" "fzf" "bat" "delta" "zoxide" "jq" "yq" "sd" "rg" "entr" "mise" "direnv" "uv")
+    local tools=("fd" "fzf" "bat" "delta" "jq" "yq" "sd" "rg" "entr" "mise" "direnv" "uv")
     for tool in "${tools[@]}"; do
         if command_exists "$tool"; then
             success "$tool installed"
