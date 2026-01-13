@@ -60,7 +60,11 @@ alias ccs='claude --model sonnet'
 
 # Initialize zoxide if available (--cmd cd replaces the cd command)
 if command -v zoxide &> /dev/null; then
-    eval "$(zoxide init zsh --cmd cd 2>/dev/null || zoxide init bash --cmd cd 2>/dev/null)"
+    if [ -n "${ZSH_VERSION-}" ]; then
+        eval "$(zoxide init zsh --cmd cd)"
+    elif [ -n "${BASH_VERSION-}" ]; then
+        eval "$(zoxide init bash --cmd cd)"
+    fi
 fi
 
 # =============================================================================
@@ -69,7 +73,11 @@ fi
 
 # Initialize direnv if available
 if command -v direnv &> /dev/null; then
-    eval "$(direnv hook zsh 2>/dev/null || direnv hook bash 2>/dev/null)"
+    if [ -n "${ZSH_VERSION-}" ]; then
+        eval "$(direnv hook zsh)"
+    elif [ -n "${BASH_VERSION-}" ]; then
+        eval "$(direnv hook bash)"
+    fi
 fi
 
 # =============================================================================

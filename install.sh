@@ -874,12 +874,20 @@ alias ccr='claude --resume'
 
 # Zoxide (smart cd) - replaces cd command
 if command -v zoxide &> /dev/null; then
-    eval "$(zoxide init zsh --cmd cd 2>/dev/null || zoxide init bash --cmd cd 2>/dev/null)"
+    if [ -n "${ZSH_VERSION-}" ]; then
+        eval "$(zoxide init zsh --cmd cd)"
+    elif [ -n "${BASH_VERSION-}" ]; then
+        eval "$(zoxide init bash --cmd cd)"
+    fi
 fi
 
 # Direnv (auto-load .envrc)
 if command -v direnv &> /dev/null; then
-    eval "$(direnv hook zsh 2>/dev/null || direnv hook bash 2>/dev/null)"
+    if [ -n "${ZSH_VERSION-}" ]; then
+        eval "$(direnv hook zsh)"
+    elif [ -n "${BASH_VERSION-}" ]; then
+        eval "$(direnv hook bash)"
+    fi
 fi
 
 # Source autonomous-dev-kit functions if they exist
@@ -947,7 +955,11 @@ install_shell_config_additive() {
     if $needs_zoxide; then
         additions+="\n# Zoxide (smart cd) - replaces cd command\n"
         additions+='if command -v zoxide &> /dev/null; then\n'
-        additions+='    eval "$(zoxide init zsh --cmd cd 2>/dev/null || zoxide init bash --cmd cd 2>/dev/null)"\n'
+        additions+='    if [ -n "${ZSH_VERSION-}" ]; then\n'
+        additions+='        eval "$(zoxide init zsh --cmd cd)"\n'
+        additions+='    elif [ -n "${BASH_VERSION-}" ]; then\n'
+        additions+='        eval "$(zoxide init bash --cmd cd)"\n'
+        additions+='    fi\n'
         additions+='fi\n'
     fi
 
@@ -955,7 +967,11 @@ install_shell_config_additive() {
     if ! grep -q "direnv hook" "$SHELL_CONFIG" 2>/dev/null; then
         additions+="\n# Direnv (auto-load .envrc)\n"
         additions+='if command -v direnv &> /dev/null; then\n'
-        additions+='    eval "$(direnv hook zsh 2>/dev/null || direnv hook bash 2>/dev/null)"\n'
+        additions+='    if [ -n "${ZSH_VERSION-}" ]; then\n'
+        additions+='        eval "$(direnv hook zsh)"\n'
+        additions+='    elif [ -n "${BASH_VERSION-}" ]; then\n'
+        additions+='        eval "$(direnv hook bash)"\n'
+        additions+='    fi\n'
         additions+='fi\n'
     fi
     
