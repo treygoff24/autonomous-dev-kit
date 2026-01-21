@@ -1,6 +1,6 @@
 # Shell Configuration
 
-This directory contains shell aliases and functions for the autonomous development workflow.
+This directory contains shell functions for the autonomous development workflow.
 
 ## Maximum Autonomy Warning
 
@@ -10,7 +10,6 @@ The `claude-review` and `codex-review` helpers run with `--dangerously-skip-perm
 
 | File | Purpose |
 |------|---------|
-| `aliases.zsh` | Common shell aliases for CLI tools, git, npm |
 | `functions.zsh` | Helper functions for autonomous builds |
 
 ## Installation
@@ -21,7 +20,6 @@ Add these lines to your `~/.zshrc` or `~/.bashrc`:
 
 ```bash
 # autonomous-dev-kit shell config
-source /path/to/autonomous-dev-kit/shell/aliases.zsh
 source /path/to/autonomous-dev-kit/shell/functions.zsh
 ```
 
@@ -29,21 +27,18 @@ Replace `/path/to/autonomous-dev-kit` with the actual path.
 
 ### Option 2: Copy to ~/.claude/
 
-The `install.sh` script copies these to `~/.claude/shell/`. You can source from there:
+The `install.sh` script copies this to `~/.claude/shell/`. You can source from there:
 
 ```bash
 # In your ~/.zshrc or ~/.bashrc
 if [ -f "$HOME/.claude/shell/functions.zsh" ]; then
     source "$HOME/.claude/shell/functions.zsh"
 fi
-if [ -f "$HOME/.claude/shell/aliases.zsh" ]; then
-    source "$HOME/.claude/shell/aliases.zsh"
-fi
 ```
 
 ### Option 3: Cherry-pick what you want
 
-Open the files and copy specific aliases or functions you want to use.
+Open the file and copy specific functions you want to use.
 
 ## Functions Reference
 
@@ -128,19 +123,17 @@ git-chore 'update deps'  # Commit with chore: prefix
 
 ## Customization
 
-These files are meant to be customized. Feel free to:
+This file is meant to be customized. Feel free to:
 
-- Remove aliases you don't use
 - Modify functions to match your workflow
 - Add your own helpers
 
 ## Shell Compatibility
 
-These files use syntax compatible with both zsh and bash. However:
+This file uses syntax compatible with both zsh and bash. However:
 
-- The aliases file is named `.zsh` but works in bash
 - Zoxide initialization auto-detects your shell
-- If you're using bash, you may want to rename them to `.sh`
+- If you're using bash, you may want to rename it to `.sh`
 
 ## Troubleshooting
 
@@ -164,12 +157,11 @@ Either:
 - Run `install.sh` to copy templates to `~/.claude/`
 - Or update the `possible_paths` array in `functions.zsh`
 
-### Functions work but aliases don't
+### Functions not available
 
-Make sure both files are sourced:
+Make sure the file is sourced:
 
 ```bash
-source /path/to/aliases.zsh
 source /path/to/functions.zsh
 ```
 

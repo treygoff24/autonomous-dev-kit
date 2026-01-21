@@ -28,8 +28,6 @@ INSTALL_MODE_SOURCE=""
 # Detection results (populated by detect_* functions)
 declare -a MISSING_TOOLS=()
 declare -a INSTALLED_TOOLS=()
-declare -a MISSING_ALIASES=()
-declare -a EXISTING_ALIASES=()
 declare -a MISSING_FILES=()
 declare -a EXISTING_FILES=()
 declare -a OUTDATED_ITEMS=()
@@ -218,54 +216,10 @@ detect_tools() {
     done
 }
 
-detect_aliases() {
-    # Define our aliases: name=value pairs
-    local -a our_aliases=(
-        "find=fd"
-        "cat=bat"
-        "diff=delta"
-        "gs=git status"
-        "gd=git diff"
-        "gds=git diff --staged"
-        "gl=git log"
-        "gco=git checkout"
-        "ga=git add"
-        "gc=git commit"
-        "gp=git push"
-        "gpl=git pull"
-        "cc=claude"
-        "ccr=claude --resume"
-    )
-    
-    MISSING_ALIASES=()
-    EXISTING_ALIASES=()
-    
-    # Get currently loaded aliases via login shell
-    local loaded_aliases=""
-    if [ -n "${ZSH_VERSION:-}" ] || [ "$SHELL" = "/bin/zsh" ] || [ "$OS" = "macos" ]; then
-        loaded_aliases=$(zsh -ilc 'alias' 2>/dev/null || true)
-    else
-        loaded_aliases=$(bash -ilc 'alias' 2>/dev/null || true)
-    fi
-    
-    for alias_def in "${our_aliases[@]}"; do
-        local alias_name="${alias_def%%=*}"
-        
-        # Check if this alias name exists in loaded aliases
-        # Aliases appear as: alias_name=... or alias_name='...'
-        if echo "$loaded_aliases" | grep -qE "^${alias_name}=|^alias ${alias_name}="; then
-            EXISTING_ALIASES+=("$alias_name")
-        else
-            MISSING_ALIASES+=("$alias_def")
-        fi
-    done
-}
-
 detect_claude_files() {
     local -a our_files=(
         "$HOME/.claude/CLAUDE.md"
         "$HOME/.claude/shell/functions.zsh"
-        "$HOME/.claude/shell/aliases.zsh"
         "$HOME/.claude/hooks/pre-compact.sh"
         "$HOME/.claude/hooks/session-start.sh"
         "$HOME/.claude/hooks/user-prompt-submit.sh"
@@ -325,7 +279,6 @@ detect_updates() {
     local -a file_items=(
         "global CLAUDE.md|$SCRIPT_DIR/templates/CLAUDE.md|$claude_dir/CLAUDE.md"
         "shell functions|$SCRIPT_DIR/shell/functions.zsh|$claude_dir/shell/functions.zsh"
-        "shell aliases|$SCRIPT_DIR/shell/aliases.zsh|$claude_dir/shell/aliases.zsh"
         "pre-compact hook|$SCRIPT_DIR/hooks/pre-compact.sh|$claude_dir/hooks/pre-compact.sh"
         "session-start hook|$SCRIPT_DIR/hooks/session-start.sh|$claude_dir/hooks/session-start.sh"
         "user-prompt-submit hook|$SCRIPT_DIR/hooks/user-prompt-submit.sh|$claude_dir/hooks/user-prompt-submit.sh"
@@ -499,7 +452,6 @@ run_detection() {
     echo ""
     
     detect_tools
-    detect_aliases
     detect_claude_files
     detect_hooks
     detect_updates
@@ -507,7 +459,6 @@ run_detection() {
 
 display_detection_summary() {
     local total_tools=$((${#INSTALLED_TOOLS[@]} + ${#MISSING_TOOLS[@]}))
-    local total_aliases=$((${#EXISTING_ALIASES[@]} + ${#MISSING_ALIASES[@]}))
     local total_files=$((${#EXISTING_FILES[@]} + ${#MISSING_FILES[@]}))
     local total_hooks=$((EXISTING_HOOKS + MISSING_HOOKS))
     
@@ -516,18 +467,6 @@ display_detection_summary() {
         echo -e "  CLI Tools:    ${GREEN}${#INSTALLED_TOOLS[@]}/${total_tools} installed${NC}"
     else
         echo -e "  CLI Tools:    ${#INSTALLED_TOOLS[@]}/${total_tools} installed ${YELLOW}(missing: ${MISSING_TOOLS[*]})${NC}"
-    fi
-    
-    # Aliases line
-    if [ ${#MISSING_ALIASES[@]} -eq 0 ]; then
-        echo -e "  Aliases:      ${GREEN}${#EXISTING_ALIASES[@]}/${total_aliases} defined${NC}"
-    else
-        # Extract just alias names from missing (they're stored as name=value)
-        local missing_names=()
-        for alias_def in "${MISSING_ALIASES[@]}"; do
-            missing_names+=("${alias_def%%=*}")
-        done
-        echo -e "  Aliases:      ${#EXISTING_ALIASES[@]}/${total_aliases} defined ${YELLOW}(missing: ${missing_names[*]})${NC}"
     fi
     
     # ~/.claude files line
@@ -596,8 +535,8 @@ prompt_install_mode() {
     fi
 
     # If everything is already installed, just inform and use additive (no-op)
-    if [ ${#MISSING_TOOLS[@]} -eq 0 ] && [ ${#MISSING_ALIASES[@]} -eq 0 ] && \
-       [ ${#MISSING_FILES[@]} -eq 0 ] && [ $MISSING_HOOKS -eq 0 ] && \
+    if [ ${#MISSING_TOOLS[@]} -eq 0 ] && [ ${#MISSING_FILES[@]} -eq 0 ] && \
+       [ $MISSING_HOOKS -eq 0 ] && \
        [ ${#OUTDATED_ITEMS[@]} -eq 0 ]; then
         success "Everything is already installed and up to date!"
         INSTALL_MODE="additive"
@@ -634,7 +573,7 @@ prompt_install_mode() {
 
     opt_additive=$option_num
     echo -e "  ${CYAN}[$opt_additive]${NC} Add missing only"
-    echo "      Install missing tools/aliases, preserve your customizations"
+    echo "      Install missing tools and shell config, preserve your customizations"
     echo ""
     option_num=$((option_num + 1))
 
@@ -789,27 +728,6 @@ backup_shell_config() {
     fi
 }
 
-# Get the full alias definition for a given alias name
-get_alias_value() {
-    local alias_name="$1"
-    case "$alias_name" in
-        find)  echo "alias find='fd'" ;;
-        cat)   echo "alias cat='bat -n --paging=never'" ;;
-        diff)  echo "alias diff='delta'" ;;
-        gs)    echo "alias gs='git status'" ;;
-        gd)    echo "alias gd='git diff'" ;;
-        gds)   echo "alias gds='git diff --staged'" ;;
-        gl)    echo "alias gl='git log --oneline -20'" ;;
-        gco)   echo "alias gco='git checkout'" ;;
-        ga)    echo "alias ga='git add'" ;;
-        gc)    echo "alias gc='git commit'" ;;
-        gp)    echo "alias gp='git push'" ;;
-        gpl)   echo "alias gpl='git pull'" ;;
-        cc)    echo "alias cc='claude'" ;;
-        ccr)   echo "alias ccr='claude --resume'" ;;
-    esac
-}
-
 install_shell_config() {
     local marker="# >>> autonomous-dev-kit >>>"
     local end_marker="# <<< autonomous-dev-kit <<<"
@@ -826,7 +744,7 @@ install_shell_config() {
         return
     fi
 
-    # Additive mode: only append missing aliases
+    # Additive mode: append missing shell configuration
     install_shell_config_additive
 }
 
@@ -852,26 +770,6 @@ install_shell_config_full() {
     shell_additions=$(cat << 'SHELL_CONFIG_EOF'
 
 # >>> autonomous-dev-kit >>>
-# CLI tool aliases
-alias find='fd'
-alias cat='bat -n --paging=never'
-alias diff='delta'
-
-# Git aliases
-alias gs='git status'
-alias gd='git diff'
-alias gds='git diff --staged'
-alias gl='git log --oneline -20'
-alias gco='git checkout'
-alias ga='git add'
-alias gc='git commit'
-alias gp='git push'
-alias gpl='git pull'
-
-# Claude shortcuts
-alias cc='claude'
-alias ccr='claude --resume'
-
 # Direnv (auto-load .envrc)
 if command -v direnv &> /dev/null; then
     if [ -n "${ZSH_VERSION-}" ]; then
@@ -900,45 +798,30 @@ SHELL_CONFIG_EOF
 }
 
 install_shell_config_additive() {
-    local needs_aliases=false
     local needs_functions=false
-
-    if [ ${#MISSING_ALIASES[@]} -gt 0 ]; then
-        needs_aliases=true
-    fi
+    local needs_direnv=false
 
     if ! grep -q "functions.zsh" "$SHELL_CONFIG" 2>/dev/null; then
         needs_functions=true
     fi
+    
+    if ! grep -q "direnv hook" "$SHELL_CONFIG" 2>/dev/null; then
+        needs_direnv=true
+    fi
 
-    if ! $needs_aliases && ! $needs_functions; then
+    if ! $needs_direnv && ! $needs_functions; then
         success "Shell configuration already up to date"
         return
     fi
 
-    if $needs_aliases; then
-        info "Adding ${#MISSING_ALIASES[@]} missing aliases to $SHELL_CONFIG..."
-    else
-        info "Adding missing shell configuration to $SHELL_CONFIG..."
-    fi
+    info "Adding missing shell configuration to $SHELL_CONFIG..."
 
     # Build the additions
     local additions=""
     additions+="\n# >>> autonomous-dev-kit (additive) >>>\n"
     
-    if $needs_aliases; then
-        for alias_def in "${MISSING_ALIASES[@]}"; do
-            local alias_name="${alias_def%%=*}"
-            local alias_line
-            alias_line=$(get_alias_value "$alias_name")
-            if [ -n "$alias_line" ]; then
-                additions+="$alias_line\n"
-            fi
-        done
-    fi
-
     # Add direnv hook if not already in config
-    if ! grep -q "direnv hook" "$SHELL_CONFIG" 2>/dev/null; then
+    if $needs_direnv; then
         additions+="\n# Direnv (auto-load .envrc)\n"
         additions+='if command -v direnv &> /dev/null; then\n'
         additions+='    if [ -n "${ZSH_VERSION-}" ]; then\n'
@@ -1075,7 +958,6 @@ setup_claude_directory_full() {
     # Backup and overwrite each file
     install_file_with_prompt "$SCRIPT_DIR/templates/CLAUDE.md" "$claude_dir/CLAUDE.md" "global CLAUDE.md"
     install_file_with_prompt "$SCRIPT_DIR/shell/functions.zsh" "$claude_dir/shell/functions.zsh" "shell functions"
-    install_file_with_prompt "$SCRIPT_DIR/shell/aliases.zsh" "$claude_dir/shell/aliases.zsh" "shell aliases"
     install_dir_with_prompt "$templates_src" "$templates_dest" "templates"
 
     # Install skills
@@ -1459,12 +1341,6 @@ setup_claude_directory_additive() {
                     if [ -f "$SCRIPT_DIR/shell/functions.zsh" ]; then
                         run cp "$SCRIPT_DIR/shell/functions.zsh" "$claude_dir/shell/functions.zsh"
                         success "Installed shell functions"
-                    fi
-                    ;;
-                *"/aliases.zsh")
-                    if [ -f "$SCRIPT_DIR/shell/aliases.zsh" ]; then
-                        run cp "$SCRIPT_DIR/shell/aliases.zsh" "$claude_dir/shell/aliases.zsh"
-                        success "Installed shell aliases"
                     fi
                     ;;
                 *"/pre-compact.sh")

@@ -56,7 +56,7 @@ autonomous-dev-kit/
 ├── rules/              # Auto-loaded rules (→ ~/.claude/rules/)
 ├── hooks/              # Claude Code hooks
 │   └── lib/            # Hook helper scripts (cheatsheet, loop-helpers)
-├── shell/              # Shell aliases and functions
+├── shell/              # Shell functions
 ├── templates/          # Protocol templates for user projects
 ├── tests/              # Test scripts
 ├── examples/           # Worked examples
@@ -94,7 +94,7 @@ The installer (`install.sh`) runs these steps in order:
 3. `install_cli_tools` — fd, fzf, bat, delta, jq, yq, sd, ripgrep
 4. `check_nodejs` — Installs Node.js via brew if missing, validates version 18+
 5. `install_claude_code` — `npm install -g @anthropic-ai/claude-code`
-6. `backup_shell_config` / `install_shell_config` — Adds aliases and sources functions.zsh
+6. `backup_shell_config` / `install_shell_config` — Sources functions.zsh and sets up direnv
 7. `setup_claude_directory` — Creates ~/.claude/ with subdirectories and installs hooks
 8. `configure_hooks` — Adds hook configuration to ~/.claude/settings.json
 9. `verify_installation` — Checks all tools installed correctly

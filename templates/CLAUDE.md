@@ -123,34 +123,6 @@ These CLI helpers improve workflow speed and consistency:
 
 ---
 
-## Shell Aliases
-
-Recommended aliases for your shell config:
-
-```bash
-# File operations
-alias find='fd'
-alias cat='bat -n --paging=never'
-alias diff='delta'
-
-# Git shortcuts
-alias gs='git status'
-alias gd='git diff'
-alias gds='git diff --staged'
-alias gl='git log --oneline -20'
-alias gco='git checkout'
-alias ga='git add'
-alias gc='git commit'
-alias gp='git push'
-alias gpl='git pull'
-
-# Claude shortcuts
-alias cc='claude'
-alias ccr='claude --resume'
-```
-
----
-
 ## When Asked for Ideas or Recommendations
 
 **ALWAYS read the relevant code FIRST before giving suggestions.**
