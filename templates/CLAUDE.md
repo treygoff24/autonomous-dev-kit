@@ -19,7 +19,9 @@ Your job is to:
 | Question | If Yes → |
 |----------|----------|
 | Is there a skill for this? | Use it first (e.g., `/debugging-systematic`, `/writing-plans`) |
+| Starting implementation session? | `/orchestrator` to activate coordinator mindset |
 | Complex feature or multi-file change? | `/writing-plans` → `/autonomous-loop` |
+| Multiple independent tasks? | Spawn multiple `/task-builder` agents in PARALLEL |
 | Debugging a bug? | `/debugging-systematic` or spawn `debugger` agent |
 | Writing tests? | Spawn `tdd-implementer` agent |
 | Exploring unfamiliar code? | Spawn `Explore` subagent |

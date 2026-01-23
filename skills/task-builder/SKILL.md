@@ -61,12 +61,13 @@ git worktree add ../wt-task-3 -b task-3
 
 ## What the Agent Does
 
-1. `TaskGet(task_id)` — Retrieves task details + metadata
-2. **Loads relevant skills** (see Skill Auto-Loading below)
-3. `TaskUpdate(status="in_progress")` — Claims the task
-4. Implements in the worktree (isolated, focused)
-5. `TaskUpdate(status="completed")` — Marks done
-6. Returns summary to orchestrator
+1. `TaskGet(task_id)` — Retrieves subject, description, blockedBy
+2. **Verify not blocked** — All blockedBy tasks must be completed; STOP if blocked
+3. **Load relevant skills** (see Skill Auto-Loading below)
+4. `TaskUpdate(status="in_progress")` — Claims the task
+5. Implements in the worktree (isolated, focused)
+6. `TaskUpdate(status="completed")` — Marks done
+7. Returns summary to orchestrator
 
 The agent does NOT commit, merge, or push. You review and integrate.
 
@@ -100,7 +101,7 @@ Task-builders automatically load domain-specific skills before implementing:
 | vanilla JS, Web Components | `vanilla-web-dev` |
 | .docx, Word document | `docx` |
 
-Use bare skill names (no `/` prefix) in metadata and Skill() calls. See `agents/task-builder.md` for complete table.
+Use bare skill names (no `/` prefix) in `skills=` parameter and Skill() calls. See `agents/task-builder.md` for the canonical routing table.
 
 ## Parallel Execution Pattern
 

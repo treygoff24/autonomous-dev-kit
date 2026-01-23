@@ -53,7 +53,7 @@ spawn next batch when tasks complete
 7. Return summary to orchestrator
 ```
 
-## Skill Loading (Step 2) — CRITICAL
+## Skill Loading (Step 3) — CRITICAL
 
 **Load domain-specific skills BEFORE implementing.** This supercharges your capabilities.
 

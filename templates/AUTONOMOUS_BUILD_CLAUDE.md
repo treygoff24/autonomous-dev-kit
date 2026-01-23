@@ -346,6 +346,8 @@ This does three critical things:
 
 **You are the orchestrator. You coordinate parallel task-builders. You do not implement.**
 
+Use `/orchestrator` at the start of implementation to activate the orchestrator mindset.
+
 ### Step 1: Create the Task DAG
 
 Read `IMPLEMENTATION_PLAN.md` and create tasks:
@@ -384,9 +386,14 @@ git worktree add ../wt-2 -b task-2
 # RIGHT (fast) - SAME MESSAGE
 /task-builder task_id=1 worktree_path=../wt-1
 /task-builder task_id=2 worktree_path=../wt-2
+
+# With explicit skill hints (optional, overrides auto-detection)
+/task-builder task_id=3 worktree_path=../wt-3 skills=threejs,react-three-fiber
 ```
 
 **If 5 tasks are unblocked, spawn 5 task-builders simultaneously.**
+
+**Skill Auto-Loading:** Task-builders automatically load domain-specific skills based on keywords in task descriptions (e.g., "modal" → `frontend-design`, "Three.js" → `threejs`). Use `skills=` to override with explicit skill names.
 
 ### Step 4: Monitor and Iterate
 

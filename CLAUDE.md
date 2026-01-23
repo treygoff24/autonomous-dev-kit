@@ -163,7 +163,7 @@ The kit organizes Claude's capabilities in three layers:
 **Agents** (`agents/` → `~/.claude/agents/`): Run in isolated context windows, can run in parallel.
 - `debugger` — Systematic debugging with root cause analysis
 - `tdd-implementer` — Test-driven development
-- `task-builder` — Execute a single task via TaskGet/TaskUpdate in isolated worktree
+- `task-builder` — Execute a single task in isolated worktree; auto-loads domain skills (threejs, frontend-design, etc.)
 - `slop-cleaner` — Remove AI-generated cruft
 - `validator` — Defense-in-depth validation
 - `root-cause-tracer` — Trace bugs backward through call stack

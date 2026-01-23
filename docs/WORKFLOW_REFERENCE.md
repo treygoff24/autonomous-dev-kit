@@ -12,6 +12,68 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 
 ---
 
+## The Orchestrator Mindset
+
+**You are the orchestrator. You coordinate specialists. You do not implement.**
+
+Use `/orchestrator` to activate this mindset at the start of implementation sessions.
+
+### Your Role
+
+| You (Orchestrator) | Specialists |
+|--------------------|-------------|
+| Create task DAG | Execute tasks (task-builder) |
+| Spawn parallel workers | Work in isolated worktrees |
+| Monitor TaskList | Return results |
+| Review and merge | Focus on one task |
+| Call external reviewers | Stay in their lane |
+
+### The Formulas
+
+```
+SPEED = PARALLELISM × FOCUS
+
+- More parallel task-builders = faster completion
+- Each task-builder focuses on ONE task = higher quality
+- You focus on coordination = no context switching
+```
+
+```
+QUALITY = INTERNAL + EXTERNAL + VERIFICATION
+
+- Internal: code-reviewer agent on every change
+- External: /codex and /gemini at checkpoints
+- Verification: tests pass, lint passes, types check
+```
+
+### Skill Auto-Loading
+
+Task-builders automatically load domain-specific skills based on keywords in task descriptions:
+
+| Keywords | Auto-Loads |
+|----------|-----------|
+| UI, UX, modal, component, form, button, frontend, interface | `frontend-design` |
+| Figma, design system, design spec | `figma:implement-design` |
+| Three.js, 3D, WebGL, scene, mesh, geometry | `threejs` |
+| R3F, Drei, react-three-fiber, Canvas | `react-three-fiber` |
+| shader, GLSL, material, fragment, vertex | `glsl-shaders` |
+| Blender, 3D model, GLB, GLTF asset | `blender-3d` |
+| AI SDK, useChat, useCompletion, streamText, generateText | `vercel-ai-sdk` |
+| React performance, Next.js, optimization, bundle | `vercel-react-best-practices` |
+| vanilla JS, no framework, Web Components | `vanilla-web-dev` |
+| Word document, .docx, document generation | `docx` |
+
+See `agents/task-builder.md` for the canonical routing table.
+
+**Note:** `skills=` is **exclusive** — if specified, it skips keyword detection entirely.
+
+Override with explicit `skills=` parameter:
+```
+/task-builder task_id=1 worktree_path=../wt-1 skills=threejs,react-three-fiber
+```
+
+---
+
 ## Workflow Diagram
 
 ```
@@ -181,9 +243,9 @@ The bash commands below are for reference when calling agents from outside Claud
 
 ---
 
-## Parallel Ticket Builder
+## Parallel Task Builder
 
-Use `/task-builder` to execute parallel-safe plan tasks in isolated worktrees.
+Use `/task-builder` to execute parallel-safe plan tasks in isolated worktrees. Task-builders automatically load domain-specific skills based on task description keywords.
 
 **Prereqs in `IMPLEMENTATION_PLAN.md`:**
 - `Parallel: yes`
@@ -191,22 +253,32 @@ Use `/task-builder` to execute parallel-safe plan tasks in isolated worktrees.
 - `Owned files:` list with no overlaps across parallel tasks
 
 **Workflow:**
-1. Create a worktree per parallel task
-2. Run `/task-builder` with the task ID and worktree path
-3. In the worktree, run tests + `git diff`, then `/requesting-code-review`
-4. Merge/cherry-pick only after review approval
+1. Create task DAG via TaskCreate + TaskUpdate for dependencies
+2. Create a worktree per unblocked task
+3. Spawn ALL task-builders IN PARALLEL (same message)
+4. Monitor TaskList for completion
+5. Review each completed task: `git diff`, tests, `/requesting-code-review`
+6. Merge only after review approval
 
 **Example:**
 ```bash
-git worktree add ../project-task-3-2 feature/task-3-2
-cd ../project-task-3-2
-/task-builder
-# Provide: Task 3.2, worktree path, owned files
-git status -sb
-git diff --stat
-npm test
+# Create worktrees for unblocked tasks
+git worktree add ../wt-1 -b task-1
+git worktree add ../wt-2 -b task-2
+
+# Spawn task-builders IN PARALLEL (same message)
+/task-builder task_id=1 worktree_path=../wt-1
+/task-builder task_id=2 worktree_path=../wt-2
+
+# With explicit skill hints (optional)
+/task-builder task_id=3 worktree_path=../wt-3 skills=threejs,react-three-fiber
+
+# After completion, review each
+cd ../wt-1 && git diff --stat && npm test
 /requesting-code-review
 ```
+
+**Skill Auto-Loading:** Task-builders detect keywords in task descriptions and auto-load matching skills (e.g., "modal" → `frontend-design`, "Three.js" → `threejs`). Use `skills=` parameter to override.
 
 ---
 

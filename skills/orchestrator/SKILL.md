@@ -195,6 +195,7 @@ These run in forked context or provide workflows without spawning agents.
 | `/finishing-a-development-branch` | Clean up branch for merge/PR |
 | `/brainstorming` | Refine ideas through collaborative dialogue |
 | `/autonomous-loop` | Activate persistent development mode |
+| `/swarm-coordinator` | Multi-session coordination via shared task list |
 | `/skill-creator` | Create new skills |
 
 ### Kit Agents (This Repo)

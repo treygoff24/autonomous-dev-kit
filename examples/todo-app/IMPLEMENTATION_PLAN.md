@@ -14,21 +14,32 @@
 
 Simple todo application with React, TypeScript, and localStorage persistence. 4 phases covering setup, data layer, UI, and polish.
 
-## Parallel Task Metadata Example
+## Parallel Task Execution Example
 
-Use this format when planning parallel work with `/task-builder`:
+Use this format when planning parallel work. The orchestrator creates a task DAG and spawns multiple `/task-builder` agents simultaneously:
 
 ```markdown
 ### Task 2.1: Define Todo type
 
-**Parallel:** no
-**Blocked by:** none
-**Owned files:** `src/types/todo.ts`
-
-**Files:**
-- Create: `src/types/todo.ts`
-- Test: `src/types/todo.test.ts`
+**Parallel:** yes (no shared files with 2.2)
+**Blocked by:** Phase 1
+**Owned files:** `src/types/todo.ts`, `src/types/todo.test.ts`
 ```
+
+```bash
+# Create worktrees for parallel tasks
+git worktree add ../wt-2-1 -b task-2-1
+git worktree add ../wt-2-2 -b task-2-2
+
+# Spawn task-builders IN PARALLEL (same message)
+/task-builder task_id=1 worktree_path=../wt-2-1
+/task-builder task_id=2 worktree_path=../wt-2-2
+
+# Optional: specify domain skills explicitly
+/task-builder task_id=3 worktree_path=../wt-3 skills=frontend-design
+```
+
+Task-builders auto-load domain skills based on keywords (e.g., "UI" → `frontend-design`).
 
 Phases below use a compact checklist format; include Parallel/Blocked by/Owned files when planning parallel execution.
 
