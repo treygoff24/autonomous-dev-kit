@@ -16,7 +16,7 @@ Simple todo application with React, TypeScript, and localStorage persistence. 4 
 
 ## Parallel Task Metadata Example
 
-Use this format when planning parallel work with `/ticket-builder`:
+Use this format when planning parallel work with `/task-builder`:
 
 ```markdown
 ### Task 2.1: Define Todo type

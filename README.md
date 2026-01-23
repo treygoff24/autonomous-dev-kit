@@ -8,7 +8,7 @@ The core idea is boring on purpose: specs, plans, checkpoints, and hard quality 
 
 I also wanted a harness that treats model choice as a tool, not a religion. Claude does the building, Codex and Gemini do cross-review, and they keep each other honest.
 
-Parallelism is handled carefully. The ticket-builder workflow pushes single tasks into isolated worktrees with explicit file ownership and a mandatory review gate. You get speed without stepping on rakes.
+Parallelism is handled carefully. The task-builder workflow pushes single tasks into isolated worktrees with explicit file ownership and a mandatory review gate. You get speed without stepping on rakes.
 
 As far as me and GPT-5.2 can tell after a quick scan, this is the only open-source harness that combines all of that in one place: continuous context, protocol enforcement, skill/agent separation, hook-based autonomy, and multi-frontier-model review. If you find another one, send it to me so I can steal the good parts and add them here.
 
@@ -49,7 +49,7 @@ Hooks keep sessions stable through compaction and restarts. Templates and skills
 - **autonomous-loop skill** — Verifies git clean, quality gates pass, plan tasks complete, no half-done work
 - **tdd-implementer agent** — Verifies TDD discipline (RED-GREEN-REFACTOR), tests pass
 - **debugger agent** — Verifies root cause identified with evidence, fix verified
-- **ticket-builder agent** — Verifies all tasks complete, quality gates between tasks, code review done
+- **task-builder agent** — Verifies all tasks complete, quality gates between tasks, code review done
 
 The bar is: "Would you ship this to production right now?" If not, exit is blocked and work continues.
 
@@ -63,12 +63,12 @@ I put quite a lot of thought and trial and error into when to make something an 
 | ----------------------- | ----------------------------------------------------------------------------------------------------- |
 | `debugger`              | Systematic debugging with root-cause analysis so fixes stick instead of chasing symptoms.             |
 | `tdd-implementer`       | Writes tests first and then implementation to reduce regressions and force clear acceptance criteria. |
-| `ticket-builder`         | Executes a plan task-by-task with quality gates so long runs stay aligned and verifiable.             |
+| `task-builder`         | Executes a plan task-by-task with quality gates so long runs stay aligned and verifiable.             |
 | `code-reviewer`         | Reviews diffs against the spec and plan to catch gaps before commits.                                 |
 | `a11y-reviewer`         | Checks UI work for accessibility issues so you do not ship obvious a11y regressions.                  |
 | `spec-reviewer`         | Audits specs for missing details and ambiguity to prevent vague builds.                               |
 | `review-triager`        | Sorts review feedback into fix-now vs later so changes stay focused.                                  |
-| `ticket-builder`        | Implements a single plan task in an isolated worktree to enable safe parallel work.                   |
+| `task-builder`        | Implements a single plan task in an isolated worktree to enable safe parallel work.                   |
 | `slop-cleaner`          | Removes boilerplate and AI cruft so the codebase stays readable.                                      |
 | `validator`             | Cross-checks changes for edge cases, tests, and safety before moving on.                              |
 | `root-cause-tracer`     | Traces failures backward through the stack to find the first wrong assumption.                        |
@@ -89,7 +89,7 @@ I put quite a lot of thought and trial and error into when to make something an 
 | `/spec-quality-checklist`         | Applies a spec completeness checklist to remove ambiguity.                    |
 | `/accessibility-checklist`        | Applies an a11y checklist to catch common UI gaps.                            |
 | `/autonomous-loop`                | Activates loop mode to keep Claude working until completion criteria pass.    |
-| `/ticket-builder`                 | Spawns ticket-builder with task and worktree context for parallel execution.  |
+| `/task-builder`                 | Spawns task-builder with task and worktree context for parallel execution.  |
 
 ### Rules (auto-loaded)
 
@@ -106,7 +106,7 @@ This kit leverages Claude Code 2.1.0 through 2.1.2 features:
 | Feature | How We Use It |
 |---------|---------------|
 | **Prompt-based Stop hooks** | Sonnet evaluates completion instead of shell scripts. Checks git, quality gates, plan completion, code review. |
-| **Agent-scoped hooks** | tdd-implementer, debugger, ticket-builder each have Stop hooks verifying their specific discipline was followed. |
+| **Agent-scoped hooks** | tdd-implementer, debugger, task-builder each have Stop hooks verifying their specific discipline was followed. |
 | **Skills auto-loading** | Skills declare dependencies (e.g., writing-plans loads brainstorming) for reference without manual invocation. |
 | **Skill hot-reload** | Edit skills in `~/.claude/skills/` and changes apply immediately without restart. |
 | **Wildcard bash permissions** | Configure `Bash(npm *)`, `Bash(git *)` patterns for flexible command allowlists. |

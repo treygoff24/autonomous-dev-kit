@@ -87,7 +87,7 @@ Custom agents at `~/.claude/agents/` provide isolated execution with fresh conte
 |-------|-------------|
 | `debugger` | Systematic debugging with root cause analysis. Use BEFORE proposing fixes. |
 | `tdd-implementer` | Test-driven development. Write failing test first. |
-| `ticket-builder` | Execute implementation plans task-by-task with quality gates. |
+| `task-builder` | Execute implementation plans task-by-task with quality gates. |
 | `code-reviewer` | Review diffs against specs/plans before commits. |
 | `a11y-reviewer` | Accessibility review for interactive UI changes. |
 | `spec-reviewer` | Spec completeness and precision review. |
@@ -127,7 +127,7 @@ Skills require conversation context and user interaction. Use for collaborative 
 | `receiving-code-review` | Handle review feedback with rigor |
 | `spec-quality-checklist` | Validate specs for precision |
 | `accessibility-checklist` | WCAG compliance for UI |
-| `ticket-builder` | Execute a single plan task in an isolated worktree |
+| `task-builder` | Execute a single plan task in an isolated worktree |
 | `autonomous-loop` | Activate autonomous loop mode with explicit goal |
 
 ### Rules (Auto-loaded)
@@ -148,7 +148,7 @@ Rules at `~/.claude/rules/` are automatically loaded based on file patterns. No 
 | Bug with reproduction | spawn `tdd-implementer` → spawn `debugger` if stuck |
 | Flaky tests | spawn `debugger` (testing-standards rule auto-loaded) |
 | Code review flow | `requesting-code-review` → `receiving-code-review` → spawn `slop-cleaner` |
-| Parallel plan tasks | `writing-plans` → **`/autonomous-loop`** → `/ticket-builder` per task → merge |
+| Parallel plan tasks | `writing-plans` → **`/autonomous-loop`** → `/task-builder` per task → merge |
 | Multiple failures | spawn multiple `parallel-investigator` agents concurrently |
 | Before commit | spawn `slop-cleaner` agent |
 
@@ -342,75 +342,92 @@ This does three critical things:
 
 ---
 
-## Set Up Task DAG (Optional but Recommended)
+## Set Up Task DAG and Execute in Parallel
 
-If your implementation plan has tasks with `Parallel:` and `Blocked by:` fields, create a task DAG for progress tracking and parallel execution. **You do this directly as the orchestrator—no subagent needed.**
+**You are the orchestrator. You coordinate parallel task-builders. You do not implement.**
 
-### Step 1: Parse the Plan and Create Tasks
+### Step 1: Create the Task DAG
 
-Read `IMPLEMENTATION_PLAN.md` and for each task, call `TaskCreate`:
+Read `IMPLEMENTATION_PLAN.md` and create tasks:
 
 ```
 For each task in plan:
-  TaskCreate(
-    subject: "Phase 1.1: Create user model",
-    description: "Full task details from plan...",
-    activeForm: "Creating user model"
-  )
-  → Returns system ID (e.g., "1")
-
+  TaskCreate(subject, description, activeForm) → system ID
   Record mapping: plan_id "1.1" → system_id "1"
+
+For each task with "Blocked by":
+  TaskUpdate(taskId, addBlockedBy=[...mapped IDs...])
 ```
 
-**Critical:** Plan IDs (1.1, 2.1) differ from system IDs (1, 2, 3). Maintain a mapping.
+### Step 2: Create Worktrees for Unblocked Tasks
 
-### Step 2: Wire Up Dependencies
+```bash
+# Find unblocked tasks
+TaskList → #1 (ready), #2 (ready), #3 (blocked)
 
-After all tasks are created, set up the dependency graph:
-
-```
-For each task with "Blocked by: Task 1.1, Task 1.2":
-  TaskUpdate(
-    taskId: system_id,
-    addBlockedBy: [mapped_system_id_for_1.1, mapped_system_id_for_1.2]
-  )
+# Create a worktree for EACH unblocked task
+git worktree add ../wt-1 -b task-1
+git worktree add ../wt-2 -b task-2
 ```
 
-### Step 3: Report the DAG
+### Step 3: SPAWN ALL TASK-BUILDERS IN PARALLEL
+
+**This is critical. Do NOT spawn one at a time.**
 
 ```
-Task DAG created:
-- #1: Create user model (ready)
-- #2: Create auth middleware (ready)
-- #3: Create login endpoint (blocked by #1, #2)
-- #4: Create register endpoint (blocked by #1)
+# WRONG (slow)
+/task-builder task_id=1 worktree=../wt-1
+# wait...
+/task-builder task_id=2 worktree=../wt-2
+# wait...
 
-2 tasks ready to start, 2 blocked.
+# RIGHT (fast) - SAME MESSAGE
+/task-builder task_id=1 worktree=../wt-1
+/task-builder task_id=2 worktree=../wt-2
 ```
 
-### Step 4: Execute
+**If 5 tasks are unblocked, spawn 5 task-builders simultaneously.**
 
-**For sequential execution:** Work through tasks in dependency order. Use `TaskUpdate` to mark `in_progress` when starting, `completed` when done.
-
-**For parallel execution:** Spawn `ticket-builder` agents for independent tasks:
+### Step 4: Monitor and Iterate
 
 ```
-# Multiple unblocked tasks with Parallel: yes?
-Spawn ticket-builder for Task #1 (in background)
-Spawn ticket-builder for Task #2 (in background)
-Wait for both to complete
-Check TaskList for newly unblocked tasks
-Repeat
+1. TaskList → see progress
+2. When tasks complete, new tasks unblock
+3. Create worktrees for newly unblocked tasks
+4. Spawn task-builders for them (IN PARALLEL)
+5. Repeat until all tasks complete
 ```
 
-### Why This Matters
+### Step 5: Review and Merge
 
-- **Progress survives compaction** — Tasks persist in `~/.claude/tasks/`
-- **Parallel execution** — Independent tasks run simultaneously
-- **Clear completion criteria** — `TaskList` shows exactly what's done/pending
-- **Multi-session support** — Share task list via `CLAUDE_CODE_TASK_LIST_ID` env var
+For each completed task:
+```bash
+cd ../wt-1
+git diff --stat
+npm test
+/requesting-code-review
+# If approved:
+git checkout main && git merge task-1
+git worktree remove ../wt-1
+```
 
-**Skip this if:** Your plan is simple/sequential with no parallel tasks. Just work through the plan directly.
+### Why Parallel Execution
+
+- **Speed**: N parallel task-builders = N× faster than sequential
+- **Quality**: Each task-builder focuses on ONE task = better code
+- **Progress**: Tasks persist in `~/.claude/tasks/` (survives compaction)
+- **Coordination**: TaskList shows exactly what's done/pending
+
+### The Orchestrator Mindset
+
+```
+YOU: coordinate, monitor, review, merge
+TASK-BUILDERS: implement (in parallel)
+CODE-REVIEWERS: verify quality
+CODEX + GEMINI: external perspective
+```
+
+Your speed comes from parallelism. Your quality comes from multiple reviewers. You don't write code—you spawn workers who write code.
 
 ---
 
@@ -648,7 +665,7 @@ If context feels stale, re-read AUTONOMOUS_BUILD_CLAUDE.md for the full protocol
 |-------|-------|
 | Spec creation | `brainstorming` skill → `spec-quality-checklist` skill → `/codex` + `/gemini` review |
 | Planning | `writing-plans` skill → `/codex` + `/gemini` review |
-| Implementation | `ticket-builder` agent, `tdd-implementer` agent, `using-git-worktrees` skill |
+| Implementation | `task-builder` agent, `tdd-implementer` agent, `using-git-worktrees` skill |
 | Debugging | `debugger` agent, `root-cause-tracer` agent, `validator` agent, `/codex` + `/gemini` for fresh perspective |
 | Quality & Review | `requesting-code-review` → `/codex` + `/gemini` review, verification-standards rule |
 | Cleanup & Completion | `slop-cleaner` agent, `finishing-a-development-branch` skill |

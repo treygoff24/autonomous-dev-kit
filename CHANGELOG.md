@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Ticket Builder parallel workflow**
-  - `ticket-builder` agent and skill for executing single plan tasks in isolated worktrees
+  - `task-builder` agent and skill for executing single plan tasks in isolated worktrees
   - Parallel task metadata (`Parallel`, `Blocked by`, `Owned files`) guidance
   - Worktree-based workflow example in `docs/WORKFLOW_REFERENCE.md`
 - **Installer update prompts**
@@ -60,9 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Writing plans guidance**
   - Owned files validation script for parallel work
-  - Execution handoff updated for ticket-builder
+  - Execution handoff updated for task-builder
 - **Documentation**
-  - Added ticket-builder references across README and getting started materials
+  - Added task-builder references across README and getting started materials
 
 ---
 

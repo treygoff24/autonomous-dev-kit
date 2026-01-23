@@ -30,7 +30,7 @@ Your job is to:
 ### The Orchestration Mindset
 
 **Wrong:** "I'll implement this feature, then maybe get a review."
-**Right:** "I'll spawn `ticket-builder` to implement this, `code-reviewer` to review, and `/codex` for a second opinion."
+**Right:** "I'll spawn `task-builder` to implement this, `code-reviewer` to review, and `/codex` for a second opinion."
 
 **Wrong:** "I'll debug this error by reading code and trying fixes."
 **Right:** "I'll spawn `debugger` for disciplined root cause analysis."
@@ -123,7 +123,7 @@ For Claude Code 2.1+, completion enforcement uses **prompt-based Stop hooks** in
 - **autonomous-loop skill** — Stop hook verifies: git clean, quality gates pass, plan tasks complete, no half-done work
 - **tdd-implementer agent** — Stop hook verifies: TDD discipline followed, tests pass, no violations
 - **debugger agent** — Stop hook verifies: root cause identified with evidence, fix verified
-- **ticket-builder agent** — Stop hook verifies: all tasks complete, quality gates between tasks, code review done
+- **task-builder agent** — Stop hook verifies: all tasks complete, quality gates between tasks, code review done
 
 **Note:** Claude Code <2.1 does not support prompt-based hooks. Users on older versions will have reduced autonomous loop enforcement. Upgrade to Claude Code 2.1+ for full completion verification.
 
@@ -142,7 +142,7 @@ The kit integrates with Claude Code's task management system (TaskCreate, TaskLi
 
 | Component | Type | Purpose |
 |-----------|------|---------|
-| `ticket-builder` | Agent + Skill | Execute single task via TaskGet/TaskUpdate |
+| `task-builder` | Agent + Skill | Execute single task via TaskGet/TaskUpdate |
 | `swarm-coordinator` | Skill | Multi-session coordination |
 | `task-helpers.sh` | Library | Safe task reading with validation |
 | `statusline-task.sh` | Hook | Show task progress in status line |
@@ -151,8 +151,8 @@ The kit integrates with Claude Code's task management system (TaskCreate, TaskLi
 
 1. Create implementation plan with `Parallel:` and `Blocked by:` fields
 2. Orchestrator creates task DAG (TaskCreate + TaskUpdate for dependencies)
-3. Spawn `ticket-builder` agents for parallel task execution
-4. Each ticket-builder uses TaskGet/TaskUpdate for progress
+3. Spawn `task-builder` agents for parallel task execution
+4. Each task-builder uses TaskGet/TaskUpdate for progress
 5. Use `/swarm-coordinator` for multi-session work
 6. Pre-compact hook captures task state for continuity
 
@@ -163,18 +163,19 @@ The kit organizes Claude's capabilities in three layers:
 **Agents** (`agents/` → `~/.claude/agents/`): Run in isolated context windows, can run in parallel.
 - `debugger` — Systematic debugging with root cause analysis
 - `tdd-implementer` — Test-driven development
-- `ticket-builder` — Execute a single task via TaskGet/TaskUpdate in isolated worktree
+- `task-builder` — Execute a single task via TaskGet/TaskUpdate in isolated worktree
 - `slop-cleaner` — Remove AI-generated cruft
 - `validator` — Defense-in-depth validation
 - `root-cause-tracer` — Trace bugs backward through call stack
 - `parallel-investigator` — Investigate independent failures concurrently
 
 **Skills** (`skills/` → `~/.claude/skills/`): Require conversation context and user interaction.
+- `orchestrator` — Activate orchestrator mode: coordinate specialists, maximize parallelism
+- `task-builder` — Execute ONE task; spawn MULTIPLE in parallel for independent tasks
 - `brainstorming` — Refine ideas into designs through dialogue
 - `writing-plans` — Create detailed implementation plans
 - `codex` — Delegate to OpenAI Codex for reviews, debugging help, second opinions
 - `gemini` — Delegate to Google Gemini for reviews, debugging help, second opinions
-- `ticket-builder` — Execute a single plan task in an isolated worktree
 - `using-git-worktrees` — Isolated workspaces for risky changes
 - `swarm-coordinator` — Multi-session coordination via shared task list
 - `finishing-a-development-branch` — Clean up for merge/PR

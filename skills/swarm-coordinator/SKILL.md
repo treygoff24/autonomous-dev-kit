@@ -4,7 +4,7 @@ description: Coordinate multiple Claude Code sessions working on the same projec
 context: conversation
 skills:
   - writing-plans
-  - ticket-builder
+  - task-builder
   - requesting-code-review
 ---
 

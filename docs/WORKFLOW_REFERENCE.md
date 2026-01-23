@@ -183,7 +183,7 @@ The bash commands below are for reference when calling agents from outside Claud
 
 ## Parallel Ticket Builder
 
-Use `/ticket-builder` to execute parallel-safe plan tasks in isolated worktrees.
+Use `/task-builder` to execute parallel-safe plan tasks in isolated worktrees.
 
 **Prereqs in `IMPLEMENTATION_PLAN.md`:**
 - `Parallel: yes`
@@ -192,7 +192,7 @@ Use `/ticket-builder` to execute parallel-safe plan tasks in isolated worktrees.
 
 **Workflow:**
 1. Create a worktree per parallel task
-2. Run `/ticket-builder` with the task ID and worktree path
+2. Run `/task-builder` with the task ID and worktree path
 3. In the worktree, run tests + `git diff`, then `/requesting-code-review`
 4. Merge/cherry-pick only after review approval
 
@@ -200,7 +200,7 @@ Use `/ticket-builder` to execute parallel-safe plan tasks in isolated worktrees.
 ```bash
 git worktree add ../project-task-3-2 feature/task-3-2
 cd ../project-task-3-2
-/ticket-builder
+/task-builder
 # Provide: Task 3.2, worktree path, owned files
 git status -sb
 git diff --stat
@@ -770,7 +770,7 @@ Skills using `context: fork` in this kit:
 - `requesting-code-review`
 - `receiving-code-review`
 - `spec-quality-checklist`
-- `ticket-builder`
+- `task-builder`
 
 ### Skills Auto-Loading
 
@@ -855,12 +855,12 @@ This ensures the TDD workflow is followed — the hook fires when the agent exit
 SessionStart hooks now receive `agent_type` when Claude is started with `--agent`:
 
 ```bash
-claude --agent ticket-builder  # agent_type = "ticket-builder"
+claude --agent task-builder  # agent_type = "task-builder"
 ```
 
 This allows hooks to customize context injection per agent. The `session-start.sh` hook in this kit uses this to inject agent-specific reminders:
 
-- `ticket-builder` → Quality gates reminder
+- `task-builder` → Quality gates reminder
 - `debugger` → Root cause investigation reminder
 - `tdd-implementer` → RED-GREEN-REFACTOR reminder
 

@@ -3,7 +3,7 @@ name: writing-plans
 description: Use when design is complete and you need detailed implementation tasks for engineers with zero codebase context - creates comprehensive implementation plans with exact file paths, complete code examples, and verification steps assuming engineer has minimal domain knowledge
 context: fork
 skills:
-  - ticket-builder
+  - task-builder
   - requesting-code-review
 hooks:
   Stop:
@@ -42,7 +42,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For Claude:** Spawn `ticket-builder` agent to implement this plan task-by-task.
+> **For Claude:** Spawn `task-builder` agent to implement this plan task-by-task.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -99,7 +99,7 @@ git add tests/path/test.py src/path/file.py
 git commit -m "feat: add specific feature"
 ```
 
-**If Parallel: yes** (ticket-builder):
+**If Parallel: yes** (task-builder):
 - Replace commit step with: "Return diff summary for orchestrator review (no commit)"
 ```
 
@@ -150,27 +150,27 @@ After saving the plan, offer execution choice:
 
 **"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
 
-**1. Execute Now (this session)** - I spawn `ticket-builder` agent per task, review between tasks, fast iteration
+**1. Execute Now (this session)** - I spawn `task-builder` agent per task, review between tasks, fast iteration
 
-**2. Parallel Session (separate)** - Open new session in worktree, spawn `ticket-builder` agent, batch execution with checkpoints
+**2. Parallel Session (separate)** - Open new session in worktree, spawn `task-builder` agent, batch execution with checkpoints
 
-**3. Parallel Tickets** - Mark tasks with Parallel/Blocked by/Owned files, create worktrees, run `/ticket-builder` per task, review diffs before merge
+**3. Parallel Tickets** - Mark tasks with Parallel/Blocked by/Owned files, create worktrees, run `/task-builder` per task, review diffs before merge
 
 **Which approach?"**
 
 **If Execute Now chosen:**
-- Spawn `ticket-builder` agent with the plan path
+- Spawn `task-builder` agent with the plan path
 - Stay in this session
 - Fresh agent per task + code review
 
 **If Parallel Session chosen:**
 - Guide them to open new session in worktree
-- Spawn `ticket-builder` agent with the plan path
+- Spawn `task-builder` agent with the plan path
 
 **If Parallel Tickets chosen:**
 - Validate plan tasks include Parallel/Blocked by/Owned files
 - Run the Owned Files Validation script to check for overlaps
 - Create one worktree per parallel task
-- Run `/ticket-builder` for each worktree
+- Run `/task-builder` for each worktree
 - Review diffs + tests in worktrees before merging
-- Prefer `ticket-builder` when tasks share files or require shared context
+- Prefer `task-builder` when tasks share files or require shared context

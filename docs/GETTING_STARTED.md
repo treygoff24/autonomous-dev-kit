@@ -108,12 +108,12 @@ Custom agents at `~/.claude/agents/` run in isolated context windows. They can r
 |-------|---------|
 | `debugger` | Systematic debugging with root cause analysis |
 | `tdd-implementer` | Test-driven development |
-| `ticket-builder` | Execute implementation plans task-by-task |
+| `task-builder` | Execute implementation plans task-by-task |
 | `code-reviewer` | Review diffs against specs/plans before commits |
 | `a11y-reviewer` | Accessibility review for interactive UI |
 | `spec-reviewer` | Spec completeness and precision review |
 | `review-triager` | Triage review feedback before implementation |
-| `ticket-builder` | Execute a single plan task in an isolated worktree |
+| `task-builder` | Execute a single plan task in an isolated worktree |
 | `slop-cleaner` | Remove AI-generated cruft before commits |
 | `validator` | Defense-in-depth validation at multiple layers |
 | `root-cause-tracer` | Trace bugs backward through call stack |
@@ -138,7 +138,7 @@ Skills at `~/.claude/skills/` require conversation context and user interaction.
 | `/spec-quality-checklist` | Validate specs for precision |
 | `/accessibility-checklist` | WCAG compliance for UI |
 | `/autonomous-loop` | Activate autonomous loop mode |
-| `/ticket-builder` | Execute a single plan task in an isolated worktree |
+| `/task-builder` | Execute a single plan task in an isolated worktree |
 
 Claude Code 2.1.0+ hot-reloads skills from `~/.claude/skills` and `.claude/skills` without restarting the session.
 
@@ -276,9 +276,9 @@ claude "Use the writing-plans skill to create an implementation plan for SPEC.md
 code IMPLEMENTATION_PLAN.md
 ```
 
-Break the work into phases. If you plan to run tasks in parallel with `/ticket-builder`, add **Parallel**, **Blocked by**, and **Owned files** for each task, then create worktrees before invoking the skill.
+Break the work into phases. If you plan to run tasks in parallel with `/task-builder`, add **Parallel**, **Blocked by**, and **Owned files** for each task, then create worktrees before invoking the skill.
 
-Use `ticket-builder` for sequential tasks or when multiple tasks touch the same files. Reserve `ticket-builder` for parallel-safe tasks with clear file ownership. See `docs/WORKFLOW_REFERENCE.md` for the full workflow.
+Use `task-builder` for sequential tasks or when multiple tasks touch the same files. Reserve `task-builder` for parallel-safe tasks with clear file ownership. See `docs/WORKFLOW_REFERENCE.md` for the full workflow.
 
 ```markdown
 # Implementation Plan: Task CLI
