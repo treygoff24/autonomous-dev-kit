@@ -349,6 +349,20 @@ Task(subagent_type="security-auditor", prompt="Audit auth implementation")  # se
 
 ---
 
+## Multi-Session Parallelism
+
+For very large implementations where you need true multi-process parallelism (multiple Claude sessions in separate terminals), use `/swarm-coordinator`.
+
+This is useful when:
+- Task count exceeds what one session can efficiently coordinate
+- You want multiple independent context windows
+- Tasks have very long execution times
+- You need to maximize throughput beyond subagent parallelism
+
+Swarm coordination uses `CLAUDE_CODE_TASK_LIST_ID` to share task state across sessions, with explicit task claiming to prevent race conditions.
+
+---
+
 ## Remember
 
 - Your value is in **coordination**, not keystrokes
