@@ -49,7 +49,7 @@ Hooks keep sessions stable through compaction and restarts. Templates and skills
 - **autonomous-loop skill** — Verifies git clean, quality gates pass, plan tasks complete, no half-done work
 - **tdd-implementer agent** — Verifies TDD discipline (RED-GREEN-REFACTOR), tests pass
 - **debugger agent** — Verifies root cause identified with evidence, fix verified
-- **plan-executor agent** — Verifies all tasks complete, quality gates between tasks, code review done
+- **task-plan-executor agent** — Verifies all tasks complete, quality gates between tasks, code review done
 
 The bar is: "Would you ship this to production right now?" If not, exit is blocked and work continues.
 
@@ -63,7 +63,7 @@ I put quite a lot of thought and trial and error into when to make something an 
 | ----------------------- | ----------------------------------------------------------------------------------------------------- |
 | `debugger`              | Systematic debugging with root-cause analysis so fixes stick instead of chasing symptoms.             |
 | `tdd-implementer`       | Writes tests first and then implementation to reduce regressions and force clear acceptance criteria. |
-| `plan-executor`         | Executes a plan task-by-task with quality gates so long runs stay aligned and verifiable.             |
+| `task-plan-executor`         | Executes a plan task-by-task with quality gates so long runs stay aligned and verifiable.             |
 | `code-reviewer`         | Reviews diffs against the spec and plan to catch gaps before commits.                                 |
 | `a11y-reviewer`         | Checks UI work for accessibility issues so you do not ship obvious a11y regressions.                  |
 | `spec-reviewer`         | Audits specs for missing details and ambiguity to prevent vague builds.                               |
@@ -106,7 +106,7 @@ This kit leverages Claude Code 2.1.0 through 2.1.2 features:
 | Feature | How We Use It |
 |---------|---------------|
 | **Prompt-based Stop hooks** | Sonnet evaluates completion instead of shell scripts. Checks git, quality gates, plan completion, code review. |
-| **Agent-scoped hooks** | tdd-implementer, debugger, plan-executor each have Stop hooks verifying their specific discipline was followed. |
+| **Agent-scoped hooks** | tdd-implementer, debugger, task-plan-executor each have Stop hooks verifying their specific discipline was followed. |
 | **Skills auto-loading** | Skills declare dependencies (e.g., writing-plans loads brainstorming) for reference without manual invocation. |
 | **Skill hot-reload** | Edit skills in `~/.claude/skills/` and changes apply immediately without restart. |
 | **Wildcard bash permissions** | Configure `Bash(npm *)`, `Bash(git *)` patterns for flexible command allowlists. |

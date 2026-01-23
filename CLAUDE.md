@@ -30,7 +30,7 @@ Your job is to:
 ### The Orchestration Mindset
 
 **Wrong:** "I'll implement this feature, then maybe get a review."
-**Right:** "I'll spawn `plan-executor` to implement this, `code-reviewer` to review, and `/codex` for a second opinion."
+**Right:** "I'll spawn `task-plan-executor` to implement this, `code-reviewer` to review, and `/codex` for a second opinion."
 
 **Wrong:** "I'll debug this error by reading code and trying fixes."
 **Right:** "I'll spawn `debugger` for disciplined root cause analysis."
@@ -123,7 +123,7 @@ For Claude Code 2.1+, completion enforcement uses **prompt-based Stop hooks** in
 - **autonomous-loop skill** — Stop hook verifies: git clean, quality gates pass, plan tasks complete, no half-done work
 - **tdd-implementer agent** — Stop hook verifies: TDD discipline followed, tests pass, no violations
 - **debugger agent** — Stop hook verifies: root cause identified with evidence, fix verified
-- **plan-executor agent** — Stop hook verifies: all tasks complete, quality gates between tasks, code review done
+- **task-plan-executor agent** — Stop hook verifies: all tasks complete, quality gates between tasks, code review done
 
 **Note:** Claude Code <2.1 does not support prompt-based hooks. Users on older versions will have reduced autonomous loop enforcement. Upgrade to Claude Code 2.1+ for full completion verification.
 
@@ -162,7 +162,6 @@ The kit organizes Claude's capabilities in three layers:
 **Agents** (`agents/` → `~/.claude/agents/`): Run in isolated context windows, can run in parallel.
 - `debugger` — Systematic debugging with root cause analysis
 - `tdd-implementer` — Test-driven development
-- `plan-executor` — Execute implementation plans task-by-task
 - `task-plan-executor` — Execute plans using Claude Code's task system (DAG, parallel execution)
 - `ticket-builder` — Implement a single plan task in an isolated worktree
 - `slop-cleaner` — Remove AI-generated cruft

@@ -108,7 +108,7 @@ Custom agents at `~/.claude/agents/` run in isolated context windows. They can r
 |-------|---------|
 | `debugger` | Systematic debugging with root cause analysis |
 | `tdd-implementer` | Test-driven development |
-| `plan-executor` | Execute implementation plans task-by-task |
+| `task-plan-executor` | Execute implementation plans task-by-task |
 | `code-reviewer` | Review diffs against specs/plans before commits |
 | `a11y-reviewer` | Accessibility review for interactive UI |
 | `spec-reviewer` | Spec completeness and precision review |
@@ -278,7 +278,7 @@ code IMPLEMENTATION_PLAN.md
 
 Break the work into phases. If you plan to run tasks in parallel with `/ticket-builder`, add **Parallel**, **Blocked by**, and **Owned files** for each task, then create worktrees before invoking the skill.
 
-Use `plan-executor` for sequential tasks or when multiple tasks touch the same files. Reserve `ticket-builder` for parallel-safe tasks with clear file ownership. See `docs/WORKFLOW_REFERENCE.md` for the full workflow.
+Use `task-plan-executor` for sequential tasks or when multiple tasks touch the same files. Reserve `ticket-builder` for parallel-safe tasks with clear file ownership. See `docs/WORKFLOW_REFERENCE.md` for the full workflow.
 
 ```markdown
 # Implementation Plan: Task CLI

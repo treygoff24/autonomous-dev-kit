@@ -855,12 +855,12 @@ This ensures the TDD workflow is followed — the hook fires when the agent exit
 SessionStart hooks now receive `agent_type` when Claude is started with `--agent`:
 
 ```bash
-claude --agent plan-executor  # agent_type = "plan-executor"
+claude --agent task-plan-executor  # agent_type = "task-plan-executor"
 ```
 
 This allows hooks to customize context injection per agent. The `session-start.sh` hook in this kit uses this to inject agent-specific reminders:
 
-- `plan-executor` → Quality gates reminder
+- `task-plan-executor` → Quality gates reminder
 - `debugger` → Root cause investigation reminder
 - `tdd-implementer` → RED-GREEN-REFACTOR reminder
 

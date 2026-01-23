@@ -134,10 +134,10 @@ fi
 # 4. Add agent-specific context (Claude Code 2.1.2+)
 if [[ -n "$AGENT_TYPE" ]]; then
     case "$AGENT_TYPE" in
-        "plan-executor")
+        "task-plan-executor")
             CONTEXT="${CONTEXT}## Agent Context: Plan Executor
 
-You are running as the plan-executor agent. Remember:
+You are running as the task-plan-executor agent. Remember:
 - Quality gates MUST pass between each task
 - Fresh context per task, code review between tasks
 - Use ticket-builder for parallel-safe tasks

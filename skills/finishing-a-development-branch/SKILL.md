@@ -196,7 +196,7 @@ git worktree remove <worktree-path>
 ## Integration
 
 **Called by:**
-- **plan-executor** agent - After all tasks complete
+- **task-plan-executor** agent - After all tasks complete
 - **writing-plans** skill - After plan execution completes
 
 **Pairs with:**
