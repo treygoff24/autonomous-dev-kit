@@ -155,6 +155,118 @@ Every change goes through:
 
 You merge ONLY after all pass.
 
+## Complete Reference
+
+### Skills That Spawn Subagents
+
+Use these via `/skill-name`. They handle context and spawn the right agent.
+
+| Skill | Spawns Agent | Purpose |
+|-------|--------------|---------|
+| `/task-builder` | task-builder | Execute ONE task (spawn many in parallel) |
+| `/requesting-code-review` | code-reviewer | Review diffs for correctness, risks |
+| `/receiving-code-review` | review-triager | Triage feedback, decide accept/pushback |
+| `/spec-quality-checklist` | spec-reviewer | Validate spec completeness, precision |
+| `/accessibility-checklist` | a11y-reviewer | WCAG compliance checks |
+| `/debugging-systematic` | debugger | Root cause analysis with evidence |
+
+### Kit Agents (Direct Task Tool)
+
+Spawn via `Task` tool with `subagent_type`. Use for fine-grained control.
+
+| Agent | Purpose |
+|-------|---------|
+| `task-builder` | Execute one task in isolated worktree |
+| `debugger` | Systematic debugging, root cause analysis |
+| `tdd-implementer` | Test-first development |
+| `slop-cleaner` | Remove AI cruft (comments, unused code) |
+| `validator` | Defense-in-depth validation |
+| `root-cause-tracer` | Trace bugs backward through call stack |
+| `parallel-investigator` | Investigate 3+ independent failures |
+
+### Built-in Agents (Claude Code)
+
+These are always available via `Task` tool.
+
+| Agent | Purpose |
+|-------|---------|
+| `Explore` | Fast codebase exploration, find files/patterns |
+| `Plan` | Design implementation strategy |
+| `test-architect` | Comprehensive test coverage |
+| `security-auditor` | Security vulnerability audit |
+| `bug-hunter` | Diagnose and fix bugs |
+| `code-reviewer` | Review diffs (also via skill) |
+| `a11y-reviewer` | Accessibility review (also via skill) |
+| `spec-reviewer` | Spec validation (also via skill) |
+| `review-triager` | Triage review feedback (also via skill) |
+| `mobile-ux-auditor` | Mobile responsiveness audit |
+| `accessibility-auditor` | Comprehensive a11y audit |
+| `debugger-diagnose` | Diagnose-only (no fix implementation) |
+
+### External AI Delegation
+
+| Skill | Purpose |
+|-------|---------|
+| `/codex` | OpenAI Codex for reviews, debugging, second opinions |
+| `/gemini` | Google Gemini for reviews, debugging, second opinions |
+
+---
+
+## Parallel Execution Examples
+
+### Example 1: Multiple Task-Builders
+
+When 4 tasks are unblocked, spawn 4 task-builders **in the same message**:
+
+```
+# Create worktrees
+git worktree add ../wt-1 -b task-1
+git worktree add ../wt-2 -b task-2
+git worktree add ../wt-3 -b task-3
+git worktree add ../wt-4 -b task-4
+
+# SAME MESSAGE - all 4 Task tool calls
+Task(subagent_type="task-builder", prompt="task_id=1 worktree_path=../wt-1")
+Task(subagent_type="task-builder", prompt="task_id=2 worktree_path=../wt-2")
+Task(subagent_type="task-builder", prompt="task_id=3 worktree_path=../wt-3")
+Task(subagent_type="task-builder", prompt="task_id=4 worktree_path=../wt-4")
+```
+
+### Example 2: Parallel Reviews
+
+After implementation, get multiple perspectives **in the same message**:
+
+```
+# SAME MESSAGE - parallel reviews
+/requesting-code-review  # code-reviewer agent
+/codex "Review auth module for security issues"
+/gemini "Review auth module for edge cases"
+```
+
+### Example 3: Parallel Investigation
+
+When facing multiple independent failures:
+
+```
+# SAME MESSAGE - parallel debugging
+Task(subagent_type="debugger", prompt="Investigate login failure")
+Task(subagent_type="debugger", prompt="Investigate session timeout")
+Task(subagent_type="debugger", prompt="Investigate token refresh")
+```
+
+### Example 4: Mixed Parallel Operations
+
+Spawn different agent types simultaneously:
+
+```
+# SAME MESSAGE - different specialists
+Task(subagent_type="task-builder", prompt="task_id=1 ...")  # implement
+Task(subagent_type="test-architect", prompt="Write tests for auth module")  # test
+Task(subagent_type="security-auditor", prompt="Audit auth implementation")  # security
+```
+
+---
+
 ## Remember
 
 - Your value is in **coordination**, not keystrokes
