@@ -342,6 +342,78 @@ This does three critical things:
 
 ---
 
+## Set Up Task DAG (Optional but Recommended)
+
+If your implementation plan has tasks with `Parallel:` and `Blocked by:` fields, create a task DAG for progress tracking and parallel execution. **You do this directly as the orchestrator—no subagent needed.**
+
+### Step 1: Parse the Plan and Create Tasks
+
+Read `IMPLEMENTATION_PLAN.md` and for each task, call `TaskCreate`:
+
+```
+For each task in plan:
+  TaskCreate(
+    subject: "Phase 1.1: Create user model",
+    description: "Full task details from plan...",
+    activeForm: "Creating user model"
+  )
+  → Returns system ID (e.g., "1")
+
+  Record mapping: plan_id "1.1" → system_id "1"
+```
+
+**Critical:** Plan IDs (1.1, 2.1) differ from system IDs (1, 2, 3). Maintain a mapping.
+
+### Step 2: Wire Up Dependencies
+
+After all tasks are created, set up the dependency graph:
+
+```
+For each task with "Blocked by: Task 1.1, Task 1.2":
+  TaskUpdate(
+    taskId: system_id,
+    addBlockedBy: [mapped_system_id_for_1.1, mapped_system_id_for_1.2]
+  )
+```
+
+### Step 3: Report the DAG
+
+```
+Task DAG created:
+- #1: Create user model (ready)
+- #2: Create auth middleware (ready)
+- #3: Create login endpoint (blocked by #1, #2)
+- #4: Create register endpoint (blocked by #1)
+
+2 tasks ready to start, 2 blocked.
+```
+
+### Step 4: Execute
+
+**For sequential execution:** Work through tasks in dependency order. Use `TaskUpdate` to mark `in_progress` when starting, `completed` when done.
+
+**For parallel execution:** Spawn `ticket-builder` agents for independent tasks:
+
+```
+# Multiple unblocked tasks with Parallel: yes?
+Spawn ticket-builder for Task #1 (in background)
+Spawn ticket-builder for Task #2 (in background)
+Wait for both to complete
+Check TaskList for newly unblocked tasks
+Repeat
+```
+
+### Why This Matters
+
+- **Progress survives compaction** — Tasks persist in `~/.claude/tasks/`
+- **Parallel execution** — Independent tasks run simultaneously
+- **Clear completion criteria** — `TaskList` shows exactly what's done/pending
+- **Multi-session support** — Share task list via `CLAUDE_CODE_TASK_LIST_ID` env var
+
+**Skip this if:** Your plan is simple/sequential with no parallel tasks. Just work through the plan directly.
+
+---
+
 ## The Implementation Loop
 
 For each phase:
