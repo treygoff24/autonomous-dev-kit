@@ -218,4 +218,4 @@ Ready to implement auth feature
 
 **Pairs with:**
 - **finishing-a-development-branch** - REQUIRED for cleanup after work complete
-- **plan-executor** agent - Work happens in this worktree
+- **task-builder** agent - Work happens in isolated worktrees

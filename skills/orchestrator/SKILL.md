@@ -56,7 +56,7 @@ Verification: tests pass, lint passes, types check
 ```
 1. Read spec and plan
 2. Create task DAG:
-   - TaskCreate for each task (include metadata.skills for domain-specific tasks)
+   - TaskCreate for each task
    - TaskUpdate to wire dependencies
 3. Report: "DAG created: N tasks, M unblocked"
 ```
@@ -222,8 +222,9 @@ These are always available via `Task` tool.
 **Implementation:**
 | Agent | Purpose |
 |-------|---------|
-| `ticket-builder` | Implement single task in isolated worktree (built-in) |
-| `plan-executor` | Execute plans task-by-task with quality gates |
+| `task-builder` | Implement single task in isolated worktree (**USE THIS - kit version with skill auto-loading**) |
+| `ticket-builder` | Built-in version (use task-builder instead) |
+| `plan-executor` | Built-in plan executor (orchestrator pattern preferred) |
 | `tdd-implementer` | Test-first development |
 
 **Testing & Quality:**

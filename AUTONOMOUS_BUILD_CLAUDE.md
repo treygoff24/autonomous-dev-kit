@@ -376,14 +376,14 @@ git worktree add ../wt-2 -b task-2
 
 ```
 # WRONG (slow)
-/task-builder task_id=1 worktree=../wt-1
+/task-builder task_id=1 worktree_path=../wt-1
 # wait...
-/task-builder task_id=2 worktree=../wt-2
+/task-builder task_id=2 worktree_path=../wt-2
 # wait...
 
 # RIGHT (fast) - SAME MESSAGE
-/task-builder task_id=1 worktree=../wt-1
-/task-builder task_id=2 worktree=../wt-2
+/task-builder task_id=1 worktree_path=../wt-1
+/task-builder task_id=2 worktree_path=../wt-2
 ```
 
 **If 5 tasks are unblocked, spawn 5 task-builders simultaneously.**

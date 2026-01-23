@@ -44,10 +44,10 @@ spawn next batch when tasks complete
 ## Execution Flow
 
 ```
-1. TaskGet(task_id) → retrieve subject, description, metadata, blockedBy
-2. LOAD RELEVANT SKILLS (see below)
-3. TaskUpdate(task_id, status="in_progress")
-4. Verify not blocked (all blockedBy tasks completed)
+1. TaskGet(task_id) → retrieve subject, description, blockedBy
+2. Verify not blocked (all blockedBy tasks completed) — STOP if blocked
+3. LOAD RELEVANT SKILLS (see below)
+4. TaskUpdate(task_id, status="in_progress")
 5. Implement the task in the worktree
 6. TaskUpdate(task_id, status="completed")
 7. Return summary to orchestrator
@@ -86,30 +86,32 @@ Scan the task subject and description. Load ALL matching skills:
 | vanilla JS, no framework, Web Components | `vanilla-web-dev` | |
 | Word document, .docx, document generation | `docx` | |
 
-**Skill names:** Use bare names (no `/` prefix) in `metadata.skills` and `Skill()` calls. The `/` prefix is for human-readable docs only.
+**Skill names:** Use bare names (no `/` prefix) in `skills=` and `Skill()` calls. The `/` prefix is for human-readable docs only.
 
 ### Examples
 
-**Example 1: Keyword detection (no metadata)**
+**Example 1: Keyword detection (no explicit skills)**
 Task: "Build a user profile modal with avatar upload"
+Spawned with: `/task-builder task_id=1 worktree_path=../wt-1`
 
-1. TaskGet → no `metadata.skills`
+1. No `skills=` in prompt
 2. Keyword scan: "modal" → matches UI/UX keywords
 3. Load: `Skill(skill="frontend-design")`
 4. Implement with frontend-design best practices loaded
 
-**Example 2: Metadata takes precedence**
-Task: "Build 3D configurator" with `metadata.skills: ["threejs", "react-three-fiber"]`
+**Example 2: Explicit skills (takes precedence)**
+Spawned with: `/task-builder task_id=2 worktree_path=../wt-2 skills=threejs,react-three-fiber`
 
-1. TaskGet → has `metadata.skills`
+1. Found `skills=threejs,react-three-fiber` in prompt
 2. Skip keyword detection
 3. Load: `Skill(skill="threejs")`, `Skill(skill="react-three-fiber")`
 4. Implement with specified skills loaded
 
 **Example 3: No matches**
 Task: "Update database migrations"
+Spawned with: `/task-builder task_id=3 worktree_path=../wt-3`
 
-1. TaskGet → no `metadata.skills`
+1. No `skills=` in prompt
 2. Keyword scan → no matches
 3. Report "Skills Loaded: none"
 4. Implement without domain skills
@@ -141,8 +143,8 @@ Subject: [from TaskGet]
 Skills Loaded:
 - frontend-design (keyword: "modal")
 OR
-- threejs (metadata.skills)
-- react-three-fiber (metadata.skills)
+- threejs (skills= param)
+- react-three-fiber (skills= param)
 OR
 - none
 
