@@ -169,39 +169,88 @@ Use these via `/skill-name`. They handle context and spawn the right agent.
 | `/spec-quality-checklist` | spec-reviewer | Validate spec completeness, precision |
 | `/accessibility-checklist` | a11y-reviewer | WCAG compliance checks |
 | `/debugging-systematic` | debugger | Root cause analysis with evidence |
+| `/diagnose` | debugger-diagnose | Diagnose-only (no fix implementation) |
 
-### Kit Agents (Direct Task Tool)
+### Skills Without Subagents (Still Useful)
 
-Spawn via `Task` tool with `subagent_type`. Use for fine-grained control.
+These run in forked context or provide workflows without spawning agents.
+
+| Skill | Purpose |
+|-------|---------|
+| `/writing-plans` | Create detailed implementation plans |
+| `/using-git-worktrees` | Create isolated worktrees for risky changes |
+| `/finishing-a-development-branch` | Clean up branch for merge/PR |
+| `/brainstorming` | Refine ideas through collaborative dialogue |
+| `/autonomous-loop` | Activate persistent development mode |
+| `/skill-creator` | Create new skills |
+
+### Kit Agents (This Repo)
+
+Custom agents from autonomous-dev-kit. Spawn via `Task` tool.
 
 | Agent | Purpose |
 |-------|---------|
-| `task-builder` | Execute one task in isolated worktree |
-| `debugger` | Systematic debugging, root cause analysis |
-| `tdd-implementer` | Test-first development |
-| `slop-cleaner` | Remove AI cruft (comments, unused code) |
-| `validator` | Defense-in-depth validation |
-| `root-cause-tracer` | Trace bugs backward through call stack |
-| `parallel-investigator` | Investigate 3+ independent failures |
+| `task-builder` | Execute one task in isolated worktree (kit version) |
+
+Note: Many agents listed in "Built-in Agents" below have kit versions in `~/.claude/agents/` that may override or extend the built-in behavior.
 
 ### Built-in Agents (Claude Code)
 
 These are always available via `Task` tool.
 
+**Exploration & Planning:**
 | Agent | Purpose |
 |-------|---------|
 | `Explore` | Fast codebase exploration, find files/patterns |
 | `Plan` | Design implementation strategy |
+| `spec-implementation-planner` | Create implementation plan from spec/PRD |
+| `general-purpose` | Multi-step tasks, code search, research |
+
+**Implementation:**
+| Agent | Purpose |
+|-------|---------|
+| `ticket-builder` | Implement single task in isolated worktree (built-in) |
+| `plan-executor` | Execute plans task-by-task with quality gates |
+| `tdd-implementer` | Test-first development |
+
+**Testing & Quality:**
+| Agent | Purpose |
+|-------|---------|
 | `test-architect` | Comprehensive test coverage |
-| `security-auditor` | Security vulnerability audit |
-| `bug-hunter` | Diagnose and fix bugs |
 | `code-reviewer` | Review diffs (also via skill) |
 | `a11y-reviewer` | Accessibility review (also via skill) |
 | `spec-reviewer` | Spec validation (also via skill) |
 | `review-triager` | Triage review feedback (also via skill) |
-| `mobile-ux-auditor` | Mobile responsiveness audit |
-| `accessibility-auditor` | Comprehensive a11y audit |
+| `slop-cleaner` | Remove AI cruft |
+
+**Debugging:**
+| Agent | Purpose |
+|-------|---------|
+| `debugger` | Systematic debugging, root cause analysis |
 | `debugger-diagnose` | Diagnose-only (no fix implementation) |
+| `bug-hunter` | Diagnose and fix bugs |
+| `root-cause-tracer` | Trace bugs backward through call stack |
+| `parallel-investigator` | Investigate 3+ independent failures |
+| `validator` | Defense-in-depth validation |
+
+**Security & Accessibility:**
+| Agent | Purpose |
+|-------|---------|
+| `security-auditor` | Security vulnerability audit |
+| `accessibility-auditor` | Comprehensive a11y audit |
+| `mobile-ux-auditor` | Mobile responsiveness audit |
+
+**Utility:**
+| Agent | Purpose |
+|-------|---------|
+| `Bash` | Command execution specialist |
+| `claude-code-guide` | Answer questions about Claude Code/SDK/API |
+
+**Agent SDK Development:**
+| Agent | Purpose |
+|-------|---------|
+| `agent-sdk-dev:agent-sdk-verifier-ts` | Verify TypeScript Agent SDK apps |
+| `agent-sdk-dev:agent-sdk-verifier-py` | Verify Python Agent SDK apps |
 
 ### External AI Delegation
 
@@ -209,6 +258,25 @@ These are always available via `Task` tool.
 |-------|---------|
 | `/codex` | OpenAI Codex for reviews, debugging, second opinions |
 | `/gemini` | Google Gemini for reviews, debugging, second opinions |
+
+### Specialized Skills (Domain-Specific)
+
+These handle specific domains. Use when relevant.
+
+| Skill | Purpose |
+|-------|---------|
+| `/frontend-design` | Create distinctive frontend interfaces |
+| `/figma:implement-design` | Translate Figma designs to code |
+| `/figma:code-connect-components` | Connect Figma components to code |
+| `/vercel-ai-sdk` | AI SDK best practices (useChat, tools, agents) |
+| `/vercel-react-best-practices` | React/Next.js performance patterns |
+| `/threejs` | Three.js architecture and rendering |
+| `/react-three-fiber` | R3F/Drei for 3D in React |
+| `/glsl-shaders` | GLSL shader development |
+| `/blender-3d` | Create 3D assets via Blender CLI |
+| `/vanilla-web-dev` | Zero-framework web development |
+| `/docx` | Word document creation/editing |
+| `/agent-sdk-dev:new-sdk-app` | Create new Agent SDK applications |
 
 ---
 
