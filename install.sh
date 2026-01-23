@@ -1014,6 +1014,20 @@ setup_claude_directory_full() {
                 install_file_with_prompt "$agent_file" "$agents_dest/$agent_name" "agent: $agent_name"
             fi
         done
+
+        # Clean up deprecated/renamed agents
+        local deprecated_agents=(
+            "ticket-builder.md"    # Renamed to task-builder.md
+            "plan-executor.md"     # Superseded by orchestrator pattern
+            "task-plan-executor.md" # Superseded by orchestrator pattern
+        )
+        for agent in "${deprecated_agents[@]}"; do
+            if [ -f "$agents_dest/$agent" ]; then
+                prompt_backup_file "$agents_dest/$agent" "deprecated agent: $agent"
+                run rm "$agents_dest/$agent"
+                success "Removed deprecated agent: $agent"
+            fi
+        done
     fi
 
     # Install rules
@@ -1294,6 +1308,20 @@ setup_claude_directory_additive() {
                 done
             fi
         fi
+
+        # Clean up deprecated/renamed agents
+        local deprecated_agents=(
+            "ticket-builder.md"    # Renamed to task-builder.md
+            "plan-executor.md"     # Superseded by orchestrator pattern
+            "task-plan-executor.md" # Superseded by orchestrator pattern
+        )
+        for agent in "${deprecated_agents[@]}"; do
+            if [ -f "$agents_dest/$agent" ]; then
+                prompt_backup_file "$agents_dest/$agent" "deprecated agent: $agent"
+                run rm "$agents_dest/$agent"
+                success "Removed deprecated agent: $agent"
+            fi
+        done
 
         if [ $agents_installed -eq 0 ] && [ $agents_updated -eq 0 ] && [ $agents_skipped -eq 0 ]; then
             success "All agents already installed"

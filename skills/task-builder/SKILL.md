@@ -75,17 +75,13 @@ The agent does NOT commit, merge, or push. You review and integrate.
 Task-builders automatically load domain-specific skills before implementing:
 
 **Priority (Exclusive, Not Merged):**
-1. `metadata.skills` — If specified, load ONLY those (skip keyword detection)
-2. Keyword detection — ONLY if no metadata.skills, scan description for keywords
+1. `skills=` in spawn prompt — If specified, load ONLY those (skip keyword detection)
+2. Keyword detection — ONLY if no explicit skills, scan description for keywords
 3. No matches — Proceed without skills, report "Skills Loaded: none"
 
-**Orchestrator can specify skills explicitly:**
+**Orchestrator can specify skills explicitly when spawning:**
 ```
-TaskCreate(
-  subject="Build 3D product viewer",
-  description="Create interactive Three.js scene...",
-  metadata={"skills": ["threejs", "react-three-fiber"]}
-)
+/task-builder task_id=1 worktree_path=../wt-1 skills=threejs,react-three-fiber
 ```
 
 **Or let the agent auto-detect** — keywords like "Three.js", "3D", "scene" trigger automatic skill loading.

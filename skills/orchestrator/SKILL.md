@@ -61,23 +61,18 @@ Verification: tests pass, lint passes, types check
 3. Report: "DAG created: N tasks, M unblocked"
 ```
 
-**Skill Hints:** When creating tasks, add `metadata.skills` to help task-builders load the right domain skills:
+**Skill Hints:** When spawning task-builders, specify skills explicitly for domain-specific tasks:
 
 ```
-TaskCreate(
-  subject="Build 3D product configurator",
-  description="Interactive Three.js scene with orbit controls...",
-  metadata={"skills": ["threejs", "react-three-fiber"]}
-)
+# Explicit skills (takes precedence over keyword detection)
+/task-builder task_id=1 worktree_path=../wt-1 skills=threejs,react-three-fiber
+/task-builder task_id=2 worktree_path=../wt-2 skills=frontend-design
 
-TaskCreate(
-  subject="Create checkout form",
-  description="Multi-step form with validation...",
-  metadata={"skills": ["frontend-design", "vercel-react-best-practices"]}
-)
+# Or let keyword detection handle it (auto-detects from task description)
+/task-builder task_id=3 worktree_path=../wt-3
 ```
 
-Task-builders auto-detect skills from keywords, but explicit hints guarantee the right skills load.
+Task-builders auto-detect skills from keywords in task descriptions, but explicit `skills=` guarantees the right skills load.
 
 ### Phase 2: Parallel Execution
 

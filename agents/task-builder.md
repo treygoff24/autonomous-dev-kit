@@ -59,11 +59,15 @@ spawn next batch when tasks complete
 
 ### Priority Order (Exclusive, Not Merged)
 
-1. **Check `metadata.skills`** — If the task has explicit skills listed, load ONLY those (skip keyword detection)
-2. **Keyword detection** — ONLY if no `metadata.skills`, scan task description and load matching skills
+1. **Check prompt for `skills=`** — If orchestrator passed skills in the spawn prompt, load ONLY those
+2. **Keyword detection** — ONLY if no explicit skills, scan task description and load matching skills
 3. **No matches** — If neither produces skills, proceed without and report "Skills Loaded: none"
 
-**Note:** metadata.skills takes precedence. If orchestrator specified skills, trust that and skip auto-detection.
+**Note:** Orchestrator can pass skills explicitly when spawning:
+```
+/task-builder task_id=1 worktree_path=../wt-1 skills=threejs,react-three-fiber
+```
+This takes precedence over keyword detection.
 
 ### Skill Routing Table
 
