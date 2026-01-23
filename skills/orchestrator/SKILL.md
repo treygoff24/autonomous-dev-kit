@@ -56,10 +56,28 @@ Verification: tests pass, lint passes, types check
 ```
 1. Read spec and plan
 2. Create task DAG:
-   - TaskCreate for each task
+   - TaskCreate for each task (include metadata.skills for domain-specific tasks)
    - TaskUpdate to wire dependencies
 3. Report: "DAG created: N tasks, M unblocked"
 ```
+
+**Skill Hints:** When creating tasks, add `metadata.skills` to help task-builders load the right domain skills:
+
+```
+TaskCreate(
+  subject="Build 3D product configurator",
+  description="Interactive Three.js scene with orbit controls...",
+  metadata={"skills": ["threejs", "react-three-fiber"]}
+)
+
+TaskCreate(
+  subject="Create checkout form",
+  description="Multi-step form with validation...",
+  metadata={"skills": ["frontend-design", "vercel-react-best-practices"]}
+)
+```
+
+Task-builders auto-detect skills from keywords, but explicit hints guarantee the right skills load.
 
 ### Phase 2: Parallel Execution
 

@@ -61,13 +61,50 @@ git worktree add ../wt-task-3 -b task-3
 
 ## What the Agent Does
 
-1. `TaskGet(task_id)` — Retrieves task details
-2. `TaskUpdate(status="in_progress")` — Claims the task
-3. Implements in the worktree (isolated, focused)
-4. `TaskUpdate(status="completed")` — Marks done
-5. Returns summary to orchestrator
+1. `TaskGet(task_id)` — Retrieves task details + metadata
+2. **Loads relevant skills** (see Skill Auto-Loading below)
+3. `TaskUpdate(status="in_progress")` — Claims the task
+4. Implements in the worktree (isolated, focused)
+5. `TaskUpdate(status="completed")` — Marks done
+6. Returns summary to orchestrator
 
 The agent does NOT commit, merge, or push. You review and integrate.
+
+## Skill Auto-Loading (Supercharges the Agent)
+
+Task-builders automatically load domain-specific skills before implementing:
+
+**Priority (Exclusive, Not Merged):**
+1. `metadata.skills` — If specified, load ONLY those (skip keyword detection)
+2. Keyword detection — ONLY if no metadata.skills, scan description for keywords
+3. No matches — Proceed without skills, report "Skills Loaded: none"
+
+**Orchestrator can specify skills explicitly:**
+```
+TaskCreate(
+  subject="Build 3D product viewer",
+  description="Create interactive Three.js scene...",
+  metadata={"skills": ["threejs", "react-three-fiber"]}
+)
+```
+
+**Or let the agent auto-detect** — keywords like "Three.js", "3D", "scene" trigger automatic skill loading.
+
+**Skill routing (agent auto-detects):**
+| Keywords | Skill |
+|----------|-------|
+| UI, UX, modal, component, form, button | `frontend-design` |
+| Figma, design system | `figma:implement-design` |
+| Three.js, 3D, WebGL, scene, mesh | `threejs` |
+| R3F, Drei, react-three-fiber | `react-three-fiber` |
+| shader, GLSL, material | `glsl-shaders` |
+| Blender, GLB, GLTF | `blender-3d` |
+| useChat, streamText, AI SDK | `vercel-ai-sdk` |
+| React performance, Next.js, bundle | `vercel-react-best-practices` |
+| vanilla JS, Web Components | `vanilla-web-dev` |
+| .docx, Word document | `docx` |
+
+Use bare skill names (no `/` prefix) in metadata and Skill() calls. See `agents/task-builder.md` for complete table.
 
 ## Parallel Execution Pattern
 
@@ -114,6 +151,9 @@ Task: #3
 Status: complete
 Subject: Create login endpoint
 
+Skills Loaded:
+- frontend-design (keyword: "form")
+
 Files Changed:
 - src/routes/auth/login.ts
 - src/routes/auth/index.ts
@@ -127,6 +167,8 @@ Next Steps for Orchestrator:
 3. /requesting-code-review
 4. Merge if approved
 ```
+
+Note: If no skills match, output shows "Skills Loaded: none"
 
 ## Cleanup
 
