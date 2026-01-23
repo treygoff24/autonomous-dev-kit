@@ -1,6 +1,6 @@
 ---
 name: ticket-builder
-description: Build a single implementation-plan task in a forked ticket-builder agent. Use for parallel-safe tasks only.
+description: Execute a single task from the task system in an isolated worktree. Spawns ticket-builder agent which uses TaskGet/TaskUpdate for progress tracking. Use for parallel-safe tasks.
 context: fork
 agent: ticket-builder
 skills:
@@ -10,91 +10,130 @@ skills:
 
 # Ticket Builder
 
-Use this skill to execute one implementation plan task in a fresh, isolated agent context. It orchestrates the `ticket-builder` agent for implementation while the orchestrator handles review and test commands.
-
-The ticket builder runs without Bash permissions; the orchestrator handles git diffs and test commands in the worktree.
-
-## Forked Context Behavior
-
-- The agent runs in an isolated context and does not see the main conversation history
-- Provide all required inputs up front
-- The agent may ask clarifying questions, but it cannot see prior chat unless you restate it
+Execute one task from the task system in a fresh, isolated agent context. The agent integrates with Claude Code's task system—it calls `TaskGet` to retrieve task details and `TaskUpdate` to mark progress.
 
 ## When to Use
 
-- The plan task is marked **Parallel: yes**
-- All tasks listed in **Blocked by** are complete
-- The task has clear file ownership and acceptance criteria
+- You've created a task DAG via TaskCreate/TaskUpdate
+- The task is unblocked (no incomplete dependencies)
+- You want parallel execution of independent tasks
+- The task has clear file ownership (no conflicts with other tasks)
 
 ## Required Inputs
 
-Provide these before starting:
-- Task identifier (e.g., Phase 3, Task 3.2)
-- Worktree path to operate in
-- Any constraints or file ownership notes from the plan
-- Confirm `IMPLEMENTATION_PLAN.md` is present in the worktree root (required). If missing, the agent reports `needs-clarification` and stops
-- Confirm `SPEC.md` is present for context (recommended)
-- Verify the worktree exists and is clean before invoking this skill
-- If plan/spec changes are uncommitted, copy them into the worktree (or commit before creating the worktree)
+**For task-system execution (recommended):**
+```
+task_id: "3"                              # System ID from TaskCreate
+worktree_path: "../project-worktree"      # Isolated worktree
+```
 
-## Review Gate (Mandatory)
+**For plan-based execution (fallback):**
+```
+task_identifier: "Phase 3, Task 3.2"      # From IMPLEMENTATION_PLAN.md
+worktree_path: "../project-worktree"
+file_ownership: [list of files]           # From plan's "Owned files" field
+```
 
-This agent must NOT commit, merge, or push. All changes must be reviewed by the orchestrator before integration:
+## What the Agent Does
 
-1. Run `/requesting-code-review` against the ticket diff
-2. Merge or cherry-pick only after review approval
+1. **TaskGet** — Retrieves task subject, description, blockedBy
+2. **TaskUpdate** — Marks task `in_progress`
+3. **Implements** — Works only in the provided worktree
+4. **TaskUpdate** — Marks task `completed`
+5. **Returns** — Summary with files changed, tests to run
 
-Run `/requesting-code-review` from the worktree so the diff includes the ticket changes. The orchestrator should run tests and diff commands inside the worktree.
+The agent does NOT commit, merge, or push. You review and integrate.
 
-## Test Authorization
+## Parallel Execution Pattern
 
-By default, the orchestrator runs tests in the worktree. Only authorize the ticket builder to run tests if you temporarily add `Bash` to the agent definition.
+```
+# Orchestrator creates DAG
+TaskCreate(...) → #1
+TaskCreate(...) → #2
+TaskCreate(...) → #3
+TaskUpdate(#3, addBlockedBy=[#1, #2])
 
-## Output Expectations
+# Spawn parallel ticket-builders for unblocked tasks
+/ticket-builder task_id=1 worktree=../wt-task-1
+/ticket-builder task_id=2 worktree=../wt-task-2
 
-The agent will return:
-- Task status
-- Files changed
-- Tests to run (not executed unless authorized)
-- Reminder to run `git status -sb` and `git diff --stat` in the worktree
-- Next steps reminder for review and tests
+# Monitor progress
+TaskList → see #1 and #2 in_progress
+
+# When complete, #3 becomes unblocked
+/ticket-builder task_id=3 worktree=../wt-task-3
+```
 
 ## Example Workflow
 
 ```bash
-# 1. Create isolated worktree (see /using-git-worktrees for details)
-git worktree add ../project-task-3-2 feature/task-3-2 || { echo "Failed to create worktree"; exit 1; }
-cd ../project-task-3-2 && git status -sb
+# 1. Create isolated worktree
+git worktree add ../project-task-3 feature/task-3
 
-# 2. Invoke ticket-builder
-/ticket-builder
-# Provide: Task 3.2, worktree path, file ownership notes
+# 2. Invoke ticket-builder with task_id
+/ticket-builder task_id=3 worktree_path=../project-task-3
 
-# 3. Review the diff
-cd ../project-task-3-2
-git status -sb
+# 3. Agent implements, marks complete via TaskUpdate
+
+# 4. Review the diff (orchestrator does this)
+cd ../project-task-3
 git diff --stat
 npm test
 /requesting-code-review
 
-# 4. If approved, merge back
+# 5. If approved, merge back
 git checkout main
-git merge feature/task-3-2
-git worktree remove ../project-task-3-2  # Use --force only to discard unmerged changes
+git merge feature/task-3
+git worktree remove ../project-task-3
 ```
 
-## Cleanup Scenarios
+## Review Gate (Mandatory)
+
+All changes require orchestrator review before integration:
+
+1. Agent returns summary with files changed
+2. Orchestrator runs tests in worktree
+3. Orchestrator runs `/requesting-code-review`
+4. Only merge after approval
+
+## Forked Context Behavior
+
+- The agent runs in isolated context (doesn't see main conversation)
+- Provide all required inputs up front
+- Agent has TaskGet/TaskUpdate but no Bash (orchestrator runs tests)
+
+## Output Expectations
+
+```
+Ticket: #3
+Status: complete
+Task: Create auth middleware
+
+Files Changed:
+- src/middleware/auth.ts
+- src/middleware/index.ts
+
+Tests to Run:
+- npm test -- src/middleware
+
+Next Steps for Orchestrator:
+1. cd ../project-task-3
+2. git diff --stat
+3. npm test -- src/middleware
+4. /requesting-code-review
+5. Merge if approved
+```
+
+## Cleanup
 
 **If review fails:**
 ```bash
 cd [worktree-path]
 git restore -SW .
-# Fix issues and re-run /ticket-builder
+# Fix issues, re-run /ticket-builder
 ```
 
-**If abandoning the worktree:**
+**If abandoning:**
 ```bash
-cd [main-repo]
-# Only use --force if you intend to discard unmerged changes
-git worktree remove ../project-task-3-2 --force
+git worktree remove ../project-task-3 --force
 ```

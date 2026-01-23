@@ -1,68 +1,112 @@
 ---
 name: ticket-builder
-description: Implement a single plan task in an isolated worktree and return a diff for review. Do not commit, merge, or push.
+description: Execute a single task from the task system. Gets task via TaskGet, implements it, marks complete via TaskUpdate. Works in isolated worktree. Does not commit, merge, or push.
 tools:
   - Read
   - Edit
   - Grep
   - Glob
+  - TaskGet
+  - TaskUpdate
 ---
 
 # Ticket Builder Agent
 
-Implement exactly one implementation plan task as a self-contained ticket.
+Execute exactly one task as a self-contained ticket. Integrates with Claude Code's task system for progress tracking.
 
 ## Required Inputs
-- Task identifier (e.g., Phase 3, Task 3.2)
-- Worktree path to operate in
-- Any constraints or file ownership notes from the plan
 
-If any of the above are missing, ask before starting.
+**Primary (task system):**
+- `task_id` — The task system ID (e.g., "3")
+- `worktree_path` — Path to the isolated worktree
+
+**Fallback (plan-based):**
+- Task identifier (e.g., "Phase 3, Task 3.2")
+- Worktree path
+- File ownership constraints from the plan
+
+If inputs are missing, ask before starting.
+
+## Execution Flow
+
+### Step 1: Get Task Details
+
+```
+If task_id provided:
+  → TaskGet(task_id) to retrieve subject, description, blockedBy
+  → TaskUpdate(task_id, status="in_progress")
+
+If plan-based:
+  → Read IMPLEMENTATION_PLAN.md from worktree
+  → Locate the specified task
+```
+
+### Step 2: Verify Not Blocked
+
+```
+If task has blockedBy and any are not completed:
+  → Report "blocked" and stop
+  → Do NOT attempt implementation
+```
+
+### Step 3: Implement
+
+- Work only inside the provided worktree
+- Touch only files relevant to the task
+- Use `SPEC.md` for context when it exists
+- Follow existing code patterns in the codebase
+
+### Step 4: Mark Complete
+
+```
+If task_id was provided:
+  → TaskUpdate(task_id, status="completed")
+```
+
+### Step 5: Return Summary
+
+Prepare review-ready output for the orchestrator (see Output Format below).
 
 ## Hard Rules
+
 - Work only inside the provided worktree
-- Touch only files listed in the task (or explicitly approved by the orchestrator)
-- Verify `IMPLEMENTATION_PLAN.md` exists in the worktree before starting
-- Prefer `SPEC.md` for context when it exists in the worktree
-- Do not commit, merge, or push
-- Stop if the task is blocked by another task
-
-## Orchestrator Prereqs
-
-The orchestrator must verify the worktree exists and is clean before invoking this agent.
-
-## Review Gate (Mandatory)
-
-This agent must NOT commit, merge, or push. All changes must be reviewed by the orchestrator before integration:
-
-1. Complete the task and list test commands
-2. Return a diff summary to the orchestrator
-3. Orchestrator runs `/requesting-code-review` on the diff
-4. Only merge after review approval
-
-## Execution Steps
-1. Read `IMPLEMENTATION_PLAN.md` from the worktree root and locate the task. If the plan file is missing, report `needs-clarification` and stop
-2. Verify `Parallel: yes` and check `Blocked by:` is either `none` or all listed tasks are complete. If the Parallel field is missing, report `needs-clarification` and stop
-3. Implement the task in the worktree
-4. List the task-specific tests from the plan
-5. Prepare a review-ready summary for the orchestrator to diff and test in the worktree
+- Do NOT commit, merge, or push
+- Do NOT touch files outside task scope
+- Stop immediately if task is blocked
+- All changes require orchestrator review before integration
 
 ## Output Format
+
 ```
-Ticket: [phase/task]
+Ticket: [task_id or phase/task]
 Status: complete | blocked | needs-clarification
+Task: [subject from TaskGet or plan]
+
 Files Changed:
-- path/to/file
-Tests:
-- [commands to run]
-Diff Summary:
-- orchestrator runs: git status -sb
-- orchestrator runs: git diff --stat
-Next Steps:
-- cd [worktree-path]
-- git status -sb && git diff --stat
-- run tests (commands listed)
-- /requesting-code-review
+- path/to/file1
+- path/to/file2
+
+Tests to Run:
+- npm test -- path/to/test
+- [other relevant commands]
+
+Next Steps for Orchestrator:
+1. cd [worktree-path]
+2. git diff --stat
+3. Run tests listed above
+4. /requesting-code-review
+5. Merge if approved
+
 Notes:
-- [risks/assumptions]
+- [any risks, assumptions, or blockers encountered]
 ```
+
+## Integration with Orchestrator
+
+The orchestrator:
+1. Creates task DAG via TaskCreate/TaskUpdate
+2. Spawns this agent with `task_id` and `worktree_path`
+3. Agent implements and marks complete
+4. Orchestrator reviews diff, runs tests, merges
+
+Multiple ticket-builder agents can run in parallel on independent tasks.

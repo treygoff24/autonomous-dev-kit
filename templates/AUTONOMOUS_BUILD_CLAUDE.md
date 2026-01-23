@@ -87,7 +87,7 @@ Custom agents at `~/.claude/agents/` provide isolated execution with fresh conte
 |-------|-------------|
 | `debugger` | Systematic debugging with root cause analysis. Use BEFORE proposing fixes. |
 | `tdd-implementer` | Test-driven development. Write failing test first. |
-| `task-plan-executor` | Execute implementation plans task-by-task with quality gates. |
+| `ticket-builder` | Execute implementation plans task-by-task with quality gates. |
 | `code-reviewer` | Review diffs against specs/plans before commits. |
 | `a11y-reviewer` | Accessibility review for interactive UI changes. |
 | `spec-reviewer` | Spec completeness and precision review. |
@@ -648,7 +648,7 @@ If context feels stale, re-read AUTONOMOUS_BUILD_CLAUDE.md for the full protocol
 |-------|-------|
 | Spec creation | `brainstorming` skill → `spec-quality-checklist` skill → `/codex` + `/gemini` review |
 | Planning | `writing-plans` skill → `/codex` + `/gemini` review |
-| Implementation | `task-plan-executor` agent, `tdd-implementer` agent, `using-git-worktrees` skill |
+| Implementation | `ticket-builder` agent, `tdd-implementer` agent, `using-git-worktrees` skill |
 | Debugging | `debugger` agent, `root-cause-tracer` agent, `validator` agent, `/codex` + `/gemini` for fresh perspective |
 | Quality & Review | `requesting-code-review` → `/codex` + `/gemini` review, verification-standards rule |
 | Cleanup & Completion | `slop-cleaner` agent, `finishing-a-development-branch` skill |
