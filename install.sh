@@ -993,6 +993,7 @@ setup_claude_directory_full() {
             "testing-anti-patterns"
             "verification-before-completion"
             "condition-based-waiting"
+            "ticket-builder"  # Renamed to task-builder
         )
         for skill in "${deprecated_skills[@]}"; do
             if [ -d "$skills_dest/$skill" ]; then
@@ -1194,6 +1195,7 @@ setup_claude_directory_additive() {
             "testing-anti-patterns"
             "verification-before-completion"
             "condition-based-waiting"
+            "ticket-builder"  # Renamed to task-builder
         )
         for skill in "${deprecated_skills[@]}"; do
             if [ -d "$skills_dest/$skill" ]; then
