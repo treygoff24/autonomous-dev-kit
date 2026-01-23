@@ -56,6 +56,17 @@ $GIT_RECENT
     fi
 fi
 
+# Source task helpers for safe task list reading
+TASK_INFO=""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$HOME/.claude/lib/task-helpers.sh" ]]; then
+    source "$HOME/.claude/lib/task-helpers.sh"
+    TASK_INFO=$(get_task_handoff_summary "$CLAUDE_PROJECT_DIR")
+elif [[ -f "$SCRIPT_DIR/lib/task-helpers.sh" ]]; then
+    source "$SCRIPT_DIR/lib/task-helpers.sh"
+    TASK_INFO=$(get_task_handoff_summary "$CLAUDE_PROJECT_DIR")
+fi
+
 # Build the handoff content
 {
     echo "# Auto-Handoff — $TIMESTAMP"
@@ -79,6 +90,14 @@ fi
     # Include git state
     if [[ -n "$GIT_INFO" ]]; then
         echo "$GIT_INFO"
+        echo "---"
+        echo ""
+    fi
+
+    # Include task list state
+    if [[ -n "$TASK_INFO" ]]; then
+        echo "$TASK_INFO"
+        echo ""
         echo "---"
         echo ""
     fi

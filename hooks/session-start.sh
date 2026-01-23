@@ -186,7 +186,18 @@ Running as specialized agent. Follow agent-specific instructions.
     esac
 fi
 
-# 5. Add session resume reminder
+# 5. Add task list hint if task state was in handoff
+if [[ -n "$LATEST_HANDOFF" ]] && grep -q "Task List State" "$LATEST_HANDOFF" 2>/dev/null; then
+    CONTEXT="${CONTEXT}## Task List Hint
+
+Task state was captured in the handoff above. Use \`TaskList\` to see current tasks and \`TaskGet <id>\` for details. Continue from the in-progress task if one exists.
+
+---
+
+"
+fi
+
+# 6. Add session resume reminder
 CONTEXT="${CONTEXT}## Session Resumed
 
 **Remember: You are the orchestrator, not the implementer.** Before doing any work, check if there's a skill for it. Skills spawn subagents under the hood.
