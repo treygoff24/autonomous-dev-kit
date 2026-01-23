@@ -224,7 +224,9 @@ detect_claude_files() {
         "$HOME/.claude/hooks/session-start.sh"
         "$HOME/.claude/hooks/user-prompt-submit.sh"
         "$HOME/.claude/hooks/stop.sh"
+        "$HOME/.claude/hooks/statusline-task.sh"
         "$HOME/.claude/lib/loop-helpers.sh"
+        "$HOME/.claude/lib/task-helpers.sh"
         "$HOME/.claude/lib/cheatsheet.md"
         "$HOME/.claude/autonomous-dev-kit/templates"
         "$HOME/.claude/skills"
@@ -283,7 +285,9 @@ detect_updates() {
         "session-start hook|$SCRIPT_DIR/hooks/session-start.sh|$claude_dir/hooks/session-start.sh"
         "user-prompt-submit hook|$SCRIPT_DIR/hooks/user-prompt-submit.sh|$claude_dir/hooks/user-prompt-submit.sh"
         "stop hook|$SCRIPT_DIR/hooks/stop.sh|$claude_dir/hooks/stop.sh"
+        "statusline-task hook|$SCRIPT_DIR/hooks/statusline-task.sh|$claude_dir/hooks/statusline-task.sh"
         "loop helpers library|$SCRIPT_DIR/hooks/lib/loop-helpers.sh|$claude_dir/lib/loop-helpers.sh"
+        "task helpers library|$SCRIPT_DIR/hooks/lib/task-helpers.sh|$claude_dir/lib/task-helpers.sh"
         "autonomous loop cheatsheet|$SCRIPT_DIR/hooks/lib/cheatsheet.md|$claude_dir/lib/cheatsheet.md"
     )
 
@@ -1030,9 +1034,11 @@ setup_claude_directory_full() {
     install_file_with_prompt "$SCRIPT_DIR/hooks/session-start.sh" "$claude_dir/hooks/session-start.sh" "session-start hook"
     install_file_with_prompt "$SCRIPT_DIR/hooks/user-prompt-submit.sh" "$claude_dir/hooks/user-prompt-submit.sh" "user-prompt-submit hook"
     install_file_with_prompt "$SCRIPT_DIR/hooks/stop.sh" "$claude_dir/hooks/stop.sh" "stop hook"
+    install_file_with_prompt "$SCRIPT_DIR/hooks/statusline-task.sh" "$claude_dir/hooks/statusline-task.sh" "statusline-task hook"
 
-    # Install lib files for autonomous loop
+    # Install lib files for autonomous loop and task system
     install_file_with_prompt "$SCRIPT_DIR/hooks/lib/loop-helpers.sh" "$claude_dir/lib/loop-helpers.sh" "loop helpers library"
+    install_file_with_prompt "$SCRIPT_DIR/hooks/lib/task-helpers.sh" "$claude_dir/lib/task-helpers.sh" "task helpers library"
     install_file_with_prompt "$SCRIPT_DIR/hooks/lib/cheatsheet.md" "$claude_dir/lib/cheatsheet.md" "autonomous loop cheatsheet"
 
     # Make hooks executable
@@ -1047,6 +1053,12 @@ setup_claude_directory_full() {
     fi
     if [ -f "$claude_dir/hooks/stop.sh" ]; then
         run chmod +x "$claude_dir/hooks/stop.sh"
+    fi
+    if [ -f "$claude_dir/hooks/statusline-task.sh" ]; then
+        run chmod +x "$claude_dir/hooks/statusline-task.sh"
+    fi
+    if [ -f "$claude_dir/lib/task-helpers.sh" ]; then
+        run chmod +x "$claude_dir/lib/task-helpers.sh"
     fi
 }
 
@@ -1375,6 +1387,20 @@ setup_claude_directory_additive() {
                     if [ -f "$SCRIPT_DIR/hooks/lib/loop-helpers.sh" ]; then
                         run cp "$SCRIPT_DIR/hooks/lib/loop-helpers.sh" "$claude_dir/lib/loop-helpers.sh"
                         success "Installed loop helpers library"
+                    fi
+                    ;;
+                *"/task-helpers.sh")
+                    if [ -f "$SCRIPT_DIR/hooks/lib/task-helpers.sh" ]; then
+                        run cp "$SCRIPT_DIR/hooks/lib/task-helpers.sh" "$claude_dir/lib/task-helpers.sh"
+                        run chmod +x "$claude_dir/lib/task-helpers.sh"
+                        success "Installed task helpers library"
+                    fi
+                    ;;
+                *"/statusline-task.sh")
+                    if [ -f "$SCRIPT_DIR/hooks/statusline-task.sh" ]; then
+                        run cp "$SCRIPT_DIR/hooks/statusline-task.sh" "$claude_dir/hooks/statusline-task.sh"
+                        run chmod +x "$claude_dir/hooks/statusline-task.sh"
+                        success "Installed statusline-task hook"
                     fi
                     ;;
                 *"/cheatsheet.md")

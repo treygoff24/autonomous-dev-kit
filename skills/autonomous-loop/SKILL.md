@@ -13,6 +13,11 @@ hooks:
         1. **Run `git status`** — Are there uncommitted changes (excluding `.claude/` directory)?
            If yes, you're not done.
 
+        1b. **Check task list (if tasks exist):**
+            - Run `TaskList` — are there pending or in_progress tasks?
+            - If task list exists and has incomplete tasks, you're not done.
+            - Task system takes precedence over IMPLEMENTATION_PLAN.md checkboxes.
+
         2. **Run quality gates:**
            - FIRST check if `.claude-quality-gates` exists — if so, run each command in that file
            - ONLY if no `.claude-quality-gates`: check package.json for npm scripts (typecheck, lint, build, test)
@@ -123,9 +128,24 @@ To force quit: Ctrl+C
 Starting now...
 ```
 
+### Step 3b: Create Task DAG (if plan exists)
+
+If IMPLEMENTATION_PLAN.md exists and contains tasks with `Parallel:` and `Blocked by:` fields:
+
+1. Read plan and parse tasks manually (maintain ID mapping)
+2. Create tasks with `TaskCreate`, recording plan ID → system ID mapping
+3. Set dependencies with `TaskUpdate` using mapped system IDs
+4. Report: "Task DAG created with N tasks, M ready to start"
+
+This enables:
+- Progress tracking via task status (survives compaction)
+- Parallel execution of independent tasks
+- Clear completion criteria (all tasks completed)
+
 ### Step 4: Begin Working
 
-- If IMPLEMENTATION_PLAN.md exists, continue from current phase
+- If task DAG was created, execute via TaskList/TaskUpdate workflow
+- Otherwise, if IMPLEMENTATION_PLAN.md exists, continue from current phase
 - Otherwise, start executing the goal directly
 - Follow the autonomous build protocol
 

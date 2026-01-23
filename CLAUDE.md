@@ -127,6 +127,34 @@ For Claude Code 2.1+, completion enforcement uses **prompt-based Stop hooks** in
 
 **Note:** Claude Code <2.1 does not support prompt-based hooks. Users on older versions will have reduced autonomous loop enforcement. Upgrade to Claude Code 2.1+ for full completion verification.
 
+## Task System Integration
+
+The kit integrates with Claude Code's task management system (TaskCreate, TaskList, TaskGet, TaskUpdate) for progress tracking and parallel execution.
+
+### Key Concepts
+
+- **Task DAG**: Plans are parsed into task graphs with dependencies
+- **Parallel Execution**: Independent tasks can run simultaneously
+- **Shared Task Lists**: Multiple sessions coordinate via `CLAUDE_CODE_TASK_LIST_ID`
+- **Progress Persistence**: Task state survives context compaction
+
+### New Components
+
+| Component | Type | Purpose |
+|-----------|------|---------|
+| `task-plan-executor` | Agent | Execute plans using task system |
+| `swarm-coordinator` | Skill | Multi-session coordination |
+| `task-helpers.sh` | Library | Safe task reading with validation |
+| `statusline-task.sh` | Hook | Show task progress in status line |
+
+### Workflow
+
+1. Create implementation plan with `Parallel:` and `Blocked by:` fields
+2. Use `/swarm-coordinator` for multi-session work, or
+3. Spawn `task-plan-executor` agent for single-session execution
+4. Tasks are created, dependencies tracked, progress persisted
+5. Pre-compact hook captures task state for continuity
+
 ## Agents, Skills, and Rules
 
 The kit organizes Claude's capabilities in three layers:
@@ -135,6 +163,7 @@ The kit organizes Claude's capabilities in three layers:
 - `debugger` — Systematic debugging with root cause analysis
 - `tdd-implementer` — Test-driven development
 - `plan-executor` — Execute implementation plans task-by-task
+- `task-plan-executor` — Execute plans using Claude Code's task system (DAG, parallel execution)
 - `ticket-builder` — Implement a single plan task in an isolated worktree
 - `slop-cleaner` — Remove AI-generated cruft
 - `validator` — Defense-in-depth validation
@@ -148,6 +177,7 @@ The kit organizes Claude's capabilities in three layers:
 - `gemini` — Delegate to Google Gemini for reviews, debugging help, second opinions
 - `ticket-builder` — Execute a single plan task in an isolated worktree
 - `using-git-worktrees` — Isolated workspaces for risky changes
+- `swarm-coordinator` — Multi-session coordination via shared task list
 - `finishing-a-development-branch` — Clean up for merge/PR
 - `requesting-code-review` / `receiving-code-review` — Code review workflow
 - `spec-quality-checklist` / `accessibility-checklist` — Validation checklists

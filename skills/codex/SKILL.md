@@ -19,21 +19,22 @@ Use `run_in_background: true` parameter on Bash tool. This returns a task ID - u
 
 ## Flags
 
-- `--full-auto` - Default. Full workspace access, can edit files and run commands.
-- `--suggest` - Read-only mode. Shows proposed changes but doesn't apply them. Use for reviews.
-- `--yolo` - No approvals, no sandbox. Use for trusted, well-defined tasks.
-- `--cd <path>` - Set working directory.
+- `--full-auto` - Default. Workspace-write sandbox with auto-approval. Can edit files and run commands.
+- `-s read-only` - Read-only sandbox mode. Use for reviews where you don't want changes.
+- `--dangerously-bypass-approvals-and-sandbox` - No approvals, no sandbox. Use only for trusted tasks.
+- `-C <path>` or `--cd <path>` - Set working directory.
 - `--add-dir <path>` - Grant additional directory access.
+- `-m <model>` - Specify model (e.g., `-m o3`, `-m gpt-4.1`).
 
 ## When to Use Each Mode
 
 | Task | Mode |
 |------|------|
-| Code review | `--suggest` |
-| Spec/plan review | `--suggest` |
+| Code review | `--full-auto` (default, can read everything) |
+| Spec/plan review | `--full-auto` (default) |
 | Debugging investigation | `--full-auto` |
 | Implement feature | `--full-auto` |
-| Trusted batch operations | `--yolo` |
+| Untrusted environment | `-s read-only` |
 
 ## Workflow
 

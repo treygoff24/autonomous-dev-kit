@@ -7,6 +7,14 @@
 
 set -euo pipefail
 
+# Source task helpers for task-aware completion checking
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$HOME/.claude/lib/task-helpers.sh" ]]; then
+    source "$HOME/.claude/lib/task-helpers.sh"
+elif [[ -f "$SCRIPT_DIR/task-helpers.sh" ]]; then
+    source "$SCRIPT_DIR/task-helpers.sh"
+fi
+
 # Get the state file path for a project (project-local, like ralph-wiggum)
 # Usage: get_state_file_path "/path/to/project"
 get_state_file_path() {
