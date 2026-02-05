@@ -74,12 +74,40 @@ test_detect_updates_skips_matching_files() {
     rm -rf "$temp_home"
 }
 
+test_update_mode_noninteractive_does_not_exit_on_skipped_backup() {
+    echo "Testing update mode non-interactive run does not exit on skipped backups..."
+    TESTS_RUN=$((TESTS_RUN + 1))
+
+    local temp_home
+    temp_home=$(mktemp -d)
+
+    mkdir -p "$temp_home/.claude/hooks"
+    cp "$REPO_ROOT/hooks/stop.sh" "$temp_home/.claude/hooks/stop.sh"
+    printf '\n# modified\n' >> "$temp_home/.claude/hooks/stop.sh"
+
+    local log_file="$temp_home/install.log"
+    if HOME="$temp_home" CI=1 bash "$REPO_ROOT/install.sh" --mode=update < /dev/null > "$log_file" 2>&1; then
+        if grep -q "Installation Complete!" "$log_file"; then
+            echo "  OK Non-interactive update completes successfully"
+            TESTS_PASSED=$((TESTS_PASSED + 1))
+        else
+            echo "  FAIL Installer exited 0 but did not reach completion banner"
+        fi
+    else
+        echo "  FAIL Non-interactive update should not fail"
+        sed -n '1,200p' "$log_file"
+    fi
+
+    rm -rf "$temp_home"
+}
+
 # Run tests
 echo "=== Installer Update Detection Tests ==="
 echo ""
 
 test_detect_updates_flags_modified_stop_hook
 test_detect_updates_skips_matching_files
+test_update_mode_noninteractive_does_not_exit_on_skipped_backup
 
 # Summary
 echo ""

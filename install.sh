@@ -170,6 +170,11 @@ prompt_overwrite() {
         return 1
     fi
 
+    # Skip prompt in non-interactive mode (default to keep existing)
+    if [ ! -t 0 ]; then
+        return 1
+    fi
+
     local response=""
     while true; do
         read -r -p "Overwrite existing $label at $dest? [y/N] " response
@@ -869,7 +874,8 @@ install_file_with_prompt() {
 
     if [ -f "$dest" ]; then
         if prompt_overwrite "$label" "$dest"; then
-            prompt_backup_file "$dest" "$label"
+            # Optional backup prompt may return non-zero when skipped.
+            prompt_backup_file "$dest" "$label" || true
             run cp "$src" "$dest"
             success "Updated $label"
         else
@@ -899,7 +905,8 @@ install_dir_with_prompt() {
 
     if [ -d "$dest" ]; then
         if prompt_overwrite "$label" "$dest"; then
-            prompt_backup_dir "$dest" "$label"
+            # Optional backup prompt may return non-zero when skipped.
+            prompt_backup_dir "$dest" "$label" || true
             run rm -rf "$dest"
             run cp -R "$src" "$dest"
             success "Updated $label"
@@ -972,7 +979,7 @@ setup_claude_directory_full() {
         done
         # Clean up legacy single-file skill format
         if [ -f "$skills_dest/autonomous-loop.md" ]; then
-            prompt_backup_file "$skills_dest/autonomous-loop.md" "legacy autonomous-loop.md"
+            prompt_backup_file "$skills_dest/autonomous-loop.md" "legacy autonomous-loop.md" || true
             run rm "$skills_dest/autonomous-loop.md"
             success "Removed legacy autonomous-loop.md (replaced by autonomous-loop/ directory)"
         fi
@@ -994,7 +1001,7 @@ setup_claude_directory_full() {
         )
         for skill in "${deprecated_skills[@]}"; do
             if [ -d "$skills_dest/$skill" ]; then
-                prompt_backup_dir "$skills_dest/$skill" "deprecated skill: $skill"
+                prompt_backup_dir "$skills_dest/$skill" "deprecated skill: $skill" || true
                 run rm -rf "$skills_dest/$skill"
                 success "Removed deprecated skill: $skill (converted to agent/rule)"
             fi
@@ -1021,7 +1028,7 @@ setup_claude_directory_full() {
         )
         for agent in "${deprecated_agents[@]}"; do
             if [ -f "$agents_dest/$agent" ]; then
-                prompt_backup_file "$agents_dest/$agent" "deprecated agent: $agent"
+                prompt_backup_file "$agents_dest/$agent" "deprecated agent: $agent" || true
                 run rm "$agents_dest/$agent"
                 success "Removed deprecated agent: $agent"
             fi
@@ -1143,7 +1150,7 @@ setup_claude_directory_additive() {
                 done
             elif [ "$update_choice" = "all" ]; then
                 # Ask once for all skills
-                prompt_batch_backup "skills" "${#updated_skills[@]}"
+                prompt_batch_backup "skills" "${#updated_skills[@]}" || true
                 for skill_name in "${updated_skills[@]}"; do
                     local dest_dir="$skills_dest/$skill_name"
                     local src_dir="$skills_src/$skill_name"
@@ -1160,7 +1167,7 @@ setup_claude_directory_additive() {
                     local dest_dir="$skills_dest/$skill_name"
                     local src_dir="$skills_src/$skill_name"
                     if prompt_overwrite "skill: $skill_name" "$dest_dir"; then
-                        prompt_backup_dir "$dest_dir" "skill: $skill_name"
+                        prompt_backup_dir "$dest_dir" "skill: $skill_name" || true
                         run rm -rf "$dest_dir"
                         run cp -R "$src_dir" "$dest_dir"
                         success "Updated skill: $skill_name"
@@ -1174,7 +1181,7 @@ setup_claude_directory_additive() {
         fi
         # Clean up legacy single-file skill format
         if [ -f "$skills_dest/autonomous-loop.md" ]; then
-            prompt_backup_file "$skills_dest/autonomous-loop.md" "legacy autonomous-loop.md"
+            prompt_backup_file "$skills_dest/autonomous-loop.md" "legacy autonomous-loop.md" || true
             run rm "$skills_dest/autonomous-loop.md"
             success "Removed legacy autonomous-loop.md (replaced by autonomous-loop/ directory)"
         fi
@@ -1196,7 +1203,7 @@ setup_claude_directory_additive() {
         )
         for skill in "${deprecated_skills[@]}"; do
             if [ -d "$skills_dest/$skill" ]; then
-                prompt_backup_dir "$skills_dest/$skill" "deprecated skill: $skill"
+                prompt_backup_dir "$skills_dest/$skill" "deprecated skill: $skill" || true
                 run rm -rf "$skills_dest/$skill"
                 success "Removed deprecated skill: $skill (converted to agent/rule)"
             fi
@@ -1280,7 +1287,7 @@ setup_claude_directory_additive() {
                 done
             elif [ "$update_choice" = "all" ]; then
                 # Ask once for all agents
-                prompt_batch_backup "agents" "${#updated_agents[@]}"
+                prompt_batch_backup "agents" "${#updated_agents[@]}" || true
                 for agent_name in "${updated_agents[@]}"; do
                     local src_file="$agents_src/$agent_name"
                     local dest_file="$agents_dest/$agent_name"
@@ -1296,7 +1303,7 @@ setup_claude_directory_additive() {
                     local src_file="$agents_src/$agent_name"
                     local dest_file="$agents_dest/$agent_name"
                     if prompt_overwrite "agent: $agent_name" "$dest_file"; then
-                        prompt_backup_file "$dest_file" "agent: $agent_name"
+                        prompt_backup_file "$dest_file" "agent: $agent_name" || true
                         run cp "$src_file" "$dest_file"
                         success "Updated agent: $agent_name"
                         agents_updated=$((agents_updated + 1))
@@ -1316,7 +1323,7 @@ setup_claude_directory_additive() {
         )
         for agent in "${deprecated_agents[@]}"; do
             if [ -f "$agents_dest/$agent" ]; then
-                prompt_backup_file "$agents_dest/$agent" "deprecated agent: $agent"
+                prompt_backup_file "$agents_dest/$agent" "deprecated agent: $agent" || true
                 run rm "$agents_dest/$agent"
                 success "Removed deprecated agent: $agent"
             fi
