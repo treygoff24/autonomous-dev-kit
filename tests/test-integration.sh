@@ -12,8 +12,8 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../hooks/lib/loop-helpers.sh"
+TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$TEST_DIR/../hooks/lib/loop-helpers.sh"
 
 TESTS_RUN=0
 TESTS_PASSED=0
@@ -40,7 +40,7 @@ test_file_structure() {
 
     # Verify all hooks exist and are executable
     for hook in pre-compact.sh session-start.sh user-prompt-submit.sh stop.sh; do
-        if [[ ! -x "$SCRIPT_DIR/../hooks/$hook" ]]; then
+        if [[ ! -x "$TEST_DIR/../hooks/$hook" ]]; then
             echo "  ✗ Missing or not executable: hooks/$hook"
             all_ok=false
         fi
@@ -48,7 +48,7 @@ test_file_structure() {
 
     # Verify lib files exist (now in hooks/lib/)
     for lib in loop-helpers.sh cheatsheet.md; do
-        if [[ ! -f "$SCRIPT_DIR/../hooks/lib/$lib" ]]; then
+        if [[ ! -f "$TEST_DIR/../hooks/lib/$lib" ]]; then
             echo "  ✗ Missing lib file: hooks/lib/$lib"
             all_ok=false
         fi
@@ -137,7 +137,7 @@ This is a test handoff.
 EOF
 
     # Run session-start hook
-    local output=$(echo '{}' | CLAUDE_PROJECT_DIR="$test_dir" "$SCRIPT_DIR/../hooks/session-start.sh" 2>/dev/null || true)
+    local output=$(echo '{}' | CLAUDE_PROJECT_DIR="$test_dir" "$TEST_DIR/../hooks/session-start.sh" 2>/dev/null || true)
 
     # Should produce some output (handoff injection)
     if [[ -n "$output" ]]; then
@@ -158,7 +158,7 @@ test_user_prompt_submit_hook() {
     local all_ok=true
 
     # Test 1: No output when loop inactive
-    local output=$(echo '{}' | CLAUDE_PROJECT_DIR="$test_dir" "$SCRIPT_DIR/../hooks/user-prompt-submit.sh" 2>/dev/null || true)
+    local output=$(echo '{}' | CLAUDE_PROJECT_DIR="$test_dir" "$TEST_DIR/../hooks/user-prompt-submit.sh" 2>/dev/null || true)
     if [[ -z "$output" ]]; then
         echo "  ✓ No output when loop inactive"
     else
@@ -168,7 +168,7 @@ test_user_prompt_submit_hook() {
 
     # Test 2: Output when loop active
     initialize_loop_state "$test_dir" "Test goal" 10
-    output=$(echo '{}' | CLAUDE_PROJECT_DIR="$test_dir" "$SCRIPT_DIR/../hooks/user-prompt-submit.sh" 2>/dev/null || true)
+    output=$(echo '{}' | CLAUDE_PROJECT_DIR="$test_dir" "$TEST_DIR/../hooks/user-prompt-submit.sh" 2>/dev/null || true)
     # Output is JSON with hookSpecificOutput.additionalContext containing "Autonomous Loop Protocol Anchor"
     if [[ "$output" == *"Autonomous Loop Protocol Anchor"* || "$output" == *"additionalContext"* ]]; then
         echo "  ✓ Protocol anchor when loop active"
@@ -185,20 +185,41 @@ test_user_prompt_submit_hook() {
     rm -rf "$test_dir"
 }
 
-test_stop_hook_stub() {
-    echo "Testing stop hook stub behavior..."
+test_stop_hook_inactive_allow() {
+    echo "Testing stop hook inactive-loop allow behavior..."
     TESTS_RUN=$((TESTS_RUN + 1))
 
     # Stop hook should always approve (exit 0, no output)
     local exit_code=0
-    local output=$(echo '{}' | "$SCRIPT_DIR/../hooks/stop.sh" 2>&1) || exit_code=$?
+    local output=$(echo '{}' | "$TEST_DIR/../hooks/stop.sh" 2>&1) || exit_code=$?
 
     if [[ $exit_code -eq 0 && -z "$output" ]]; then
-        echo "  ✓ Stop hook approves (stub behavior for 2.1+)"
+        echo "  ✓ Stop hook approves when loop inactive"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
         echo "  ✗ Stop hook should approve with no output (exit=$exit_code)"
     fi
+}
+
+test_session_start_no_handoff_dir() {
+    echo "Testing session-start hook with no handoff directory..."
+    TESTS_RUN=$((TESTS_RUN + 1))
+
+    local test_dir
+    test_dir=$(create_test_repo)
+
+    # Intentionally do not create thoughts/handoffs.
+    local output
+    output=$(echo '{"agent_type":"task-builder"}' | CLAUDE_PROJECT_DIR="$test_dir" "$TEST_DIR/../hooks/session-start.sh" 2>/dev/null || true)
+
+    if [[ "$output" == *"hookSpecificOutput"* ]]; then
+        echo "  ✓ Session-start handles missing handoff dir"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        echo "  ✗ Session-start should handle missing handoff dir"
+    fi
+
+    rm -rf "$test_dir"
 }
 
 test_verification_code_generation() {
@@ -236,8 +257,9 @@ echo ""
 test_file_structure
 test_loop_state_lifecycle
 test_session_start_hook
+test_session_start_no_handoff_dir
 test_user_prompt_submit_hook
-test_stop_hook_stub
+test_stop_hook_inactive_allow
 test_verification_code_generation
 
 # Summary

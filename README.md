@@ -4,7 +4,7 @@ A practical harness for long-running, autonomous AI development. I stole all the
 
 Most agent setups break down once the task lasts more than a few minutes. Context gets shredded by compaction, prompts drift, tests are skipped, and the model starts guessing. This kit exists because I got tired of cleaning up after that.
 
-The core idea is boring on purpose: specs, plans, checkpoints, and hard quality gates. The hooks keep context hydrated, the skills keep the protocol tight, and **prompt-based Stop hooks use Sonnet to intelligently evaluate whether work is truly complete**—not brittle shell scripts, but actual model judgment. Claude Code 2.1.x features like skill-scoped hooks, hot reload, and agent-type awareness are incorporated thoughtfully.
+The core idea is boring on purpose: specs, plans, checkpoints, and hard quality gates. The hooks keep context hydrated, the skills keep the protocol tight, and **a deterministic Stop hook engine enforces completion before exit**. Prompt-based agent hooks still add role-specific rigor where model judgment helps (debugging discipline, TDD discipline, review discipline). Claude Code 2.1.x features like skill-scoped hooks, hot reload, and agent-type awareness are incorporated thoughtfully.
 
 I also wanted a harness that treats model choice as a tool, not a religion. Claude does the building, Codex and Gemini do cross-review, and they keep each other honest.
 
@@ -45,11 +45,9 @@ Then open Claude Code and say: "Read the autonomous build protocol and help me w
 
 Hooks keep sessions stable through compaction and restarts. Templates and skills enforce a spec -> plan -> build loop with review checkpoints.
 
-**Prompt-based Stop hooks** (Claude Code 2.1.x) are the key enforcement mechanism. Instead of brittle shell scripts checking git status, Sonnet evaluates whether work is truly complete:
-- **autonomous-loop skill** — Verifies git clean, quality gates pass, plan tasks complete, no half-done work
-- **tdd-implementer agent** — Verifies TDD discipline (RED-GREEN-REFACTOR), tests pass
-- **debugger agent** — Verifies root cause identified with evidence, fix verified
-- **task-builder agent** — Verifies all tasks complete, quality gates between tasks, code review done
+**Stop hooks enforce autonomy at two layers:**
+- **Deterministic global `stop.sh` engine** — Tracks loop state (`iteration`, verification cadence, stuck detection, max-iteration pause), checks completion (git clean, quality gates, task list, plan), blocks exit with `exit 2`, and clears state only when done.
+- **Prompt-based agent-scoped hooks** — tdd-implementer/debugger/task-builder still use Sonnet for role-specific quality checks.
 
 The bar is: "Would you ship this to production right now?" If not, exit is blocked and work continues.
 
@@ -83,6 +81,7 @@ I put quite a lot of thought and trial and error into when to make something an 
 | `/writing-plans`                  | Creates phased implementation plans with clear tasks and acceptance criteria. |
 | `/codex`                          | Delegates work to OpenAI Codex CLI for second opinions and cross-reviews.     |
 | `/gemini`                         | Delegates work to Google Gemini CLI for second opinions and cross-reviews.    |
+| `/claude`                         | Claude Code best practices: prompting, planning, headless mode, verification. |
 | `/using-git-worktrees`            | Guides creation of isolated worktrees for risky or parallel changes.          |
 | `/finishing-a-development-branch` | Runs a cleanup checklist so branches are merge-ready.                         |
 | `/requesting-code-review`         | Packages the diff for a review agent and gets a structured verdict.           |
@@ -105,7 +104,8 @@ This kit leverages Claude Code 2.1.0 through 2.1.2 features:
 
 | Feature | How We Use It |
 |---------|---------------|
-| **Prompt-based Stop hooks** | Sonnet evaluates completion instead of shell scripts. Checks git, quality gates, plan completion, code review. |
+| **Deterministic Stop hook engine** | `hooks/stop.sh` enforces loop completion with explicit checks (git, tasks, gates, plan) plus iteration/verification/stuck state machine. |
+| **Prompt-based agent hooks** | tdd-implementer/debugger/task-builder use Sonnet prompts for discipline-specific exit validation. |
 | **Agent-scoped hooks** | tdd-implementer, debugger, task-builder each have Stop hooks verifying their specific discipline was followed. |
 | **Skill dependency auto-loading** | Skills declare dependencies (e.g., writing-plans loads brainstorming) for reference without manual invocation. |
 | **Skill hot-reload** | Edit skills in `~/.claude/skills/` and changes apply immediately without restart. |
@@ -113,7 +113,7 @@ This kit leverages Claude Code 2.1.0 through 2.1.2 features:
 | **agent_type in SessionStart** | session-start.sh injects agent-specific context based on which agent is starting. |
 | **Ctrl+B backgrounding** | Background any running task (agents or commands) to continue working on other things. |
 
-Requires Claude Code 2.1.0+. Users on older versions have reduced autonomous loop enforcement.
+Core loop enforcement is handled by the global Stop command hook. Agent-scoped prompt hooks use Claude Code 2.1.x capabilities.
 
 ## Layout
 
@@ -134,6 +134,12 @@ autonomous-dev-kit/
 ## Docs
 
 Start with `docs/GETTING_STARTED.md`, then keep `docs/WORKFLOW_REFERENCE.md` open while you run builds. If something breaks, `docs/TROUBLESHOOTING.md` is short and useful.
+
+For harness changes, run canary evals to catch regressions:
+
+```bash
+evals/canary/run.sh
+```
 
 ## Credits
 

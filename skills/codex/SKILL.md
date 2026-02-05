@@ -1,63 +1,62 @@
 ---
 name: codex
-description: Delegate work to OpenAI Codex CLI. Use for second opinions on bugs, code reviews, spec/plan reviews, debugging help, or parallel work. Codex runs as a separate AI agent with its own tools and context.
+description: This skill should be used when the user asks to "use Codex CLI", "codex exec", "get a Codex second opinion", or "run a Codex review" as a separate agent.
 ---
 
-# Codex Delegation
+# Codex CLI Delegation
 
-Invoke OpenAI Codex CLI to perform tasks in this codebase.
+Use Codex CLI as a parallel agent with its own context window. Prefer `codex exec` for headless runs and `codex` for the TUI.
 
-## Usage
+## When to Use
 
-Always run in background (Codex can take minutes to complete):
+- Code review or spec/plan review
+- Debugging second opinion
+- Parallel implementation in an isolated worktree
+
+## Quickstart
 
 ```bash
-codex exec --full-auto "task description" 2>/dev/null
+codex exec --sandbox read-only "Review src/auth against SPEC.md. Focus on security and tests."
+codex exec --full-auto --cd ../worktrees/task-3 "Implement Task 3 from IMPLEMENTATION_PLAN.md."
 ```
 
-Use `run_in_background: true` parameter on Bash tool. This returns a task ID - use TaskOutput to get results when ready.
+## Exec Inputs
 
-## Flags
+- PROMPT string, or `-` to read stdin.
+- `--image, -i` attaches one or more images to the first message.
 
-- `--full-auto` - Default. Workspace-write sandbox with auto-approval. Can edit files and run commands.
-- `-s read-only` - Read-only sandbox mode. Use for reviews where you don't want changes.
-- `--dangerously-bypass-approvals-and-sandbox` - No approvals, no sandbox. Use only for trusted tasks.
-- `-C <path>` or `--cd <path>` - Set working directory.
-- `--add-dir <path>` - Grant additional directory access.
-- `-m <model>` - Specify model (e.g., `-m o3`, `-m gpt-4.1`).
+## Config and Model Overrides
 
-## When to Use Each Mode
+- `--model, -m` overrides the configured model (e.g., `gpt-5-codex`).
+- `--profile, -p` selects a profile from `~/.codex/config.toml`.
+- `--config, -c key=value` overrides config values (repeatable).
+- `--oss` uses the local open source provider (requires Ollama).
+- `--cd, -C` sets the working directory before execution.
+- `--skip-git-repo-check` allows running outside a Git repo.
 
-| Task | Mode |
-|------|------|
-| Code review | `--full-auto` (default, can read everything) |
-| Spec/plan review | `--full-auto` (default) |
-| Debugging investigation | `--full-auto` |
-| Implement feature | `--full-auto` |
-| Untrusted environment | `-s read-only` |
+## Safety Controls
 
-## Workflow
+- `--sandbox, -s`: `read-only` | `workspace-write` | `danger-full-access`.
+- `--ask-for-approval, -a`: `untrusted` | `on-failure` | `on-request` | `never`.
+- `--full-auto`: sets `--ask-for-approval on-request` and `--sandbox workspace-write`.
+- `--dangerously-bypass-approvals-and-sandbox`, `--yolo`: no approvals or sandbox.
+- `--add-dir`: grant extra write roots.
+- `--search`: enable web search tool usage.
 
-1. Determine the task and appropriate mode
-2. Run codex exec with `run_in_background: true`
-3. Inform user that Codex is working
-4. Use TaskOutput to wait for completion and get results
-5. Report findings back to user
+## Output and Scripting
 
-## Example
+- `--json` / `--experimental-json`: newline-delimited JSON events.
+- `--output-last-message, -o <path>`: write final assistant message to a file.
+- `--output-schema <path>`: validate the final response against a JSON Schema.
+- `--color <always|never|auto>`: control ANSI output.
 
-```
-Bash(
-  command="codex exec --full-auto 'Review the auth module for security issues' 2>/dev/null",
-  run_in_background=true
-)
-# Returns task_id
-# Then: TaskOutput(task_id=..., block=true) to get results
-```
+## Session Control
+
+- `codex resume [SESSION_ID]` or `codex resume --last [--all]`.
+- `codex exec resume [SESSION_ID]` to continue non-interactive runs.
+- `codex fork [SESSION_ID]` to branch a prior interactive session.
 
 ## Notes
 
-- Codex has its own context window - it doesn't see our conversation
-- Provide clear, self-contained task descriptions
-- For file-specific tasks, include paths in the prompt
-- Background execution means no timeout issues - Codex can take as long as needed
+- Global flags apply to subcommands; place them after the subcommand (e.g., `codex exec --oss ...`).
+- Codex runs with its own context window; include all necessary context in the prompt.

@@ -332,15 +332,12 @@ claude_supports_skill_hooks() {
 }
 
 use_legacy_stop_hook() {
-    if [ "${CLAUDE_CODE_LEGACY_STOP_HOOK:-}" = "1" ]; then
-        return 0
+    # Deterministic loop state enforcement depends on stop.sh.
+    # Allow opt-out for advanced users, but default to enabled on all versions.
+    if [ "${CLAUDE_CODE_DISABLE_STOP_HOOK:-}" = "1" ]; then
+        return 1
     fi
-
-    if ! claude_supports_skill_hooks; then
-        return 0
-    fi
-
-    return 1
+    return 0
 }
 
 detect_hooks() {

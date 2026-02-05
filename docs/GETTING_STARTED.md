@@ -132,6 +132,7 @@ Skills at `~/.claude/skills/` require conversation context and user interaction.
 | `/writing-plans` | Create detailed implementation plans |
 | `/codex` | Delegate to OpenAI Codex for reviews, debugging, second opinions |
 | `/gemini` | Delegate to Google Gemini for reviews, debugging, second opinions |
+| `/claude` | Claude Code best practices: prompting, planning, headless mode, verification |
 | `/using-git-worktrees` | Isolated workspaces for risky changes |
 | `/finishing-a-development-branch` | Clean up for merge/PR |
 | `/requesting-code-review` | Request review before proceeding |
@@ -278,7 +279,7 @@ code IMPLEMENTATION_PLAN.md
 
 Break the work into phases. If you plan to run tasks in parallel with `/task-builder`, add **Parallel**, **Blocked by**, and **Owned files** for each task, then create worktrees before invoking the skill.
 
-Spawn multiple `task-builder` agents in parallel for independent tasks with clear file ownership. Each task-builder works in an isolated worktree and auto-loads domain-specific skills based on keywords (e.g., "modal" → `frontend-design`). Use `skills=` parameter to override auto-detection:
+Spawn multiple `task-builder` agents in parallel for independent tasks with clear file ownership. Each task-builder works in an isolated worktree, claims task ownership (`owner="session-<id>"`) before setting `in_progress`, and auto-loads domain-specific skills based on keywords (e.g., "modal" → `frontend-design`). Use `skills=` parameter to override auto-detection:
 
 ```
 /task-builder task_id=1 worktree_path=../wt-1 skills=threejs,react-three-fiber
@@ -379,7 +380,7 @@ claude "Read the spec and implementation plan, then go autonomous"
 
 The autonomous loop will:
 - Block exit attempts until all criteria are met
-- Inject protocol reminders every iteration
+- Increment deterministic loop state on each blocked exit (`iteration`, `stuck_count`, progress hashes)
 - Re-verify protocol understanding every 3 iterations with a code from `.claude/autonomous-loop.json`
 - Pause at 100 iterations for human check-in
 
@@ -427,6 +428,9 @@ task done <id>
 
 # Check the final code
 git log --oneline
+
+# Run harness canary evals (optional, recommended after harness changes)
+evals/canary/run.sh
 ```
 
 ### Step 10: Capture Learnings
@@ -457,7 +461,7 @@ After the build, add to `LEARNINGS.md`:
 When using `/autonomous-loop`:
 - **Duration:** Same as manual, but truly hands-off
 - **Check-ins:** Automatic pause every 100 iterations
-- **Protocol drift:** Prevented via periodic re-read verification with a code from `.claude/autonomous-loop.json`
+- **Protocol drift:** Prevented via deterministic stop-hook verification cadence using codes from `.claude/autonomous-loop.json`
 - **Exit behavior:** Claude can't accidentally stop mid-build
 
 To stop early: Press Escape/Ctrl+C or say "stop autonomous mode"

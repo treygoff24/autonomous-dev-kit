@@ -50,6 +50,7 @@ get_protocol_reminder() {
 
 # Build context string
 CONTEXT=""
+LATEST_HANDOFF=""
 
 # 1. Find and include most recent handoff (if < 48 hours old)
 if [[ -d "$HANDOFF_DIR" ]]; then
@@ -198,7 +199,8 @@ Task state was captured in the handoff above. Use \`TaskList\` to see current ta
 fi
 
 # 6. Add session resume reminder
-CONTEXT="${CONTEXT}## Session Resumed
+if [[ -z "$AGENT_TYPE" ]]; then
+    CONTEXT="${CONTEXT}## Session Resumed
 
 **Remember: You are the orchestrator, not the implementer.** Before doing any work, check if there's a skill for it. Skills spawn subagents under the hood.
 
@@ -208,6 +210,11 @@ Context was restored automatically. If anything feels stale:
 - Check IMPLEMENTATION_PLAN.md for current phase
 
 Continue from where you left off."
+else
+    CONTEXT="${CONTEXT}## Session Resumed
+
+Context was restored automatically. Continue from where you left off for this specialized agent role."
+fi
 
 # Output using JSON format for reliable context injection
 # The hookSpecificOutput.additionalContext field is added to Claude's context

@@ -64,10 +64,12 @@ git worktree add ../wt-task-3 -b task-3
 1. `TaskGet(task_id)` — Retrieves subject, description, blockedBy
 2. **Verify not blocked** — All blockedBy tasks must be completed; STOP if blocked
 3. **Load relevant skills** (see Skill Auto-Loading below)
-4. `TaskUpdate(status="in_progress")` — Claims the task
-5. Implements in the worktree (isolated, focused)
-6. `TaskUpdate(status="completed")` — Marks done
-7. Returns summary to orchestrator
+4. `TaskUpdate(owner="session-<id>")` — Claims task ownership
+5. `TaskGet(task_id)` — Re-read and verify ownership before proceeding
+6. `TaskUpdate(status="in_progress")` — Starts execution
+7. Implements in the worktree (isolated, focused)
+8. `TaskUpdate(status="completed")` — Marks done
+9. Returns summary to orchestrator
 
 The agent does NOT commit, merge, or push. You review and integrate.
 
@@ -140,6 +142,15 @@ All changes require orchestrator review:
 2. Orchestrator runs tests in worktree
 3. Orchestrator runs `/requesting-code-review`
 4. Only merge after approval
+
+## Race-Safe Ownership
+
+Before any implementation begins:
+1. Claim with `owner="session-<id>"`
+2. Re-read task and verify ownership
+3. Only then set `status="in_progress"`
+
+If ownership does not match, stop and pick another task.
 
 ## Output Expectations
 

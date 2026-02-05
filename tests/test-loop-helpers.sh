@@ -5,8 +5,8 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../hooks/lib/loop-helpers.sh"
+TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$TEST_DIR/../hooks/lib/loop-helpers.sh"
 
 # Test counter
 TESTS_RUN=0
@@ -275,6 +275,18 @@ test_update_state_field() {
     delete_state_file "$test_project"
 }
 
+test_source_does_not_clobber_script_dir() {
+    echo "Testing source does not clobber caller SCRIPT_DIR..."
+
+    local caller_script_dir="/tmp/caller-script-dir"
+    SCRIPT_DIR="$caller_script_dir"
+
+    # Re-source in current shell to validate behavior.
+    source "$TEST_DIR/../hooks/lib/loop-helpers.sh"
+
+    assert_equals "$caller_script_dir" "$SCRIPT_DIR" "SCRIPT_DIR preserved after source"
+}
+
 # Run tests
 echo "=== Loop Helpers Tests ==="
 echo ""
@@ -286,6 +298,7 @@ test_read_malformed_state
 test_is_loop_active
 test_initialize_loop_state
 test_update_state_field
+test_source_does_not_clobber_script_dir
 
 # Summary
 echo ""

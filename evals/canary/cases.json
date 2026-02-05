@@ -1,0 +1,25 @@
+{
+  "cases": [
+    {
+      "id": "loop_helpers_regression",
+      "description": "Loop helper state lifecycle and variable hygiene",
+      "command": "bash tests/test-loop-helpers.sh"
+    },
+    {
+      "id": "session_start_resilience",
+      "description": "Session-start hook should not crash on missing handoff state",
+      "command": "bash tests/test-session-start.sh"
+    },
+    {
+      "id": "stop_hook_engine",
+      "description": "Deterministic stop-hook loop state behavior",
+      "command": "bash tests/test-stop-hook.sh"
+    },
+    {
+      "id": "task_builder_contract",
+      "description": "Task-builder ownership protocol instructions remain enforced",
+      "command": "bash tests/test-task-builder-contract.sh"
+    }
+  ]
+}
+

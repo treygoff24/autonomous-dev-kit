@@ -36,3 +36,4 @@ coverage
 .claude/
 .beads/
 thoughts/
+evals/canary/reports/*.json

@@ -389,7 +389,7 @@ User: /ralph-loop "Build X" --completion-promise "DONE" --max-iterations 50
 
 | Aspect | Ralph Wiggum | This Kit |
 |--------|--------------|----------|
-| **Completion detection** | Exact string match (`<promise>DONE</promise>`) | Sonnet evaluates "is this actually done?" |
+| **Completion detection** | Exact string match (`<promise>DONE</promise>`) | Deterministic stop-hook engine evaluates state + checks before allowing exit |
 | **What gets checked** | Just the completion string | Git clean + quality gates + plan tasks + code review |
 | **Task scope** | Single-task loops | Multi-phase builds (Spec → Plan → Implement → Verify) |
 | **Context survival** | Filesystem only | Hooks inject handoffs + learnings after compaction |
@@ -398,25 +398,16 @@ User: /ralph-loop "Build X" --completion-promise "DONE" --max-iterations 50
 | **Stuck detection** | None | Pauses after 5 iterations with no progress |
 | **Quality gates** | None | Configurable `.claude-quality-gates` file |
 
-**The Core Difference: Intelligent Completion**
+**The Core Difference: Deterministic Completion**
 
 Ralph uses exact string matching. If Claude outputs `<promise>DONE</promise>`, the loop ends—whether or not the work is actually done.
 
-We use **prompt-based Stop hooks** where Sonnet evaluates completion:
-
-```yaml
-hooks:
-  Stop:
-    - type: prompt
-      model: sonnet
-      prompt: |
-        You are about to exit. Verify the work is ACTUALLY COMPLETE.
-
-        1. Run `git status` — uncommitted changes = not done
-        2. Run quality gates — failures = not done
-        3. Check IMPLEMENTATION_PLAN.md — unchecked boxes = not done
-        4. Would you ship this to production right now?
-```
+We use a **deterministic Stop hook state machine** in `hooks/stop.sh`:
+- Checks completion gates (git clean excluding `.claude/`, quality gates, task list state, plan completion)
+- Tracks `iteration`, `max_iterations`, and `paused`
+- Triggers protocol verification every 3 iterations via `expected_verification_code`
+- Detects stuck state after repeated no-progress iterations
+- Blocks exit with `exit 2` until criteria are met, then clears `.claude/autonomous-loop.json`
 
 This catches:
 - "Tests pass" claims when tests weren't run
@@ -467,6 +458,18 @@ Quick command:
 ```bash
 quality-gates
 ```
+
+---
+
+## Harness Canary Evals
+
+Use fixed canary evals to detect harness regressions after hook/agent/skill changes:
+
+```bash
+evals/canary/run.sh
+```
+
+This writes a JSON report with pass/fail rates for core harness checks (loop helpers, session-start resilience, stop-hook engine behavior, task-builder ownership contract). Reports go to `evals/canary/reports/` by default.
 
 ---
 

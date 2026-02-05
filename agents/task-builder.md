@@ -47,10 +47,12 @@ spawn next batch when tasks complete
 1. TaskGet(task_id) → retrieve subject, description, blockedBy
 2. Verify not blocked (all blockedBy tasks completed) — STOP if blocked
 3. LOAD RELEVANT SKILLS (see below)
-4. TaskUpdate(task_id, status="in_progress")
-5. Implement the task in the worktree
-6. TaskUpdate(task_id, status="completed")
-7. Return summary to orchestrator
+4. TaskUpdate(task_id, owner="session-<id>") to claim ownership
+5. TaskGet(task_id) and verify ownership before proceeding
+6. TaskUpdate(task_id, status="in_progress")
+7. Implement the task in the worktree
+8. TaskUpdate(task_id, status="completed")
+9. Return summary to orchestrator
 ```
 
 ## Skill Loading (Step 3) — CRITICAL
@@ -131,6 +133,7 @@ Use bare skill names (no `/` prefix). Multiple skills can be loaded.
 - Touch ONLY files relevant to this task
 - Do NOT commit, merge, or push
 - Stop immediately if task is blocked
+- Always claim and verify ownership before moving to `in_progress`
 - All changes require orchestrator review
 
 ## Output Format

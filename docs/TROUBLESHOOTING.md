@@ -159,7 +159,7 @@ Either:
 
 ### "Stop hook isn't firing" or "autonomous loop doesn't block exit"
 
-**Cause:** Claude Code 2.1.0+ uses a skill-scoped Stop hook attached to `/autonomous-loop`. The global Stop hook is only installed for older versions or when legacy mode is enabled.
+**Cause:** Settings may be missing the global `Stop` command hook, or the loop state file is not active for this project.
 
 **Fix:**
 
@@ -168,10 +168,10 @@ Either:
 /autonomous-loop "your goal here"
 ```
 
-If you want the global Stop hook back (legacy behavior), reinstall with:
+If you explicitly want to disable the global `Stop` command hook (not recommended), reinstall with:
 
 ```bash
-CLAUDE_CODE_LEGACY_STOP_HOOK=1 ./install.sh
+CLAUDE_CODE_DISABLE_STOP_HOOK=1 ./install.sh
 ```
 
 ### "Protocol verification keeps failing"

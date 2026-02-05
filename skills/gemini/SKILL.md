@@ -1,62 +1,65 @@
 ---
 name: gemini
-description: Delegate work to Google Gemini CLI. Use for second opinions on bugs, code reviews, spec/plan reviews, debugging help, or parallel work. Gemini runs as a separate AI agent with its own tools and context.
+description: This skill should be used when the user asks to "use Gemini", "get a Gemini review", "delegate to Gemini CLI", or "run Gemini headless" for a second opinion.
 ---
 
-# Gemini Delegation
+# Gemini Headless Delegation
 
-Invoke Google Gemini CLI to perform tasks in this codebase.
+Run Gemini CLI in headless mode to perform tasks in this codebase.
 
 ## Usage
 
-Always run in background (Gemini can take minutes to complete):
+Run with a direct prompt or stdin:
 
 ```bash
-gemini -p "task description" --yolo 2>/dev/null
+gemini --prompt "task description"
+echo "Explain this code" | gemini
 ```
 
-Use `run_in_background: true` parameter on Bash tool. This returns a task ID - use TaskOutput to get results when ready.
+If the host tool supports background execution, use it for long-running calls and poll for output.
+
+## Output Formats
+
+- `text` (default) for human-readable output.
+- `json` for structured output with `response`, `stats`, and optional `error`.
+- `stream-json` for JSONL events: `init`, `message`, `tool_use`, `tool_result`, `error`, `result`.
 
 ## Flags
 
-- `--yolo` / `-y` - Auto-approve all actions. Default for automation.
-- `--model` / `-m` - Specify model (e.g., `gemini-2.5-pro`, `gemini-2.5-flash`).
-- `--all-files` / `-a` - Include all files in context.
+- `--prompt`, `-p` - Headless prompt.
+- `--output-format` - `text`, `json`, `stream-json`.
+- `--model`, `-m` - Specify model (e.g., `gemini-2.5-flash`).
+- `--debug`, `-d` - Enable debug mode.
 - `--include-directories` - Add directories to context (comma-separated).
-- `--output-format json` - Get structured output (use with `jq -r '.response'`).
+- `--yolo`, `-y` - Auto-approve all actions.
+- `--approval-mode` - Set approval mode (e.g., `auto_edit`).
 
 ## When to Use Each Approach
 
 | Task | Approach |
 |------|----------|
-| Code review | Default (reads files as needed) |
-| Broad codebase question | `--all-files` or `--include-directories` |
-| Specific file analysis | Include paths in prompt |
-| Structured output | `--output-format json` |
+| Code review | Default headless prompt |
+| Broad codebase question | Include paths in prompt or use `--include-directories` |
+| Specific file analysis | Pipe file contents and include the file path in prompt |
+| Structured output | `--output-format json` with `jq -r '.response'` |
+| Live progress | `--output-format stream-json` and parse `.type` |
 
 ## Workflow
 
-1. Determine the task
-2. Run gemini with `run_in_background: true`
-3. Inform user that Gemini is working
-4. Use TaskOutput to wait for completion and get results
-5. Report findings back to user
+1. Define a clear, self-contained task prompt and include file paths.
+2. Choose input method and output format.
+3. Run Gemini and capture output.
+4. Parse `response` from JSON or monitor `stream-json` events.
+5. Report findings back to the user.
 
 ## Example
 
-```
-Bash(
-  command="gemini -p 'Review the auth module for security issues' --yolo 2>/dev/null",
-  run_in_background=true
-)
-# Returns task_id
-# Then: TaskOutput(task_id=..., block=true) to get results
+```bash
+gemini --prompt "Review the auth module for security issues" --output-format json | jq -r '.response'
 ```
 
 ## Notes
 
-- Gemini has its own context window - it doesn't see our conversation
-- Provide clear, self-contained task descriptions
-- For file-specific tasks, include paths in the prompt
-- Background execution means no timeout issues - Gemini can take as long as needed
-- Stdin piping supported: `cat file.txt | gemini -p "analyze this"`
+- Gemini has its own context window; include all relevant context in the prompt.
+- Use redirection/pipes for automation: `>`, `>>`, `|`.
+- Stdin piping supported: `cat file.txt | gemini --prompt "Analyze this"`.
