@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Your Role: Orchestrator, Not Implementer
 
-**You are not a solo developer—you are an orchestrator coordinating specialized skills, subagents, and external AIs.**
+**You are not a solo developer—you are an orchestrator coordinating specialized skills, agent-team workers (Claude Task subagents), and external AIs.**
 
-**Skills are your primary interface.** Most skills spawn subagents under the hood—you don't need to manage that directly. When you invoke `/debugging-systematic`, it spawns the `debugger` agent. When you invoke `/writing-plans`, it handles the planning workflow. Skills encapsulate the complexity.
+**Skills are your primary interface.** Most skills spawn agent-team workers under the hood (Claude calls them subagents)—you don't need to manage that directly. When you invoke `/debugging-systematic`, it spawns the `debugger` agent. When you invoke `/writing-plans`, it handles the planning workflow. Skills encapsulate the complexity.
 
 Your job is to:
 
@@ -21,11 +21,11 @@ Your job is to:
 | Question | If Yes → |
 |----------|----------|
 | Is there a skill for this? | Use it (e.g., `/debugging-systematic`, `/writing-plans`, `/codex`) |
-| Is there a subagent for this? | Spawn it via Task tool (e.g., `debugger`, `tdd-implementer`) |
+| Is there an agent-team worker for this (Task subagent)? | Spawn it via Task tool (e.g., `debugger`, `tdd-implementer`) |
 | Would Codex/Gemini catch what I'd miss? | Call `/codex` or `/gemini` |
 | Is this a simple 1-3 line fix? | Do it directly |
 
-**Skills are the preferred path.** They handle context, spawn appropriate subagents, and manage the workflow. Direct Task tool usage is for when you need fine-grained control.
+**Skills are the preferred path.** They handle context, spawn appropriate agent-team workers, and manage the workflow. Direct Task tool usage is for when you need fine-grained control.
 
 ### The Orchestration Mindset
 
@@ -108,7 +108,7 @@ The installer sets up Claude Code hooks for continuity and autonomous loop behav
 - **pre-compact.sh** — Runs before context compaction, saves handoff with git state and CONTEXT.md
 - **session-start.sh** — Runs after compaction or `/clear`, injects latest handoff + learnings into context
 - **user-prompt-submit.sh** — Injects a short protocol anchor when autonomous loop mode is active
-- **stop.sh** — Legacy stub for Claude Code <2.1 (see Stop Hooks below)
+- **stop.sh** — Deterministic autonomous loop state engine (uses `.claude/autonomous-loop.json` to enforce completion criteria)
 
 Handoffs are saved to:
 - `$PROJECT/thoughts/handoffs/` when in a project
@@ -116,16 +116,17 @@ Handoffs are saved to:
 
 Only handoffs < 48 hours old are auto-injected to prevent stale context.
 
-### Stop Hooks (Claude Code 2.1+)
+### Stop Hook Enforcement (Claude Code 2.1+)
 
-For Claude Code 2.1+, completion enforcement uses **prompt-based Stop hooks** in skill/agent frontmatter instead of shell scripts. This lets a Sonnet model intelligently evaluate whether work is truly complete.
+For Claude Code 2.1+, this kit uses a deterministic shell Stop hook (`hooks/stop.sh`) backed by `.claude/autonomous-loop.json` state.
 
-- **autonomous-loop skill** — Stop hook verifies: git clean, quality gates pass, plan tasks complete, no half-done work
-- **tdd-implementer agent** — Stop hook verifies: TDD discipline followed, tests pass, no violations
-- **debugger agent** — Stop hook verifies: root cause identified with evidence, fix verified
-- **task-builder agent** — Stop hook verifies: all tasks complete, quality gates between tasks, code review done
+- Verifies git is clean (excluding `.claude/`)
+- Verifies task list completion when the task system is active
+- Runs quality gates (`.claude-quality-gates` commands first; otherwise available npm scripts: `typecheck`, `lint`, `build`, `test`)
+- Verifies scoped `IMPLEMENTATION_PLAN.md` checkboxes (phase-scoped when goal specifies a phase)
+- Blocks exit (`exit 2`) until criteria are met, then clears loop state
 
-**Note:** Claude Code <2.1 does not support prompt-based hooks. Users on older versions will have reduced autonomous loop enforcement. Upgrade to Claude Code 2.1+ for full completion verification.
+Prompt-based Stop hooks in agent/skill frontmatter (for `tdd-implementer`, `debugger`, etc.) still provide role-specific verification.
 
 ## Task System Integration
 

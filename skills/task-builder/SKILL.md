@@ -68,8 +68,9 @@ git worktree add ../wt-task-3 -b task-3
 5. `TaskGet(task_id)` — Re-read and verify ownership before proceeding
 6. `TaskUpdate(status="in_progress")` — Starts execution
 7. Implements in the worktree (isolated, focused)
-8. `TaskUpdate(status="completed")` — Marks done
-9. Returns summary to orchestrator
+8. Run quality gates (`.claude-quality-gates` commands first; otherwise relevant project checks)
+9. `TaskUpdate(status="completed")` — Marks done
+10. Returns summary to orchestrator
 
 The agent does NOT commit, merge, or push. You review and integrate.
 
@@ -151,6 +152,10 @@ Before any implementation begins:
 3. Only then set `status="in_progress"`
 
 If ownership does not match, stop and pick another task.
+
+Before marking complete:
+1. Run quality gates from `.claude-quality-gates` if the file exists
+2. Otherwise run the relevant project checks for touched code
 
 ## Output Expectations
 

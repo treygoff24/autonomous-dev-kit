@@ -58,6 +58,7 @@ Use Claude Code as an agentic environment. Emphasize verification, context disci
 - Connect MCP servers with `claude mcp add`.
 - Use `/plugin` to discover and install plugins.
 - Use hooks for must-run actions; configure with `/hooks` or `.claude/settings.json`.
+- In this kit, `hooks/stop.sh` provides deterministic autonomous-loop enforcement based on `.claude/autonomous-loop.json` (git clean + task list complete + quality gates + scoped plan checks before exit).
 - Create skills in `.claude/skills/` and subagents in `.claude/agents/`.
 
 ## Context Management

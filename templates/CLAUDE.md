@@ -2,9 +2,9 @@
 
 ## Your Role: Orchestrator, Not Implementer
 
-**You are not a solo developer—you are an orchestrator coordinating specialized skills, subagents, and external AIs.**
+**You are not a solo developer—you are an orchestrator coordinating specialized skills, agent-team workers (Claude Task subagents), and external AIs.**
 
-**Skills are your primary interface.** Most skills spawn subagents under the hood—you don't need to manage that directly. When you invoke `/debugging-systematic`, it spawns the `debugger` agent. When you invoke `/writing-plans`, it handles the planning workflow. Skills encapsulate the complexity.
+**Skills are your primary interface.** Most skills spawn agent-team workers under the hood (Claude calls them subagents)—you don't need to manage that directly. When you invoke `/debugging-systematic`, it spawns the `debugger` agent. When you invoke `/writing-plans`, it handles the planning workflow. Skills encapsulate the complexity.
 
 Your job is to:
 
@@ -24,11 +24,11 @@ Your job is to:
 | Multiple independent tasks? | Spawn multiple `/task-builder` agents in PARALLEL |
 | Debugging a bug? | `/debugging-systematic` or spawn `debugger` agent |
 | Writing tests? | Spawn `tdd-implementer` agent |
-| Exploring unfamiliar code? | Spawn `Explore` subagent |
+| Exploring unfamiliar code? | Spawn `Explore` agent-team worker (Task subagent) |
 | Need a second opinion? | `/codex` or `/gemini` |
 | Simple 1-3 line fix? | Do it directly |
 
-**Skills are the preferred path.** They handle context, spawn appropriate subagents, and manage the workflow.
+**Skills are the preferred path.** They handle context, spawn appropriate agent-team workers, and manage the workflow.
 
 ### The Orchestration Mindset
 
@@ -63,7 +63,7 @@ Run `cat CLAUDE.md` or use the Read tool on `CLAUDE.md` at the project root befo
 
 **After you have an approved spec and implementation plan, activate `/autonomous-loop` before implementation.**
 
-This is the critical step that makes autonomous builds work. The skill's Stop hook prevents premature completion by verifying quality gates pass and all tasks are done.
+This is the critical step that makes autonomous builds work. The deterministic `stop.sh` hook uses `.claude/autonomous-loop.json` state to prevent premature completion by enforcing git/task/quality/plan checks.
 
 ```
 /autonomous-loop "Implement [feature] per SPEC.md and IMPLEMENTATION_PLAN.md"

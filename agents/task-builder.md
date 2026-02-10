@@ -51,8 +51,9 @@ spawn next batch when tasks complete
 5. TaskGet(task_id) and verify ownership before proceeding
 6. TaskUpdate(task_id, status="in_progress")
 7. Implement the task in the worktree
-8. TaskUpdate(task_id, status="completed")
-9. Return summary to orchestrator
+8. Run quality gates (.claude-quality-gates commands first; otherwise relevant project checks)
+9. TaskUpdate(task_id, status="completed")
+10. Return summary to orchestrator
 ```
 
 ## Skill Loading (Step 3) — CRITICAL
@@ -134,6 +135,7 @@ Use bare skill names (no `/` prefix). Multiple skills can be loaded.
 - Do NOT commit, merge, or push
 - Stop immediately if task is blocked
 - Always claim and verify ownership before moving to `in_progress`
+- Run quality gates before marking `completed`
 - All changes require orchestrator review
 
 ## Output Format

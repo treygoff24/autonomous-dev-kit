@@ -2,8 +2,9 @@
 #
 # Integration tests for autonomous loop system
 #
-# Note: As of Claude Code 2.1+, completion enforcement is handled by prompt-based
-# Stop hooks in skill/agent frontmatter, not by stop.sh. These tests verify:
+# Note: Autonomous loop completion enforcement is handled by deterministic
+# `hooks/stop.sh` state checks. Prompt-based Stop hooks in skill/agent frontmatter
+# still provide role-specific verification. These tests verify:
 # - File structure is correct
 # - Hooks are executable
 # - Loop helper functions work together

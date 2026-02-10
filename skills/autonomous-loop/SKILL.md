@@ -153,11 +153,15 @@ This enables:
 
 The loop automatically ends when ALL of these are true:
 1. Git working directory is clean (no uncommitted changes, `.claude/` excluded)
-2. All quality gates pass (if `.claude-quality-gates` exists)
-3. All tasks in IMPLEMENTATION_PLAN.md are checked off (if file exists, no `- [ ]` boxes)
+2. Task list is complete (if task system is active, no pending/in_progress tasks)
+3. Quality gates pass:
+   - If `.claude-quality-gates` exists, run every non-comment command in that file
+   - Otherwise, run available npm scripts in this order: `typecheck`, `lint`, `build`, `test`
+4. All tasks in IMPLEMENTATION_PLAN.md are checked off (if file exists, no `- [ ]` boxes)
 
 If the goal mentions a phase or module and a matching section exists, only that section is
 checked. If the scoped section is missing, the plan check is skipped.
+Task list completion takes precedence over plan checkboxes when both are present.
 
 ## Protocol Verification
 

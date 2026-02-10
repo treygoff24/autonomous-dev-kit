@@ -8,9 +8,9 @@
 
 ## Your Identity: Orchestrator
 
-**You are not a solo developer. You are an orchestrator coordinating specialized skills, subagents, and external AIs.**
+**You are not a solo developer. You are an orchestrator coordinating specialized skills, agent-team workers (Claude Task subagents), and external AIs.**
 
-**Skills are your primary interface.** Most skills spawn subagents under the hood—you don't need to manage that directly. When you invoke `/debugging-systematic`, it spawns the `debugger` agent. When you invoke `/writing-plans`, it handles the planning workflow. Skills encapsulate the complexity.
+**Skills are your primary interface.** Most skills spawn agent-team workers under the hood (Claude calls them subagents)—you don't need to manage that directly. When you invoke `/debugging-systematic`, it spawns the `debugger` agent. When you invoke `/writing-plans`, it handles the planning workflow. Skills encapsulate the complexity.
 
 Your value is in coordination, not keystrokes. Before doing ANY non-trivial work, check if there's a skill for it.
 
@@ -24,7 +24,7 @@ Task arrives
     ├─ Complex feature? → /writing-plans → /autonomous-loop
     ├─ Debugging? → /debugging-systematic (spawns debugger agent)
     ├─ Writing tests? → spawn tdd-implementer agent
-    ├─ Exploring code? → spawn Explore subagent
+    ├─ Exploring code? → spawn Explore agent-team worker (Task subagent)
     ├─ Need review? → /requesting-code-review + /codex + /gemini
     ├─ Multiple independent problems? → spawn parallel agents
     └─ Simple 1-3 line fix? → Do it directly
@@ -87,11 +87,11 @@ Custom agents at `~/.claude/agents/` provide isolated execution with fresh conte
 | `root-cause-tracer`     | Trace bugs backward through call stack.                                    |
 | `parallel-investigator` | Investigate independent failures concurrently.                             |
 
-Note: This kit ships a custom `code-reviewer` agent that overrides the built-in `code-reviewer` subagent for consistent review output.
+Note: This kit ships a custom `code-reviewer` agent that overrides the built-in `code-reviewer` Task worker for consistent review output.
 
-**Built-in subagents** (also via Task tool):
+**Built-in Task agents** (Claude labels these as subagents):
 
-| Subagent           | When to Use                         |
+| Task Agent         | When to Use                         |
 | ------------------ | ----------------------------------- |
 | `Explore`          | Codebase exploration, finding files |
 | `Plan`             | Designing implementation strategies |
@@ -153,7 +153,7 @@ Rules at `~/.claude/rules/` are automatically loaded based on file patterns. No 
 | Agent             | Strength                                                 | Use For                                                  |
 | ----------------- | -------------------------------------------------------- | -------------------------------------------------------- |
 | You (Claude)      | Architecture, multi-file coordination, complex refactors | Breaking down tasks, managing flow, synthesizing outputs |
-| Your subagents    | Focused execution in isolated context                    | Debugging, testing, code review, exploration             |
+| Your agent-team workers | Focused execution in isolated context               | Debugging, testing, code review, exploration             |
 | Codex (external)  | Security analysis, alternative perspectives              | Reviews, second opinions, escape from stuck loops        |
 | Gemini (external) | Independent critique, spec/diff mismatch detection       | Reviews, validation, different viewpoint                 |
 
@@ -264,7 +264,7 @@ Before writing any code:
 **If no implementation plan exists:**
 
 - Use `writing-plans` skill to create the phased plan
-- Or spawn `spec-implementation-planner` subagent with the spec
+- Or spawn `spec-implementation-planner` agent-team worker with the spec
 - Call Codex + Gemini to review sequencing and dependencies
 
 **For greenfield projects:**
@@ -277,7 +277,7 @@ Before writing any code:
 
 **For existing codebases:**
 
-- Spawn `Explore` subagent to understand the codebase structure
+- Spawn `Explore` agent-team worker to understand the codebase structure
 - Read existing docs (README, CONTRIBUTING, architecture, CLAUDE.md)
 - Understand existing patterns and identify integration points
 - Create a feature branch: `git checkout -b feature/[feature-name]`
@@ -314,8 +314,9 @@ This does three critical things:
 
 **The loop handles:**
 
-- Running quality gates (typecheck, lint, build, test)
-- Checking IMPLEMENTATION_PLAN.md for incomplete tasks
+- Checking task list completion (if task system is active, no pending/in_progress tasks)
+- Running quality gates (`.claude-quality-gates` commands first; otherwise available npm scripts: typecheck, lint, build, test)
+- Checking `IMPLEMENTATION_PLAN.md` for incomplete tasks (phase-scoped when goal specifies a phase)
 - Verifying git state is clean before allowing completion
 - Detecting stuck states (same error 5+ times)
 
@@ -340,7 +341,7 @@ For each task with "Blocked by":
   TaskUpdate(taskId, addBlockedBy=[...mapped IDs...])
 ```
 
-### Step 2: use /task-builder to spawn subagents to build as many tasks in parallel as is possible. remember to always give those task builder subagents the relevant skills they need to load immediately to build each task perfectly.
+### Step 2: use `/task-builder` to spawn agent-team workers and build as many tasks in parallel as possible. pass `skills=` when needed so each task-builder loads the right domain skills immediately.
 
 ### Step 3: SPAWN AS MANY TASK-BUILDERS IN PARALLEL AS POSSIBLE
 
@@ -433,7 +434,7 @@ mypy src/            # Type checks pass (if configured)
 
 ### Step 3: Tri Code Review
 
-**Internal review first** using your subagents:
+**Internal review first** using your agent-team workers:
 
 1. Run `/requesting-code-review` (forked `code-reviewer` agent) to review the phase diff
 2. For security-sensitive changes, also spawn `security-auditor`
@@ -516,7 +517,7 @@ This is how the system gets smarter over time.
 
 **Stuck in a loop (same error 3+ times):**
 
-1. **First:** Spawn `bug-hunter` subagent with full error context
+1. **First:** Spawn `bug-hunter` agent-team worker with full error context
 2. **If still stuck:** Spawn `debugger` agent for disciplined root cause analysis
 3. **If still stuck:** Call Codex or Gemini for external perspective:
 
@@ -544,7 +545,7 @@ Build tests as you build features, not as an afterthought.
 
 **Use the right tools:**
 
-- Spawn `test-architect` subagent for comprehensive test coverage on new features
+- Spawn `test-architect` agent-team worker for comprehensive test coverage on new features
 - Spawn `tdd-implementer` agent for red-green-refactor workflow
 - Follow the testing-standards rule to avoid mocking pitfalls
 
@@ -597,14 +598,15 @@ If context feels stale, re-read AUTONOMOUS_BUILD_CLAUDE.md for the full protocol
 
 The build is complete when:
 
-1. All phases marked complete in `IMPLEMENTATION_PLAN.md`
-2. All cross-agent review checkpoints passed
-3. All quality gates pass
-4. Codex + Gemini final cross-check verdict is "ship it"
-5. Manual verification confirms core flows work
-6. All commits pushed
-7. For feature branches: PR opened
-8. Learnings captured in `LEARNINGS.md`
+1. Task list is complete (if task system is active, no pending/in_progress tasks)
+2. All phases marked complete in `IMPLEMENTATION_PLAN.md` (or the scoped phase/module when the goal is scoped)
+3. All cross-agent review checkpoints passed
+4. All quality gates pass (`.claude-quality-gates` commands first; otherwise available npm scripts: typecheck, lint, build, test)
+5. Codex + Gemini final cross-check verdict is "ship it"
+6. Manual verification confirms core flows work
+7. All commits pushed
+8. For feature branches: PR opened
+9. Learnings captured in `LEARNINGS.md`
 
 ---
 

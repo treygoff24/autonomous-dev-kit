@@ -14,7 +14,7 @@ Run code review in a forked `code-reviewer` agent to catch issues before they ca
 ## When to Request Review
 
 **Mandatory:**
-- After each task in subagent-driven development
+- After each task in agent-team-driven development
 - After completing major feature
 - Before merge to main
 
@@ -71,7 +71,7 @@ You: [Fix progress indicators]
 
 ## Integration with Workflows
 
-**Subagent-Driven Development:**
+**Agent-Team-Driven Development:**
 - Review after EACH task
 - Catch issues before they compound
 - Fix before moving to next task
