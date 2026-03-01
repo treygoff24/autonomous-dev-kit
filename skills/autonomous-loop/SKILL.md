@@ -224,6 +224,18 @@ Examples:
 /autonomous-loop "Fix all failing tests" --max 200
 ```
 
+## Modern Hook Events
+
+Claude Code 2.1.33+ supports additional hook events beyond what this skill uses. The autonomous loop primarily uses the `Stop` hook, but these are available for custom extensions:
+
+| Event | When It Fires | Use Case |
+|-------|---------------|----------|
+| `Stop` | Agent/skill about to exit | **Used by this skill** — completion enforcement |
+| `PreToolUse` | Before a tool is used | Validate tool inputs, block dangerous operations |
+| `PostToolUse` | After a tool completes | Log tool outputs, trigger follow-up actions |
+| `SessionStart` | Session begins | Context injection (used by session-start.sh) |
+| `PreCompact` | Before context compaction | State preservation (used by pre-compact.sh) |
+
 ## State File Reference
 
 Location: `.claude/autonomous-loop.json` (project-local)

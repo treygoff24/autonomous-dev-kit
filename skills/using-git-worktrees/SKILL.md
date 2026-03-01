@@ -210,6 +210,34 @@ Ready to implement auth feature
 - Auto-detect and run project setup
 - Verify clean test baseline
 
+## Native Worktree Isolation (Claude Code 2.1.33+)
+
+Claude Code now supports native worktree isolation for agents. Instead of manually creating worktrees, you can use the `isolation: worktree` frontmatter field in agent definitions:
+
+```yaml
+---
+name: my-agent
+isolation: worktree
+---
+```
+
+Or pass `--worktree` when spawning agents from the CLI:
+
+```bash
+claude --agent task-builder --worktree
+```
+
+**When to use native isolation vs manual worktrees:**
+
+| Scenario | Approach |
+|----------|----------|
+| Single agent task | Native `isolation: worktree` |
+| Multiple parallel agents | Manual worktrees (more control over paths) |
+| Need custom branch names | Manual worktrees |
+| Quick isolated work | Native `--worktree` flag |
+
+The manual worktree workflow described above remains the recommended approach for parallel task-builder execution where you need explicit control over worktree paths and branch names.
+
 ## Integration
 
 **Called by:**

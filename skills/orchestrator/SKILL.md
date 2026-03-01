@@ -283,9 +283,9 @@ These are always available via `Task` tool.
 | `/codex` | OpenAI Codex for reviews, debugging, second opinions |
 | `/gemini` | Google Gemini for reviews, debugging, second opinions |
 
-### Specialized Skills (Domain-Specific)
+### Specialized Skills (Domain-Specific, External)
 
-These handle specific domains. Use when relevant.
+These are NOT bundled with autonomous-dev-kit. They are external skills users install separately. Use when relevant and available — if a skill isn't installed, skip it silently.
 
 | Skill | Purpose |
 |-------|---------|

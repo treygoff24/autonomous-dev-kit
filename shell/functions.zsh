@@ -522,7 +522,7 @@ Example:
         echo ""
         __adk_review_context "$repo_root" "$diff_output"
     } | command codex exec \
-        --model gpt-5.2-codex \
+        --model "${CODEX_MODEL:-o4-mini}" \
         --config model_reasoning_effort="xhigh" \
         --yolo \
         --cd "$repo_root" \

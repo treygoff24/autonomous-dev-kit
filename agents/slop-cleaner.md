@@ -2,6 +2,9 @@
 name: slop-cleaner
 description: Remove AI-generated low-quality artifacts from code. Use PROACTIVELY after implementation phases, before commits. Fast and focused cleanup.
 model: haiku
+# bypassPermissions: required for autonomous cleanup (edit files in batch)
+# Note: uses haiku for speed — scoped to cosmetic edits only (see instructions below)
+permissionMode: bypassPermissions
 tools:
   - Read
   - Edit

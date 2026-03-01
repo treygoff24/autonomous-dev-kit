@@ -2,6 +2,8 @@
 name: parallel-investigator
 description: Investigate independent failures concurrently. Use when facing 3+ independent problems that can be investigated without shared state.
 model: sonnet
+# bypassPermissions: required for autonomous investigation (file reads, bash diagnostics)
+permissionMode: bypassPermissions
 tools:
   - Read
   - Edit

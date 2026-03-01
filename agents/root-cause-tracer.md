@@ -2,6 +2,8 @@
 name: root-cause-tracer
 description: Trace bugs backward through call stack to find original trigger. Use when errors occur deep in execution and you need to find the source of invalid data.
 model: sonnet
+# bypassPermissions: required for autonomous tracing (bash commands, file inspection)
+permissionMode: bypassPermissions
 tools:
   - Read
   - Grep

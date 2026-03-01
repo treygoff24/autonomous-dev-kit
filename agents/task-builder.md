@@ -74,22 +74,24 @@ This takes precedence over keyword detection.
 
 ### Skill Routing Table
 
-Scan the task subject and description. Load ALL matching skills:
+Scan the task subject and description. Load ALL matching skills **if they are installed** (skills are external — not all users will have every skill). If a skill isn't available, skip it silently and proceed without it.
 
-| Keywords (case-insensitive) | Load Skill | Notes |
-|-----------------------------|------------|-------|
-| UI, UX, component, frontend, interface, form, modal, button | `frontend-design` | |
+| Keywords (case-insensitive) | Load Skill (if available) | Notes |
+|-----------------------------|---------------------------|-------|
+| UI, UX, component, frontend, interface, form, modal, button | `frontend-design` | External skill |
 | Figma, design system, design spec | `figma:implement-design` | Built-in Claude Code skill |
-| Three.js, 3D, WebGL, scene, mesh, geometry | `threejs` | |
-| R3F, Drei, react-three-fiber, Canvas | `react-three-fiber` | |
-| shader, GLSL, material, fragment, vertex | `glsl-shaders` | |
-| Blender, 3D model, GLB, GLTF asset | `blender-3d` | |
-| AI SDK, useChat, useCompletion, streamText, generateText | `vercel-ai-sdk` | |
-| React performance, Next.js, optimization, bundle | `vercel-react-best-practices` | |
-| vanilla JS, no framework, Web Components | `vanilla-web-dev` | |
-| Word document, .docx, document generation | `docx` | |
+| Three.js, 3D, WebGL, scene, mesh, geometry | `threejs` | External skill |
+| R3F, Drei, react-three-fiber, Canvas | `react-three-fiber` | External skill |
+| shader, GLSL, material, fragment, vertex | `glsl-shaders` | External skill |
+| Blender, 3D model, GLB, GLTF asset | `blender-3d` | External skill |
+| AI SDK, useChat, useCompletion, streamText, generateText | `vercel-ai-sdk` | External skill |
+| React performance, Next.js, optimization, bundle | `vercel-react-best-practices` | External skill |
+| vanilla JS, no framework, Web Components | `vanilla-web-dev` | External skill |
+| Word document, .docx, document generation | `docx` | External skill |
 
 **Skill names:** Use bare names (no `/` prefix) in `skills=` and `Skill()` calls. The `/` prefix is for human-readable docs only.
+
+**Note:** These skills are NOT bundled with autonomous-dev-kit. They are external skills that users install separately. If a skill is not found when loading, proceed without it — the task-builder works fine without domain-specific skills.
 
 ### Examples
 

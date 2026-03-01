@@ -20,10 +20,9 @@ Before starting, verify you have:
 
 | Requirement | Check Command | Expected Output |
 |-------------|---------------|-----------------|
-| Node.js 18+ | `node -v` | `v18.x.x` or higher |
-| npm | `npm -v` | Any version |
 | Git | `git --version` | Any version |
 | Homebrew (macOS) | `brew --version` | Any version |
+| Node.js 18+ | `node -v` | `v18.x.x` or higher (needed for npm fallback install) |
 
 ### API Keys
 
@@ -60,7 +59,8 @@ cd autonomous-dev-kit
 
 The installer is interactive and will:
 - Install CLI tools (fd, fzf, bat, ripgrep, delta, jq, yq, sd)
-- Install Claude Code CLI
+- Install Claude Code CLI (native installer preferred, npm as fallback)
+- Warn if Claude Code version is below 2.1.33 (minimum for full feature support)
 - Set up shell functions and direnv hook
 - Create `~/.claude/` with hooks, agents, skills, rules, lib files, and templates
 - Let you pick what to install (skips what you already have)

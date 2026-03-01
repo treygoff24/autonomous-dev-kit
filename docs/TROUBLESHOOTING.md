@@ -21,15 +21,17 @@ Use only in trusted repos and isolated environments. Review diffs before committ
 **Fix:**
 
 ```bash
-# Install Claude Code CLI
+# Install Claude Code CLI (native method, recommended)
+curl -fsSL https://claude.ai/install.sh | bash
+
+# Or via npm (fallback)
 npm install -g @anthropic-ai/claude-code
 
 # Verify installation
 claude --version
 
-# If still not found, check npm global bin path
-npm bin -g
-# Add that path to your PATH if needed
+# If still not found, check your PATH
+which claude || echo "Not in PATH"
 ```
 
 ### "fd/bat/rg command not found"
@@ -140,9 +142,9 @@ Either:
 
    **From terminal (outside Claude Code):**
    ```bash
-   codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" \
-     --dangerously-bypass-approvals-and-sandbox \
-     "I'm stuck in an error loop. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?"
+    codex exec -m ${CODEX_MODEL:-o4-mini} -c model_reasoning_effort="xhigh" \
+      --dangerously-bypass-approvals-and-sandbox \
+      "I'm stuck in an error loop. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?"
    ```
 
 2. **Log the blocker in CONTEXT.md:**

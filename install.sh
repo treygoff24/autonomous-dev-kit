@@ -712,13 +712,50 @@ check_nodejs() {
     success "Node.js $(node -v) found"
 }
 
+check_claude_min_version() {
+    local version
+    version=$(claude_version)
+    if [ -z "$version" ]; then
+        return 1
+    fi
+
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "$version"
+    # Strip non-numeric suffixes (e.g., -nightly, -beta, -rc1)
+    patch="${patch%%[!0-9]*}"
+    patch="${patch:-0}"
+
+    # Minimum supported version: 2.1.33
+    if [ "$major" -lt 2 ]; then
+        return 1
+    fi
+    if [ "$major" -eq 2 ] && [ "$minor" -lt 1 ]; then
+        return 1
+    fi
+    if [ "$major" -eq 2 ] && [ "$minor" -eq 1 ] && [ "$patch" -lt 33 ]; then
+        return 1
+    fi
+    return 0
+}
+
 install_claude_code() {
     if command_exists claude; then
         success "Claude Code CLI already installed"
         claude --version 2>/dev/null || true
+        if ! check_claude_min_version; then
+            warn "Claude Code version $(claude_version) is below minimum 2.1.33"
+            warn "Some features (agent teams, modern frontmatter) require 2.1.33+"
+            warn "Update with: claude update"
+        fi
     else
         info "Installing Claude Code CLI..."
-        run npm install -g @anthropic-ai/claude-code
+        # Prefer native install method (recommended since 2.1.x)
+        if curl -fsSL https://claude.ai/install.sh | run bash; then
+            success "Claude Code installed via native installer"
+        else
+            warn "Native install failed, falling back to npm..."
+            run npm install -g @anthropic-ai/claude-code
+        fi
     fi
 }
 

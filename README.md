@@ -46,8 +46,8 @@ Then open Claude Code and say: "Read the autonomous build protocol and help me w
 Hooks keep sessions stable through compaction and restarts. Templates and skills enforce a spec -> plan -> build loop with review checkpoints.
 
 **Stop hooks enforce autonomy at two layers:**
-- **Deterministic global `stop.sh` engine** — Tracks loop state (`iteration`, verification cadence, stuck detection, max-iteration pause), checks completion (git clean, quality gates, task list, plan), blocks exit with `exit 2`, and clears state only when done.
-- **Prompt-based agent-scoped hooks** — tdd-implementer/debugger/task-builder still use Sonnet for role-specific quality checks.
+- **Deterministic global `stop.sh` engine** — Tracks loop state (`iteration`, verification cadence, stuck detection, max-iteration pause), checks completion (git clean, quality gates, task list, plan checkboxes), blocks exit with `exit 2`, and clears state only when done. Note: the stop hook checks objective completion criteria — it does not run code review itself.
+- **Prompt-based agent-scoped hooks** — tdd-implementer/debugger/task-builder use Sonnet for role-specific quality checks (TDD discipline, root-cause analysis, etc.).
 
 The bar is: "Would you ship this to production right now?" If not, exit is blocked and work continues.
 
@@ -89,6 +89,8 @@ I put quite a lot of thought and trial and error into when to make something an 
 | `/spec-quality-checklist`         | Applies a spec completeness checklist to remove ambiguity.                    |
 | `/accessibility-checklist`        | Applies an a11y checklist to catch common UI gaps.                            |
 | `/autonomous-loop`                | Activates loop mode to keep Claude working until completion criteria pass.    |
+| `/debugging-systematic`           | Systematic debugging with root-cause analysis via the debugger agent.        |
+| `/skill-creator`                  | Guide for creating new skills that extend Claude's capabilities.             |
 
 ### Rules (auto-loaded)
 
@@ -98,9 +100,9 @@ I put quite a lot of thought and trial and error into when to make something an 
 | `verification-standards.md` | Requires evidence before completion claims to stop hallucinated success. |
 | `code-quality.md`           | Flags slop patterns and enforces hygiene so the codebase stays clean.    |
 
-## Claude Code 2.1.x Features
+## Claude Code Features
 
-This kit leverages Claude Code 2.1.0 through 2.1.2 features:
+This kit requires Claude Code 2.1.33+ and leverages features through 2.1.63:
 
 | Feature | How We Use It |
 |---------|---------------|
@@ -112,6 +114,8 @@ This kit leverages Claude Code 2.1.0 through 2.1.2 features:
 | **Wildcard bash permissions** | Configure `Bash(npm *)`, `Bash(git *)` patterns for flexible command allowlists. |
 | **agent_type in SessionStart** | session-start.sh injects agent-specific context based on which agent is starting. |
 | **Ctrl+B backgrounding** | Background any running task (agents or commands) to continue working on other things. |
+| **Forked context (`context: fork`)** | Skills run in isolated sub-agent context for clean parallel execution. |
+| **Agent teams (experimental)** | Coordinate multiple agents via shared task lists for complex builds. |
 
 Core loop enforcement is handled by the global Stop command hook. Agent-scoped prompt hooks use Claude Code 2.1.x capabilities.
 

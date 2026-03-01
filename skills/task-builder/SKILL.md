@@ -90,21 +90,23 @@ Task-builders automatically load domain-specific skills before implementing:
 
 **Or let the agent auto-detect** — keywords like "Three.js", "3D", "scene" trigger automatic skill loading.
 
-**Skill routing (agent auto-detects):**
-| Keywords | Skill |
-|----------|-------|
-| UI, UX, modal, component, form, button | `frontend-design` |
-| Figma, design system | `figma:implement-design` |
-| Three.js, 3D, WebGL, scene, mesh | `threejs` |
-| R3F, Drei, react-three-fiber | `react-three-fiber` |
-| shader, GLSL, material | `glsl-shaders` |
-| Blender, GLB, GLTF | `blender-3d` |
-| useChat, streamText, AI SDK | `vercel-ai-sdk` |
-| React performance, Next.js, bundle | `vercel-react-best-practices` |
-| vanilla JS, Web Components | `vanilla-web-dev` |
-| .docx, Word document | `docx` |
+**Skill routing (agent auto-detects, loads if available):**
+| Keywords | Skill (if installed) | Notes |
+|----------|---------------------|-------|
+| UI, UX, modal, component, form, button | `frontend-design` | External |
+| Figma, design system | `figma:implement-design` | Built-in |
+| Three.js, 3D, WebGL, scene, mesh | `threejs` | External |
+| R3F, Drei, react-three-fiber | `react-three-fiber` | External |
+| shader, GLSL, material | `glsl-shaders` | External |
+| Blender, GLB, GLTF | `blender-3d` | External |
+| useChat, streamText, AI SDK | `vercel-ai-sdk` | External |
+| React performance, Next.js, bundle | `vercel-react-best-practices` | External |
+| vanilla JS, Web Components | `vanilla-web-dev` | External |
+| .docx, Word document | `docx` | External |
 
 Use bare skill names (no `/` prefix) in `skills=` parameter and Skill() calls. See `agents/task-builder.md` for the canonical routing table.
+
+**Note:** External skills are NOT bundled with autonomous-dev-kit. If a skill isn't installed, the agent skips it silently and proceeds without it.
 
 ## Parallel Execution Pattern
 

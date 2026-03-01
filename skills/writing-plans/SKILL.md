@@ -174,3 +174,5 @@ After saving the plan, offer execution choice:
 - Run `/task-builder` for each worktree
 - Review diffs + tests in worktrees before merging
 - Prefer `task-builder` when tasks share files or require shared context
+
+**4. Autonomous Loop** - Activate `/autonomous-loop` with the plan as the goal, let the stop hook enforce completion of all plan tasks automatically

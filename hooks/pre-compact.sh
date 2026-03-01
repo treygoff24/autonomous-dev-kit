@@ -28,10 +28,10 @@ mkdir -p "$HANDOFF_DIR"
 
 # Gather git info if in a repo
 GIT_INFO=""
-if git rev-parse --git-dir > /dev/null 2>&1; then
-    GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "detached")
-    GIT_STATUS=$(git status --short 2>/dev/null | head -20 || echo "")
-    GIT_RECENT=$(git log --oneline -5 2>/dev/null || echo "")
+if git -C "${CLAUDE_PROJECT_DIR:-.}" rev-parse --git-dir > /dev/null 2>&1; then
+    GIT_BRANCH=$(git -C "${CLAUDE_PROJECT_DIR:-.}" branch --show-current 2>/dev/null || echo "detached")
+    GIT_STATUS=$(git -C "${CLAUDE_PROJECT_DIR:-.}" status --short 2>/dev/null | head -20 || echo "")
+    GIT_RECENT=$(git -C "${CLAUDE_PROJECT_DIR:-.}" log --oneline -5 2>/dev/null || echo "")
 
     GIT_INFO="## Git State
 

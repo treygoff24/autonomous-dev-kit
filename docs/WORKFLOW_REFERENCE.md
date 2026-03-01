@@ -65,6 +65,8 @@ Task-builders automatically load domain-specific skills based on keywords in tas
 
 See `agents/task-builder.md` for the canonical routing table.
 
+**Note:** These domain skills are NOT bundled with autonomous-dev-kit — they are external skills users install separately. If a skill isn't available, the task-builder skips it silently and proceeds without it.
+
 **Note:** `skills=` is **exclusive** — if specified, it skips keyword detection entirely.
 
 Override with explicit `skills=` parameter:
@@ -225,11 +227,11 @@ The bash commands below are for reference when calling agents from outside Claud
 
 | Checkpoint | Command |
 |------------|---------|
-| Spec review | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Review SPEC.md for completeness, edge cases, security gaps, and implementation feasibility. Output: Critical gaps / Ambiguities / Suggestions / Verdict."` |
-| Plan review | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Review IMPLEMENTATION_PLAN.md against SPEC.md. Check for sequencing risks and alternative approaches. Verdict: approve or revise."` |
-| Phase review | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Review the current branch diff for Phase [N]. Check for security issues, edge cases, test coverage, performance. Verdict: approve or revise."` |
-| Final check | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Final cross-check. Read SPEC.md and IMPLEMENTATION_PLAN.md. Verify all criteria met. Verdict: ship it or fix issues."` |
-| Stuck | `codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "I'm stuck. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?"` |
+| Spec review | `codex exec -m ${CODEX_MODEL:-o4-mini} -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Review SPEC.md for completeness, edge cases, security gaps, and implementation feasibility. Output: Critical gaps / Ambiguities / Suggestions / Verdict."` |
+| Plan review | `codex exec -m ${CODEX_MODEL:-o4-mini} -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Review IMPLEMENTATION_PLAN.md against SPEC.md. Check for sequencing risks and alternative approaches. Verdict: approve or revise."` |
+| Phase review | `codex exec -m ${CODEX_MODEL:-o4-mini} -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Review the current branch diff for Phase [N]. Check for security issues, edge cases, test coverage, performance. Verdict: approve or revise."` |
+| Final check | `codex exec -m ${CODEX_MODEL:-o4-mini} -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "Final cross-check. Read SPEC.md and IMPLEMENTATION_PLAN.md. Verify all criteria met. Verdict: ship it or fix issues."` |
+| Stuck | `codex exec -m ${CODEX_MODEL:-o4-mini} -c model_reasoning_effort="xhigh" --dangerously-bypass-approvals-and-sandbox "I'm stuck. Error: [ERROR]. Tried: [APPROACHES]. What am I missing?"` |
 
 ### When to Call Gemini (from Claude or Codex)
 
@@ -390,7 +392,7 @@ User: /ralph-loop "Build X" --completion-promise "DONE" --max-iterations 50
 | Aspect | Ralph Wiggum | This Kit |
 |--------|--------------|----------|
 | **Completion detection** | Exact string match (`<promise>DONE</promise>`) | Deterministic stop-hook engine evaluates state + checks before allowing exit |
-| **What gets checked** | Just the completion string | Git clean + quality gates + plan tasks + code review |
+| **What gets checked** | Just the completion string | Git clean + quality gates + task list + plan checkboxes |
 | **Task scope** | Single-task loops | Multi-phase builds (Spec → Plan → Implement → Verify) |
 | **Context survival** | Filesystem only | Hooks inject handoffs + learnings after compaction |
 | **Protocol drift** | No protection | Verification codes + protocol re-reads every 3 iterations |
@@ -714,9 +716,9 @@ Check for:
 
 ---
 
-## Claude Code 2.1.x Features
+## Claude Code Features
 
-This toolkit leverages features from Claude Code 2.1.0 through 2.1.2. Here's what's available:
+This toolkit requires Claude Code 2.1.33+ and leverages features through 2.1.63. Here's what's available:
 
 ### Skill Hot-Reload
 
@@ -970,6 +972,63 @@ Enter plan mode directly:
 ```
 
 Or say "think" / "make a plan" in your prompt.
+
+### Agent Frontmatter (2.1.33+)
+
+Agents support modern frontmatter fields:
+
+```yaml
+---
+name: my-agent
+description: What this agent does
+model: sonnet
+permissionMode: bypassPermissions  # Skip permission prompts
+tools:
+  - Read
+  - Edit
+  - Bash
+hooks:
+  Stop:
+    - type: prompt
+      prompt: "Verify work is complete"
+      once: true
+---
+```
+
+| Field | Purpose |
+|-------|---------|
+| `permissionMode` | `bypassPermissions` for autonomous agents that need full tool access |
+| `model` | Which model to use (sonnet, haiku, opus) |
+| `tools` | Restrict available tools |
+| `hooks` | Lifecycle hooks (Stop, PreToolUse, PostToolUse) |
+
+### Agent Teams (Experimental, 2.1.63+)
+
+Agent teams allow multiple agents to coordinate via shared task lists. This is an experimental feature.
+
+```
+# Spawn a team of agents that share a task list
+Task(subagent_type="task-builder", prompt="task_id=1 ...")
+Task(subagent_type="task-builder", prompt="task_id=2 ...")
+Task(subagent_type="task-builder", prompt="task_id=3 ...")
+```
+
+For complex multi-task work (3+ parallel tasks), the orchestrator can create agent teams. For simpler work (1-2 tasks), traditional subagents work fine.
+
+### Native Worktree Isolation (2.1.33+)
+
+Agents can run in isolated worktrees natively:
+
+```yaml
+---
+name: my-agent
+isolation: worktree
+---
+```
+
+Or from CLI: `claude --agent my-agent --worktree`
+
+This creates a temporary worktree for the agent's work, automatically cleaned up when done. For parallel task-builder execution where you need explicit control over paths, use manual worktrees instead.
 
 ---
 

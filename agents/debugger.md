@@ -2,6 +2,9 @@
 name: debugger
 description: Systematic debugging with root cause analysis. Use PROACTIVELY when encountering bugs, test failures, or unexpected behavior. MUST BE USED before proposing fixes.
 model: sonnet
+# bypassPermissions: required for autonomous debugging loops (file edits, bash commands)
+# Security note: this agent runs with full tool access — review Stop hook constraints below
+permissionMode: bypassPermissions
 tools:
   - Read
   - Edit

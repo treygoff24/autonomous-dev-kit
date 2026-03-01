@@ -2,6 +2,8 @@
 name: tdd-implementer
 description: Test-driven development implementation. Use PROACTIVELY for new features, bug fixes, refactoring. Writes failing test first, then minimal implementation.
 model: sonnet
+# bypassPermissions: required for TDD loops (write tests, run them, edit code)
+permissionMode: bypassPermissions
 tools:
   - Read
   - Edit
