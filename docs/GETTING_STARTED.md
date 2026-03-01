@@ -128,6 +128,7 @@ Skills at `~/.claude/skills/` require conversation context and user interaction.
 |-------|---------|
 | `/orchestrator` | Activate orchestrator mode: coordinate specialists, maximize parallelism |
 | `/task-builder` | Spawn task-builder agent with task ID and worktree for parallel execution |
+| `/debugging-systematic` | Systematic root-cause debugging workflow via debugger agent |
 | `/brainstorming` | Refine vague ideas into concrete designs |
 | `/writing-plans` | Create detailed implementation plans |
 | `/codex` | Delegate to OpenAI Codex for reviews, debugging, second opinions |
@@ -141,7 +142,7 @@ Skills at `~/.claude/skills/` require conversation context and user interaction.
 | `/accessibility-checklist` | WCAG compliance for UI |
 | `/autonomous-loop` | Activate autonomous loop mode |
 
-Claude Code 2.1.0+ hot-reloads skills from `~/.claude/skills` and `.claude/skills` without restarting the session.
+Claude Code hot-reloads skills from `~/.claude/skills` and `.claude/skills` without restarting the session (feature introduced in 2.1.0+, kit minimum is 2.1.33+).
 
 ### Rules (Auto-loaded Standards)
 

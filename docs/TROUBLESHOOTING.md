@@ -67,13 +67,13 @@ Either:
 
 ### "Skill changes aren't showing up"
 
-**Cause:** You are on Claude Code < 2.1.0 or the session hasn't picked up file changes yet.
+**Cause:** You are below the kit minimum (Claude Code 2.1.33+) or the session hasn't picked up file changes yet.
 
 **Fix:**
 
-- On Claude Code 2.1.0+, skills in `~/.claude/skills` and `.claude/skills` hot-reload automatically.
+- Skills in `~/.claude/skills` and `.claude/skills` hot-reload automatically (feature introduced in 2.1.0+).
 - If it still doesn't appear, run `/context` or restart the session.
-- On older versions, restart is required.
+- On older versions, restart is required (and versions below 2.1.33 are not supported by this kit).
 
 ---
 

@@ -35,7 +35,7 @@ HEAD_SHA=$(git rev-parse HEAD)
 ```
 /requesting-code-review
 ```
-This runs in a forked `code-reviewer` agent context (Claude Code 2.1.0+).
+This runs in a forked `code-reviewer` agent context (forked context introduced in Claude Code 2.1.0+; this kit targets 2.1.33+).
 
 **Fallback (older versions):**
 If forked skills aren’t available, spawn the agent manually with the Task tool and use `requesting-code-review/code-reviewer.md` as the prompt.

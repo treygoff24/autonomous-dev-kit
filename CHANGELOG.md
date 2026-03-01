@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-02-28
+
+### Added
+
+- **Systematic debugging skill**
+  - Added `/debugging-systematic` as a first-class skill wrapper for debugger workflows
+
+- **Skills authoring guide**
+  - Added `docs/SKILLS_GUIDE.md` covering modern skill patterns and packaging guidance
+
+### Changed
+
+- **Claude Code modernization baseline**
+  - Modernized the kit for Claude Code 2.1.33+ and refreshed workflow references for current 2.1.x capabilities
+  - Updated install flow to prefer native Claude Code installation with npm fallback
+
+- **Agent and orchestration docs refresh**
+  - Refreshed orchestrator, autonomous loop, and task-builder guidance to align terminology and execution patterns
+  - Updated troubleshooting and getting-started docs with current compatibility and hot-reload notes
+
+- **Hook correctness and reliability improvements**
+  - Updated pre-compact git state capture to consistently use project-scoped git execution
+
+- **Model/configuration reference cleanup**
+  - Replaced stale hardcoded model assumptions with current/default configuration guidance
+
 ## [1.4.1] - 2026-02-10
 
 ### Changed
